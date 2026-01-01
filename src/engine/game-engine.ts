@@ -49,7 +49,9 @@ function createHeatCards(count: number): Card[] {
 
 export type Phase = "shift" | "playCards" | "move" | "resolve";
 
-export type Action = { type: "shift"; gear: Gear };
+export type Action =
+	| { type: "shift"; gear: Gear }
+	| { type: "playCards"; cardIndices: number[] };
 
 export interface GameState {
 	players: Record<string, Player>;
@@ -89,6 +91,7 @@ function parseCreateGameRequest(
 			gear: 1,
 			deck: createStartingDeck(request.map),
 			hand: [],
+			played: [],
 			engine: createStartingEngine(request.map),
 			discard: [],
 		});
@@ -135,6 +138,10 @@ export class Game {
 		switch (action.type) {
 			case "shift": {
 				player.shift(action.gear);
+				break;
+			}
+			case "playCards": {
+				player.playCards(action.cardIndices);
 				break;
 			}
 		}

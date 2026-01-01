@@ -193,5 +193,54 @@ describe("Game", () => {
 				).toThrow("Heat card required to shift by 2 gears");
 			});
 		});
+
+		describe("playCards", () => {
+			it("should move cards from hand to played", () => {
+				const game = new Game({
+					playerIds: [PLAYER_1_ID],
+					map: "USA",
+				});
+
+				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
+
+				const player = game.state.players[PLAYER_1_ID];
+				const cardsToBePlayed = [player.hand[0], player.hand[1]];
+
+				game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [0, 1] });
+
+				expect(player.played).toEqual(cardsToBePlayed);
+				expect(player.hand).toHaveLength(5);
+				expect(game.state.phase).toBe("move");
+			});
+
+			it("should reject wrong number of cards", () => {
+				const game = new Game({
+					playerIds: [PLAYER_1_ID],
+					map: "USA",
+				});
+
+				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
+
+				expect(() =>
+					game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [0] }),
+				).toThrow("Must play exactly 2 cards");
+			});
+
+			it("should reject invalid card index", () => {
+				const game = new Game({
+					playerIds: [PLAYER_1_ID],
+					map: "USA",
+				});
+
+				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
+
+				expect(() =>
+					game.dispatch(PLAYER_1_ID, {
+						type: "playCards",
+						cardIndices: [0, 99],
+					}),
+				).toThrow("Invalid card index: 99");
+			});
+		});
 	});
 });

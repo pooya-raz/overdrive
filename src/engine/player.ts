@@ -16,6 +16,7 @@ export class Player {
 	gear: Gear;
 	deck: Card[];
 	hand: Card[];
+	played: Card[];
 	engine: Card[];
 	discard: Card[];
 
@@ -24,6 +25,7 @@ export class Player {
 		gear: Gear;
 		deck: Card[];
 		hand: Card[];
+		played: Card[];
 		engine: Card[];
 		discard: Card[];
 	}) {
@@ -31,6 +33,7 @@ export class Player {
 		this.gear = options.gear;
 		this.deck = options.deck;
 		this.hand = options.hand;
+		this.played = options.played;
 		this.engine = options.engine;
 		this.discard = options.discard;
 	}
@@ -69,5 +72,21 @@ export class Player {
 			this.discard.push(heat);
 		}
 		this.gear = nextGear;
+	}
+
+	playCards(cardIndices: number[]): void {
+		if (cardIndices.length !== this.gear) {
+			throw new Error(`Must play exactly ${this.gear} cards`);
+		}
+
+		// Sort descending: removing lower indices first would shift higher ones
+		const sortedIndices = [...cardIndices].sort((a, b) => b - a);
+		for (const index of sortedIndices) {
+			if (index < 0 || index >= this.hand.length) {
+				throw new Error(`Invalid card index: ${index}`);
+			}
+			const [card] = this.hand.splice(index, 1);
+			this.played.push(card);
+		}
 	}
 }

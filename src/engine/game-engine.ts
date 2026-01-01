@@ -51,6 +51,7 @@ export interface Player {
 	id: string;
 	gear: Gear;
 	deck: Card[];
+	hand: Card[];
 	engine: Card[];
 	discard: Card[];
 }
@@ -92,6 +93,7 @@ function parseCreateGameRequest(
 			id,
 			gear: 1,
 			deck: createStartingDeck(request.map),
+			hand: [],
 			engine: createStartingEngine(request.map),
 			discard: [],
 		};

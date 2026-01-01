@@ -1,34 +1,34 @@
 export interface CreateGameRequest {
-  playerIds: string[];
+	playerIds: string[];
 }
 
 export interface Player {
-  id: string;
+	id: string;
 }
 
 export interface GameState {
-  players: Player[];
-  turn: number;
+	players: Player[];
+	turn: number;
 }
 
 function parseCreateGameRequest(request: CreateGameRequest): Player[] {
-  if (new Set(request.playerIds).size !== request.playerIds.length) {
-    throw new Error('Player IDs must be unique');
-  }
-  return request.playerIds.map((id) => ({ id }));
+	if (new Set(request.playerIds).size !== request.playerIds.length) {
+		throw new Error("Player IDs must be unique");
+	}
+	return request.playerIds.map((id) => ({ id }));
 }
 
 export class Game {
-  private _state: GameState;
+	private _state: GameState;
 
-  constructor(request: CreateGameRequest) {
-    this._state = {
-      players: parseCreateGameRequest(request),
-      turn: 1,
-    };
-  }
+	constructor(request: CreateGameRequest) {
+		this._state = {
+			players: parseCreateGameRequest(request),
+			turn: 1,
+		};
+	}
 
-  get state(): GameState {
-    return this._state;
-  }
+	get state(): GameState {
+		return this._state;
+	}
 }

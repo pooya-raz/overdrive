@@ -52,6 +52,7 @@ export interface Player {
 	gear: Gear;
 	deck: Card[];
 	engine: Card[];
+	discard: Card[];
 }
 
 export interface GameState {
@@ -92,6 +93,7 @@ function parseCreateGameRequest(
 			gear: 1,
 			deck: createStartingDeck(request.map),
 			engine: createStartingEngine(request.map),
+			discard: [],
 		};
 	}
 	return players;

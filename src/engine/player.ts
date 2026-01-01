@@ -71,6 +71,24 @@ export class Player {
 		this.gear = nextGear;
 	}
 
+	discardAndReplenish(discardIndices: number[]): void {
+		const sortedIndices = [...discardIndices].sort((a, b) => b - a);
+		for (const index of sortedIndices) {
+			const card = this.hand[index];
+			if (card.type === "heat") {
+				throw new Error("Cannot discard heat cards");
+			}
+			if (card.type === "stress") {
+				throw new Error("Cannot discard stress cards");
+			}
+			this.discard.push(...this.hand.splice(index, 1));
+		}
+
+		this.discard.push(...this.played);
+		this.played = [];
+		this.draw();
+	}
+
 	playCards(cardIndices: number[]): void {
 		if (cardIndices.length !== this.gear) {
 			throw new Error(`Must play exactly ${this.gear} cards`);

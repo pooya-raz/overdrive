@@ -127,6 +127,95 @@ describe("Player", () => {
 		});
 	});
 
+	describe("discardAndReplenish", () => {
+		it("moves played cards to discard and draws new hand", () => {
+			const played: Card[] = [
+				{ type: "speed", value: 1 },
+				{ type: "speed", value: 2 },
+			];
+			const deck: Card[] = [
+				{ type: "speed", value: 3 },
+				{ type: "speed", value: 4 },
+			];
+			const hand: Card[] = [
+				{ type: "upgrade", value: 0 },
+				{ type: "upgrade", value: 5 },
+				{ type: "heat" },
+				{ type: "stress" },
+				{ type: "stress" },
+			];
+			const player = createPlayer({ played, deck, hand, discard: [] });
+
+			player.discardAndReplenish([]);
+
+			expect(player.played).toEqual([]);
+			expect(player.discard).toEqual([
+				{ type: "speed", value: 1 },
+				{ type: "speed", value: 2 },
+			]);
+			expect(player.hand).toHaveLength(7);
+		});
+
+		it("allows discarding speed and upgrade cards from hand", () => {
+			const hand: Card[] = [
+				{ type: "speed", value: 1 },
+				{ type: "upgrade", value: 5 },
+				{ type: "heat" },
+				{ type: "stress" },
+				{ type: "speed", value: 2 },
+				{ type: "speed", value: 3 },
+				{ type: "speed", value: 4 },
+			];
+			const deck: Card[] = [
+				{ type: "speed", value: 1 },
+				{ type: "speed", value: 2 },
+			];
+			const player = createPlayer({ played: [], deck, hand, discard: [] });
+
+			player.discardAndReplenish([0, 1]);
+
+			expect(player.discard).toEqual([
+				{ type: "upgrade", value: 5 },
+				{ type: "speed", value: 1 },
+			]);
+			expect(player.hand).toHaveLength(7);
+		});
+
+		it("rejects discarding heat cards", () => {
+			const hand: Card[] = [
+				{ type: "heat" },
+				{ type: "speed", value: 1 },
+				{ type: "speed", value: 2 },
+				{ type: "speed", value: 3 },
+				{ type: "speed", value: 4 },
+				{ type: "upgrade", value: 0 },
+				{ type: "upgrade", value: 5 },
+			];
+			const player = createPlayer({ played: [], deck: [], hand, discard: [] });
+
+			expect(() => player.discardAndReplenish([0])).toThrow(
+				"Cannot discard heat cards",
+			);
+		});
+
+		it("rejects discarding stress cards", () => {
+			const hand: Card[] = [
+				{ type: "stress" },
+				{ type: "speed", value: 1 },
+				{ type: "speed", value: 2 },
+				{ type: "speed", value: 3 },
+				{ type: "speed", value: 4 },
+				{ type: "upgrade", value: 0 },
+				{ type: "upgrade", value: 5 },
+			];
+			const player = createPlayer({ played: [], deck: [], hand, discard: [] });
+
+			expect(() => player.discardAndReplenish([0])).toThrow(
+				"Cannot discard stress cards",
+			);
+		});
+	});
+
 	describe("playCards", () => {
 		it("moves cards from hand to played", () => {
 			const hand: Card[] = [

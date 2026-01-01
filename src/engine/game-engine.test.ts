@@ -99,11 +99,11 @@ describe("Game", () => {
 			});
 
 			game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
-			game._state.phase = "resolve";
+			game._state.phase = "discardAndReplenish";
 			game._state.pendingPlayers = { [PLAYER_1_ID]: true };
 			game.dispatch(PLAYER_1_ID, {
-				type: "resolve" as never,
-				gear: 2 as never,
+				type: "discardAndReplenish",
+				discardIndices: [],
 			});
 
 			expect(game.state.turn).toBe(2);

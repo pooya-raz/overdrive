@@ -47,11 +47,12 @@ function createHeatCards(count: number): Card[] {
 	return Array(count).fill({ type: "heat" });
 }
 
-export type Phase = "shift" | "playCards" | "move" | "resolve";
+export type Phase = "shift" | "playCards" | "move" | "discardAndReplenish";
 
 export type Action =
 	| { type: "shift"; gear: Gear }
-	| { type: "playCards"; cardIndices: number[] };
+	| { type: "playCards"; cardIndices: number[] }
+	| { type: "discardAndReplenish"; discardIndices: number[] };
 
 export interface GameState {
 	players: Record<string, Player>;
@@ -144,6 +145,10 @@ export class Game {
 				player.playCards(action.cardIndices);
 				break;
 			}
+			case "discardAndReplenish": {
+				player.discardAndReplenish(action.discardIndices);
+				break;
+			}
 		}
 
 		this._state.pendingPlayers[playerId] = false;
@@ -155,7 +160,12 @@ export class Game {
 	}
 
 	private advancePhase(): void {
-		const phaseOrder: Phase[] = ["shift", "playCards", "move", "resolve"];
+		const phaseOrder: Phase[] = [
+			"shift",
+			"playCards",
+			"move",
+			"discardAndReplenish",
+		];
 		const currentPhase = phaseOrder.indexOf(this._state.phase);
 		const nextPhase = currentPhase + 1;
 		const isEndOfTurn = nextPhase >= phaseOrder.length;

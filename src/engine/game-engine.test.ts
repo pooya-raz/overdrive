@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-	type Card,
-	type CreateGameRequest,
-	Game,
-	type GameState,
-} from "./game-engine";
+import { type Card, type CreateGameRequest, Game } from "./game-engine";
 
 const PLAYER_1_ID = "550e8400-e29b-41d4-a716-446655440001";
 const PLAYER_2_ID = "550e8400-e29b-41d4-a716-446655440002";

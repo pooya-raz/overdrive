@@ -1,3 +1,7 @@
+import { Player } from "./player";
+
+export { Player };
+
 export type Map = "USA";
 
 export interface CreateGameRequest {
@@ -47,15 +51,6 @@ export type Phase = "shift" | "playCards" | "move" | "resolve";
 
 export type Action = { type: "shift"; gear: Gear };
 
-export interface Player {
-	id: string;
-	gear: Gear;
-	deck: Card[];
-	hand: Card[];
-	engine: Card[];
-	discard: Card[];
-}
-
 export interface GameState {
 	players: Record<string, Player>;
 	turn: number;
@@ -89,47 +84,16 @@ function parseCreateGameRequest(
 	}
 	const players: Record<string, Player> = {};
 	for (const id of request.playerIds) {
-		players[id] = {
+		players[id] = new Player({
 			id,
 			gear: 1,
 			deck: createStartingDeck(request.map),
 			hand: [],
 			engine: createStartingEngine(request.map),
 			discard: [],
-		};
+		});
 	}
 	return players;
-}
-
-function shuffle(cards: Card[]): Card[] {
-	const shuffled = [...cards];
-
-	for (let i = shuffled.length - 1; i > 0; i--) {
-		const j = Math.floor(Math.random() * (i + 1));
-		[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-	}
-
-	return shuffled;
-}
-
-function draw(player: Player): void {
-	while (player.hand.length < 7) {
-		// If deck empty, refill from discard
-		if (player.deck.length === 0) {
-			if (player.discard.length === 0) {
-				throw new Error("No cards left to draw (deck and discard empty).");
-			}
-			player.deck = shuffle(player.discard);
-		}
-
-		const c = player.deck.pop();
-		if (!c) break; // safety
-		player.hand.push(c);
-	}
-
-	if (player.hand.length < 7) {
-		throw new Error(`Could only draw ${player.hand.length} cards.`);
-	}
 }
 
 export class Game {
@@ -138,7 +102,7 @@ export class Game {
 	constructor(request: CreateGameRequest) {
 		const players = parseCreateGameRequest(request);
 		for (const player of Object.values(players)) {
-			draw(player);
+			player.draw();
 		}
 		this._state = {
 			players,
@@ -170,11 +134,7 @@ export class Game {
 
 		switch (action.type) {
 			case "shift": {
-				const diff = action.gear - player.gear;
-				if (![-1, 0, 1].includes(diff)) {
-					throw new Error("Can only shift up or down by 1 gear");
-				}
-				player.gear = action.gear;
+				player.shift(action.gear);
 				break;
 			}
 		}

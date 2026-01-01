@@ -49,30 +49,27 @@ describe("Game", () => {
 
 			const game = new Game(request);
 
-			const expectedState: GameState = {
-				players: {
-					[PLAYER_1_ID]: {
-						id: PLAYER_1_ID,
-						gear: 1,
-						deck: USA_STARTING_DECK,
-						hand: [],
-						engine: USA_STARTING_ENGINE,
-						discard: [],
-					},
-					[PLAYER_2_ID]: {
-						id: PLAYER_2_ID,
-						gear: 1,
-						deck: USA_STARTING_DECK,
-						hand: [],
-						engine: USA_STARTING_ENGINE,
-						discard: [],
-					},
-				},
-				turn: 1,
-				phase: "shift",
-				pendingPlayers: { [PLAYER_1_ID]: true, [PLAYER_2_ID]: true },
-			};
-			expect(game.state).toEqual(expectedState);
+			expect(game.state.turn).toBe(1);
+			expect(game.state.phase).toBe("shift");
+			expect(game.state.pendingPlayers).toEqual({
+				[PLAYER_1_ID]: true,
+				[PLAYER_2_ID]: true,
+			});
+
+			for (const id of request.playerIds) {
+				const player = game.state.players[id];
+				expect(player.gear).toBe(1);
+				expect(player.engine).toEqual(USA_STARTING_ENGINE);
+				expect(player.discard).toEqual([]);
+				expect(player.hand).toHaveLength(7);
+				expect(player.deck).toHaveLength(USA_STARTING_DECK.length - 7);
+				expect([...player.deck, ...player.hand]).toEqual(
+					expect.arrayContaining(USA_STARTING_DECK),
+				);
+				expect(USA_STARTING_DECK).toEqual(
+					expect.arrayContaining([...player.deck, ...player.hand]),
+				);
+			}
 		});
 
 		it("should reject duplicate player UUIDs", () => {
@@ -164,30 +161,27 @@ describe("Game", () => {
 				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
 				game.dispatch(PLAYER_2_ID, { type: "shift", gear: 2 });
 
-				const expectedState: GameState = {
-					players: {
-						[PLAYER_1_ID]: {
-							id: PLAYER_1_ID,
-							gear: 2,
-							deck: USA_STARTING_DECK,
-							hand: [],
-							engine: USA_STARTING_ENGINE,
-							discard: [],
-						},
-						[PLAYER_2_ID]: {
-							id: PLAYER_2_ID,
-							gear: 2,
-							deck: USA_STARTING_DECK,
-							hand: [],
-							engine: USA_STARTING_ENGINE,
-							discard: [],
-						},
-					},
-					turn: 1,
-					phase: "playCards",
-					pendingPlayers: { [PLAYER_1_ID]: true, [PLAYER_2_ID]: true },
-				};
-				expect(game.state).toEqual(expectedState);
+				expect(game.state.turn).toBe(1);
+				expect(game.state.phase).toBe("playCards");
+				expect(game.state.pendingPlayers).toEqual({
+					[PLAYER_1_ID]: true,
+					[PLAYER_2_ID]: true,
+				});
+
+				for (const id of [PLAYER_1_ID, PLAYER_2_ID]) {
+					const player = game.state.players[id];
+					expect(player.gear).toBe(2);
+					expect(player.engine).toEqual(USA_STARTING_ENGINE);
+					expect(player.discard).toEqual([]);
+					expect(player.hand).toHaveLength(7);
+					expect(player.deck).toHaveLength(USA_STARTING_DECK.length - 7);
+					expect([...player.deck, ...player.hand]).toEqual(
+						expect.arrayContaining(USA_STARTING_DECK),
+					);
+					expect(USA_STARTING_DECK).toEqual(
+						expect.arrayContaining([...player.deck, ...player.hand]),
+					);
+				}
 			});
 
 			it("should reject shift of more than 1 gear", () => {

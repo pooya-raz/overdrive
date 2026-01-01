@@ -30,6 +30,15 @@ const USA_STARTING_DECK: Card[] = [
 	{ type: "stress" },
 ];
 
+const USA_STARTING_ENGINE: Card[] = [
+	{ type: "heat" },
+	{ type: "heat" },
+	{ type: "heat" },
+	{ type: "heat" },
+	{ type: "heat" },
+	{ type: "heat" },
+];
+
 describe("Game", () => {
 	describe("initialization", () => {
 		it("should create a game with players on turn 1", () => {
@@ -42,8 +51,18 @@ describe("Game", () => {
 
 			const expectedState: GameState = {
 				players: {
-					[PLAYER_1_ID]: { id: PLAYER_1_ID, gear: 1, deck: USA_STARTING_DECK },
-					[PLAYER_2_ID]: { id: PLAYER_2_ID, gear: 1, deck: USA_STARTING_DECK },
+					[PLAYER_1_ID]: {
+						id: PLAYER_1_ID,
+						gear: 1,
+						deck: USA_STARTING_DECK,
+						engine: USA_STARTING_ENGINE,
+					},
+					[PLAYER_2_ID]: {
+						id: PLAYER_2_ID,
+						gear: 1,
+						deck: USA_STARTING_DECK,
+						engine: USA_STARTING_ENGINE,
+					},
 				},
 				turn: 1,
 				phase: "shift",
@@ -147,11 +166,13 @@ describe("Game", () => {
 							id: PLAYER_1_ID,
 							gear: 2,
 							deck: USA_STARTING_DECK,
+							engine: USA_STARTING_ENGINE,
 						},
 						[PLAYER_2_ID]: {
 							id: PLAYER_2_ID,
 							gear: 2,
 							deck: USA_STARTING_DECK,
+							engine: USA_STARTING_ENGINE,
 						},
 					},
 					turn: 1,

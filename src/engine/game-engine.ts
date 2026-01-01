@@ -1,8 +1,8 @@
-export type GameMap = "USA";
+export type Map = "USA";
 
 export interface CreateGameRequest {
 	playerIds: string[];
-	map: GameMap;
+	map: Map;
 }
 
 export type Gear = 1 | 2 | 3 | 4;
@@ -51,6 +51,7 @@ export interface Player {
 	id: string;
 	gear: Gear;
 	deck: Card[];
+	engine: Card[];
 }
 
 export interface GameState {
@@ -60,18 +61,22 @@ export interface GameState {
 	pendingPlayers: Record<string, boolean>;
 }
 
-const MAP_CONFIG: Record<GameMap, { stressCards: number; heatCards: number }> =
-	{
-		USA: { stressCards: 3, heatCards: 6 },
-	};
+const MAP_CONFIG: Record<Map, { stressCards: number; heatCards: number }> = {
+	USA: { stressCards: 3, heatCards: 6 },
+};
 
-function createStartingDeck(map: GameMap): Card[] {
+function createStartingDeck(map: Map): Card[] {
 	const config = MAP_CONFIG[map];
 	return [
 		...STARTING_SPEED_CARDS,
 		...STARTING_UPGRADE_CARDS,
 		...createStressCards(config.stressCards),
 	];
+}
+
+function createStartingEngine(map: Map): Card[] {
+	const config = MAP_CONFIG[map];
+	return createHeatCards(config.heatCards);
 }
 
 function parseCreateGameRequest(
@@ -82,7 +87,12 @@ function parseCreateGameRequest(
 	}
 	const players: Record<string, Player> = {};
 	for (const id of request.playerIds) {
-		players[id] = { id, gear: 1, deck: createStartingDeck(request.map) };
+		players[id] = {
+			id,
+			gear: 1,
+			deck: createStartingDeck(request.map),
+			engine: createStartingEngine(request.map),
+		};
 	}
 	return players;
 }

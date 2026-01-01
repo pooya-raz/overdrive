@@ -66,13 +66,9 @@ describe("Player", () => {
 
 			expect(player.hand).toHaveLength(7);
 			expect(player.deck).toHaveLength(0);
-			expect(player.discard).toHaveLength(7);
-			expect([...player.hand, ...player.deck]).toEqual(
-				expect.arrayContaining(expectedCards),
-			);
-			expect(expectedCards).toEqual(
-				expect.arrayContaining([...player.hand, ...player.deck]),
-			);
+			expect(player.discard).toHaveLength(0);
+			expect(player.hand).toEqual(expect.arrayContaining(expectedCards));
+			expect(expectedCards).toEqual(expect.arrayContaining(player.hand));
 		});
 
 		it("throws when there are not enough cards to reach 7", () => {

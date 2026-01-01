@@ -40,30 +40,26 @@ export class Player {
 
 	draw(): void {
 		while (this.hand.length < 7) {
-			// If deck empty, refill from discard
 			if (this.deck.length === 0) {
 				if (this.discard.length === 0) {
 					throw new Error("No cards left to draw (deck and discard empty).");
 				}
 				this.deck = shuffle(this.discard);
+				this.discard = [];
 			}
-
-			const c = this.deck.pop();
-			if (!c) break; // safety
-			this.hand.push(c);
-		}
-
-		if (this.hand.length < 7) {
-			throw new Error(`Could only draw ${this.hand.length} cards.`);
+			const card = this.deck.pop();
+			if (card) this.hand.push(card);
 		}
 	}
 
 	shift(nextGear: Gear): void {
-		const diff = nextGear - this.gear;
-		if (![-1, 0, 1].includes(diff)) {
-			if (![-2, 2].includes(diff)) {
-				throw new Error("Can only shift up or down by max 2 gears");
-			}
+		const diff = Math.abs(nextGear - this.gear);
+
+		if (diff > 2) {
+			throw new Error("Can only shift up or down by max 2 gears");
+		}
+
+		if (diff === 2) {
 			const heatIndex = this.engine.findIndex((card) => card.type === "heat");
 			if (heatIndex === -1) {
 				throw new Error("Heat card required to shift by 2 gears");
@@ -71,6 +67,7 @@ export class Player {
 			const [heat] = this.engine.splice(heatIndex, 1);
 			this.discard.push(heat);
 		}
+
 		this.gear = nextGear;
 	}
 

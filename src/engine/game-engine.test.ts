@@ -14,13 +14,13 @@ describe("Game", () => {
 			const game = new Game(request);
 
 			const expectedState: GameState = {
-				players: [
-					{ id: PLAYER_1_ID, gear: 1 },
-					{ id: PLAYER_2_ID, gear: 1 },
-				],
+				players: {
+					[PLAYER_1_ID]: { id: PLAYER_1_ID, gear: 1 },
+					[PLAYER_2_ID]: { id: PLAYER_2_ID, gear: 1 },
+				},
 				turn: 1,
 				phase: "shift",
-				pendingPlayers: [PLAYER_1_ID, PLAYER_2_ID],
+				pendingPlayers: { [PLAYER_1_ID]: true, [PLAYER_2_ID]: true },
 			};
 			expect(game.state).toEqual(expectedState);
 		});
@@ -41,28 +41,31 @@ describe("Game", () => {
 			});
 
 			game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
-			game.dispatch(PLAYER_2_ID, { type: "shift", gear: 3 });
+			game.dispatch(PLAYER_2_ID, { type: "shift", gear: 2 });
 
 			const expectedState: GameState = {
-				players: [
-					{ id: PLAYER_1_ID, gear: 2 },
-					{ id: PLAYER_2_ID, gear: 3 },
-				],
+				players: {
+					[PLAYER_1_ID]: { id: PLAYER_1_ID, gear: 2 },
+					[PLAYER_2_ID]: { id: PLAYER_2_ID, gear: 2 },
+				},
 				turn: 1,
 				phase: "playCards",
-				pendingPlayers: [PLAYER_1_ID, PLAYER_2_ID],
+				pendingPlayers: { [PLAYER_1_ID]: true, [PLAYER_2_ID]: true },
 			};
 			expect(game.state).toEqual(expectedState);
 		});
 
-		it("should remove player from pending after action", () => {
+		it("should mark player as acted after action", () => {
 			const game = new Game({
 				playerIds: [PLAYER_1_ID, PLAYER_2_ID],
 			});
 
 			game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
 
-			expect(game.state.pendingPlayers).toEqual([PLAYER_2_ID]);
+			expect(game.state.pendingPlayers).toEqual({
+				[PLAYER_1_ID]: false,
+				[PLAYER_2_ID]: true,
+			});
 		});
 
 		it("should advance turn after all phases complete", () => {
@@ -72,7 +75,7 @@ describe("Game", () => {
 
 			game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
 			game._state.phase = "resolve";
-			game._state.pendingPlayers = [PLAYER_1_ID];
+			game._state.pendingPlayers = { [PLAYER_1_ID]: true };
 			game.dispatch(PLAYER_1_ID, {
 				type: "resolve" as never,
 				gear: 2 as never,
@@ -113,6 +116,16 @@ describe("Game", () => {
 			expect(() =>
 				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 3 }),
 			).toThrow("Player has already acted this phase");
+		});
+
+		it("should reject shift of more than 1 gear", () => {
+			const game = new Game({
+				playerIds: [PLAYER_1_ID],
+			});
+
+			expect(() =>
+				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 3 }),
+			).toThrow("Can only shift up or down by 1 gear");
 		});
 	});
 });

@@ -14,17 +14,23 @@ export interface Player {
 }
 
 export interface GameState {
-	players: Player[];
+	players: Record<string, Player>;
 	turn: number;
 	phase: Phase;
-	pendingPlayers: string[];
+	pendingPlayers: Record<string, boolean>;
 }
 
-function parseCreateGameRequest(request: CreateGameRequest): Player[] {
+function parseCreateGameRequest(
+	request: CreateGameRequest,
+): Record<string, Player> {
 	if (new Set(request.playerIds).size !== request.playerIds.length) {
 		throw new Error("Player IDs must be unique");
 	}
-	return request.playerIds.map((id): Player => ({ id, gear: 1 }));
+	const players: Record<string, Player> = {};
+	for (const id of request.playerIds) {
+		players[id] = { id, gear: 1 };
+	}
+	return players;
 }
 
 export class Game {
@@ -36,7 +42,9 @@ export class Game {
 			players,
 			turn: 1,
 			phase: "shift",
-			pendingPlayers: players.map((p) => p.id),
+			pendingPlayers: Object.fromEntries(
+				Object.keys(players).map((id) => [id, true]),
+			),
 		};
 	}
 
@@ -49,43 +57,49 @@ export class Game {
 			throw new Error(`Invalid action for phase ${this._state.phase}`);
 		}
 
-		const playerIndex = this._state.players.findIndex((p) => p.id === playerId);
-		if (playerIndex === -1) {
+		const player = this._state.players[playerId];
+		if (!player) {
 			throw new Error("Player not found");
 		}
 
-		if (!this._state.pendingPlayers.includes(playerId)) {
+		if (!this._state.pendingPlayers[playerId]) {
 			throw new Error("Player has already acted this phase");
 		}
 
 		switch (action.type) {
-			case "shift":
-				this._state.players[playerIndex].gear = action.gear;
+			case "shift": {
+				const diff = action.gear - player.gear;
+				if (![-1, 0, 1].includes(diff)) {
+					throw new Error("Can only shift up or down by 1 gear");
+				}
+				player.gear = action.gear;
 				break;
+			}
 		}
 
-		this._state.pendingPlayers = this._state.pendingPlayers.filter(
-			(id) => id !== playerId,
-		);
+		this._state.pendingPlayers[playerId] = false;
 
-		if (this._state.pendingPlayers.length === 0) {
+		const allActed = Object.values(this._state.pendingPlayers).every((v) => !v);
+		if (allActed) {
 			this.advancePhase();
 		}
 	}
 
 	private advancePhase(): void {
 		const phaseOrder: Phase[] = ["shift", "playCards", "move", "resolve"];
-		const currentIndex = phaseOrder.indexOf(this._state.phase);
-		const nextIndex = currentIndex + 1;
-		const isEndOfTurn = nextIndex >= phaseOrder.length;
+		const currentPhase = phaseOrder.indexOf(this._state.phase);
+		const nextPhase = currentPhase + 1;
+		const isEndOfTurn = nextPhase >= phaseOrder.length;
 
 		if (isEndOfTurn) {
 			this._state.phase = phaseOrder[0];
 			this._state.turn += 1;
 		} else {
-			this._state.phase = phaseOrder[nextIndex];
+			this._state.phase = phaseOrder[nextPhase];
 		}
 
-		this._state.pendingPlayers = this._state.players.map((p) => p.id);
+		this._state.pendingPlayers = Object.fromEntries(
+			Object.keys(this._state.players).map((id) => [id, true]),
+		);
 	}
 }

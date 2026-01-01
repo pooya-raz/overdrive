@@ -35,26 +35,6 @@ describe("Game", () => {
 	});
 
 	describe("dispatch", () => {
-		it("should shift player gear and move to new phase", () => {
-			const game = new Game({
-				playerIds: [PLAYER_1_ID, PLAYER_2_ID],
-			});
-
-			game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
-			game.dispatch(PLAYER_2_ID, { type: "shift", gear: 2 });
-
-			const expectedState: GameState = {
-				players: {
-					[PLAYER_1_ID]: { id: PLAYER_1_ID, gear: 2 },
-					[PLAYER_2_ID]: { id: PLAYER_2_ID, gear: 2 },
-				},
-				turn: 1,
-				phase: "playCards",
-				pendingPlayers: { [PLAYER_1_ID]: true, [PLAYER_2_ID]: true },
-			};
-			expect(game.state).toEqual(expectedState);
-		});
-
 		it("should mark player as acted after action", () => {
 			const game = new Game({
 				playerIds: [PLAYER_1_ID, PLAYER_2_ID],
@@ -118,14 +98,36 @@ describe("Game", () => {
 			).toThrow("Player has already acted this phase");
 		});
 
-		it("should reject shift of more than 1 gear", () => {
-			const game = new Game({
-				playerIds: [PLAYER_1_ID],
+		describe("shift", () => {
+			it("should shift player gear and move to new phase", () => {
+				const game = new Game({
+					playerIds: [PLAYER_1_ID, PLAYER_2_ID],
+				});
+
+				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
+				game.dispatch(PLAYER_2_ID, { type: "shift", gear: 2 });
+
+				const expectedState: GameState = {
+					players: {
+						[PLAYER_1_ID]: { id: PLAYER_1_ID, gear: 2 },
+						[PLAYER_2_ID]: { id: PLAYER_2_ID, gear: 2 },
+					},
+					turn: 1,
+					phase: "playCards",
+					pendingPlayers: { [PLAYER_1_ID]: true, [PLAYER_2_ID]: true },
+				};
+				expect(game.state).toEqual(expectedState);
 			});
 
-			expect(() =>
-				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 3 }),
-			).toThrow("Can only shift up or down by 1 gear");
+			it("should reject shift of more than 1 gear", () => {
+				const game = new Game({
+					playerIds: [PLAYER_1_ID],
+				});
+
+				expect(() =>
+					game.dispatch(PLAYER_1_ID, { type: "shift", gear: 3 }),
+				).toThrow("Can only shift up or down by 1 gear");
+			});
 		});
 	});
 });

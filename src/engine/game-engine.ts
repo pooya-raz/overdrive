@@ -1,8 +1,47 @@
+export type GameMap = "USA";
+
 export interface CreateGameRequest {
 	playerIds: string[];
+	map: GameMap;
 }
 
 export type Gear = 1 | 2 | 3 | 4;
+
+export type CardType = "speed" | "heat" | "stress" | "upgrade";
+
+export interface Card {
+	type: CardType;
+	value?: number;
+}
+
+const STARTING_SPEED_CARDS: Card[] = [
+	{ type: "speed", value: 1 },
+	{ type: "speed", value: 1 },
+	{ type: "speed", value: 1 },
+	{ type: "speed", value: 2 },
+	{ type: "speed", value: 2 },
+	{ type: "speed", value: 2 },
+	{ type: "speed", value: 3 },
+	{ type: "speed", value: 3 },
+	{ type: "speed", value: 3 },
+	{ type: "speed", value: 4 },
+	{ type: "speed", value: 4 },
+	{ type: "speed", value: 4 },
+];
+
+const STARTING_UPGRADE_CARDS: Card[] = [
+	{ type: "upgrade", value: 0 },
+	{ type: "upgrade", value: 5 },
+	{ type: "heat" },
+];
+
+function createStressCards(count: number): Card[] {
+	return Array(count).fill({ type: "stress" });
+}
+
+function createHeatCards(count: number): Card[] {
+	return Array(count).fill({ type: "heat" });
+}
 
 export type Phase = "shift" | "playCards" | "move" | "resolve";
 
@@ -11,6 +50,7 @@ export type Action = { type: "shift"; gear: Gear };
 export interface Player {
 	id: string;
 	gear: Gear;
+	deck: Card[];
 }
 
 export interface GameState {
@@ -18,6 +58,20 @@ export interface GameState {
 	turn: number;
 	phase: Phase;
 	pendingPlayers: Record<string, boolean>;
+}
+
+const MAP_CONFIG: Record<GameMap, { stressCards: number; heatCards: number }> =
+	{
+		USA: { stressCards: 3, heatCards: 6 },
+	};
+
+function createStartingDeck(map: GameMap): Card[] {
+	const config = MAP_CONFIG[map];
+	return [
+		...STARTING_SPEED_CARDS,
+		...STARTING_UPGRADE_CARDS,
+		...createStressCards(config.stressCards),
+	];
 }
 
 function parseCreateGameRequest(
@@ -28,7 +82,7 @@ function parseCreateGameRequest(
 	}
 	const players: Record<string, Player> = {};
 	for (const id of request.playerIds) {
-		players[id] = { id, gear: 1 };
+		players[id] = { id, gear: 1, deck: createStartingDeck(request.map) };
 	}
 	return players;
 }

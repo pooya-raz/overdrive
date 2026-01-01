@@ -185,9 +185,12 @@ describe("Game", () => {
 					map: "USA",
 				});
 
+				const player = game.state.players[PLAYER_1_ID];
+				player.engine = [];
+
 				expect(() =>
 					game.dispatch(PLAYER_1_ID, { type: "shift", gear: 3 }),
-				).toThrow("Can only shift up or down by 1 gear");
+				).toThrow("Heat card required to shift by 2 gears");
 			});
 		});
 	});

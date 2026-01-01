@@ -98,11 +98,33 @@ describe("Player", () => {
 			expect(player.gear).toBe(3);
 		});
 
-		it("throws when shifting more than 1 gear", () => {
-			const player = createPlayer({ gear: 1 });
+		it("allows shifting by 2 when a heat card is available", () => {
+			const player = createPlayer({
+				gear: 1,
+				engine: [{ type: "heat" }],
+				discard: [],
+			});
+
+			player.shift(3);
+
+			expect(player.gear).toBe(3);
+			expect(player.engine).toHaveLength(0);
+			expect(player.discard).toEqual([{ type: "heat" }]);
+		});
+
+		it("throws when shifting more than 1 gear without heat card in engine", () => {
+			const player = createPlayer({ gear: 1, engine: [], discard: [] });
 
 			expect(() => player.shift(3)).toThrow(
-				"Can only shift up or down by 1 gear",
+				"Heat card required to shift by 2 gears",
+			);
+		});
+
+		it("rejects shifting by 3 gears", () => {
+			const player = createPlayer({ gear: 1, engine: [{ type: "heat" }] });
+
+			expect(() => player.shift(4)).toThrow(
+				"Can only shift up or down by max 2 gears",
 			);
 		});
 	});

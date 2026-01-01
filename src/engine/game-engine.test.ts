@@ -185,8 +185,7 @@ describe("Game", () => {
 					map: "USA",
 				});
 
-				const player = game.state.players[PLAYER_1_ID];
-				player.engine = [];
+				game._state.players[PLAYER_1_ID].engine = [];
 
 				expect(() =>
 					game.dispatch(PLAYER_1_ID, { type: "shift", gear: 3 }),
@@ -203,11 +202,12 @@ describe("Game", () => {
 
 				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
 
-				const player = game.state.players[PLAYER_1_ID];
-				const cardsToBePlayed = [player.hand[0], player.hand[1]];
+				const handBefore = game.state.players[PLAYER_1_ID].hand;
+				const cardsToBePlayed = [handBefore[1], handBefore[0]];
 
 				game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [0, 1] });
 
+				const player = game.state.players[PLAYER_1_ID];
 				expect(player.played).toEqual(cardsToBePlayed);
 				expect(player.hand).toHaveLength(5);
 				expect(game.state.phase).toBe("move");

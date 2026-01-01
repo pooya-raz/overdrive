@@ -118,7 +118,7 @@ export class Game {
 	}
 
 	get state(): GameState {
-		return this._state;
+		return structuredClone(this._state);
 	}
 
 	dispatch(playerId: string, action: Action): void {

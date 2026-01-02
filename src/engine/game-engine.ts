@@ -90,6 +90,7 @@ function parseCreateGameRequest(
 		players[id] = new Player({
 			id,
 			gear: 1,
+			position: 0,
 			deck: createStartingDeck(request.map),
 			hand: [],
 			played: [],
@@ -175,6 +176,13 @@ export class Game {
 			this._state.turn += 1;
 		} else {
 			this._state.phase = phaseOrder[nextPhase];
+		}
+
+		if (this._state.phase === "move") {
+			for (const player of Object.values(this._state.players)) {
+				player.move();
+			}
+			this._state.phase = "discardAndReplenish";
 		}
 
 		this._state.pendingPlayers = Object.fromEntries(

@@ -14,6 +14,7 @@ function shuffle(cards: Card[]): Card[] {
 export class Player {
 	id: string;
 	gear: Gear;
+	position: number;
 	deck: Card[];
 	hand: Card[];
 	played: Card[];
@@ -23,6 +24,7 @@ export class Player {
 	constructor(options: {
 		id: string;
 		gear: Gear;
+		position: number;
 		deck: Card[];
 		hand: Card[];
 		played: Card[];
@@ -31,6 +33,7 @@ export class Player {
 	}) {
 		this.id = options.id;
 		this.gear = options.gear;
+		this.position = options.position;
 		this.deck = options.deck;
 		this.hand = options.hand;
 		this.played = options.played;
@@ -103,5 +106,15 @@ export class Player {
 			const [card] = this.hand.splice(index, 1);
 			this.played.push(card);
 		}
+	}
+
+	move(): void {
+		const spaces = this.played.reduce((sum, card) => {
+			if (card.type === "stress") {
+				return sum;
+			}
+			return sum + (card.value ?? 0);
+		}, 0);
+		this.position += spaces;
 	}
 }

@@ -5,6 +5,7 @@ import { Player } from "./player";
 function createPlayer(options: {
 	id?: string;
 	gear?: Gear;
+	position?: number;
 	deck?: Card[];
 	hand?: Card[];
 	played?: Card[];
@@ -14,6 +15,7 @@ function createPlayer(options: {
 	return new Player({
 		id: options.id ?? "player-1",
 		gear: options.gear ?? 1,
+		position: options.position ?? 0,
 		deck: options.deck ?? [],
 		hand: options.hand ?? [],
 		played: options.played ?? [],
@@ -263,6 +265,73 @@ describe("Player", () => {
 			const player = createPlayer({ gear: 2, hand });
 
 			expect(() => player.playCards([0, -1])).toThrow("Invalid card index: -1");
+		});
+	});
+
+	describe("move", () => {
+		it("moves by sum of played card values", () => {
+			const played: Card[] = [
+				{ type: "speed", value: 3 },
+				{ type: "speed", value: 2 },
+			];
+			const player = createPlayer({ position: 0, played });
+
+			player.move();
+
+			expect(player.position).toBe(5);
+		});
+
+		it("treats heat cards as 0 movement", () => {
+			const played: Card[] = [
+				{ type: "speed", value: 3 },
+				{ type: "heat" },
+			];
+			const player = createPlayer({ position: 0, played });
+
+			player.move();
+
+			expect(player.position).toBe(3);
+		});
+
+		it("treats stress cards as 0 movement", () => {
+			const played: Card[] = [
+				{ type: "speed", value: 4 },
+				{ type: "stress" },
+			];
+			const player = createPlayer({ position: 0, played });
+
+			player.move();
+
+			expect(player.position).toBe(4);
+		});
+
+		it("includes upgrade card values", () => {
+			const played: Card[] = [
+				{ type: "speed", value: 2 },
+				{ type: "upgrade", value: 5 },
+			];
+			const player = createPlayer({ position: 0, played });
+
+			player.move();
+
+			expect(player.position).toBe(7);
+		});
+
+		it("does not move when no cards played", () => {
+			const player = createPlayer({ position: 5, played: [] });
+
+			player.move();
+
+			expect(player.position).toBe(5);
+		});
+
+		it("accumulates position from starting position", () => {
+			const played: Card[] = [{ type: "speed", value: 3 }];
+			const player = createPlayer({ position: 10, played });
+
+			player.move();
+
+			expect(player.position).toBe(13);
 		});
 	});
 });

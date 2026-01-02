@@ -210,7 +210,7 @@ describe("Game", () => {
 				const player = game.state.players[PLAYER_1_ID];
 				expect(player.played).toEqual(cardsToBePlayed);
 				expect(player.hand).toHaveLength(5);
-				expect(game.state.phase).toBe("move");
+				expect(game.state.phase).toBe("discardAndReplenish");
 			});
 
 			it("should reject wrong number of cards", () => {
@@ -240,6 +240,94 @@ describe("Game", () => {
 						cardIndices: [0, 99],
 					}),
 				).toThrow("Invalid card index: 99");
+			});
+		});
+
+		describe("move", () => {
+			it("should initialize players at position 0", () => {
+				const game = new Game({
+					playerIds: [PLAYER_1_ID, PLAYER_2_ID],
+					map: "USA",
+				});
+
+				expect(game.state.players[PLAYER_1_ID].position).toBe(0);
+				expect(game.state.players[PLAYER_2_ID].position).toBe(0);
+			});
+
+			it("should move players based on played card values", () => {
+				const game = new Game({
+					playerIds: [PLAYER_1_ID],
+					map: "USA",
+				});
+
+				const hand = game.state.players[PLAYER_1_ID].hand;
+				const cardsWithValues = hand
+					.map((card, index) => ({ card, index }))
+					.filter((c) => c.card.value !== undefined);
+				const card1 = cardsWithValues[0];
+				const card2 = cardsWithValues[1];
+
+				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
+				game.dispatch(PLAYER_1_ID, {
+					type: "playCards",
+					cardIndices: [card1.index, card2.index],
+				});
+
+				expect(game.state.players[PLAYER_1_ID].position).toBe(
+					card1.card.value! + card2.card.value!,
+				);
+			});
+
+			it("should auto-advance from move to discardAndReplenish", () => {
+				const game = new Game({
+					playerIds: [PLAYER_1_ID],
+					map: "USA",
+				});
+
+				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
+				game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [0] });
+
+				expect(game.state.phase).toBe("discardAndReplenish");
+			});
+
+			it("should accumulate position across turns", () => {
+				const game = new Game({
+					playerIds: [PLAYER_1_ID],
+					map: "USA",
+				});
+
+				const hand1 = game.state.players[PLAYER_1_ID].hand;
+				const firstCard = hand1
+					.map((card, index) => ({ card, index }))
+					.find((c) => c.card.value !== undefined)!;
+
+				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
+				game.dispatch(PLAYER_1_ID, {
+					type: "playCards",
+					cardIndices: [firstCard.index],
+				});
+
+				expect(game.state.players[PLAYER_1_ID].position).toBe(firstCard.card.value);
+
+				game.dispatch(PLAYER_1_ID, {
+					type: "discardAndReplenish",
+					discardIndices: [],
+				});
+
+				const hand2 = game.state.players[PLAYER_1_ID].hand;
+				const secondCard = hand2
+					.map((card, index) => ({ card, index }))
+					.find((c) => c.card.value !== undefined)!;
+
+				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
+				game.dispatch(PLAYER_1_ID, {
+					type: "playCards",
+					cardIndices: [secondCard.index],
+				});
+
+				expect(game.state.players[PLAYER_1_ID].position).toBe(
+					firstCard.card.value! + secondCard.card.value!,
+				);
 			});
 		});
 	});

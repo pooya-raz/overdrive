@@ -1,7 +1,9 @@
 import type { Card, Gear } from "./game-engine";
 
-function shuffle(cards: Card[]): Card[] {
-	const shuffled = [...cards];
+export type ShuffleFn = <T>(items: T[]) => T[];
+
+const defaultShuffle: ShuffleFn = (items) => {
+	const shuffled = [...items];
 
 	for (let i = shuffled.length - 1; i > 0; i--) {
 		const j = Math.floor(Math.random() * (i + 1));
@@ -9,7 +11,7 @@ function shuffle(cards: Card[]): Card[] {
 	}
 
 	return shuffled;
-}
+};
 
 export class Player {
 	id: string;
@@ -20,6 +22,7 @@ export class Player {
 	played: Card[];
 	engine: Card[];
 	discard: Card[];
+	private declare shuffle: ShuffleFn;
 
 	constructor(options: {
 		id: string;
@@ -30,6 +33,7 @@ export class Player {
 		played: Card[];
 		engine: Card[];
 		discard: Card[];
+		shuffle?: ShuffleFn;
 	}) {
 		this.id = options.id;
 		this.gear = options.gear;
@@ -39,6 +43,11 @@ export class Player {
 		this.played = options.played;
 		this.engine = options.engine;
 		this.discard = options.discard;
+		// Non-enumerable so structuredClone doesn't try to clone the function
+		Object.defineProperty(this, "shuffle", {
+			value: options.shuffle ?? defaultShuffle,
+			enumerable: false,
+		});
 	}
 
 	draw(): void {
@@ -47,7 +56,7 @@ export class Player {
 				if (this.discard.length === 0) {
 					throw new Error("No cards left to draw (deck and discard empty).");
 				}
-				this.deck = shuffle(this.discard);
+				this.deck = this.shuffle(this.discard);
 				this.discard = [];
 			}
 			const card = this.deck.pop();

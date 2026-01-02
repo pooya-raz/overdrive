@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Card, Gear } from "./game-engine";
-import { Player } from "./player";
+import { Player, type ShuffleFn } from "./player";
 
 function createPlayer(options: {
 	id?: string;
@@ -11,6 +11,7 @@ function createPlayer(options: {
 	played?: Card[];
 	engine?: Card[];
 	discard?: Card[];
+	shuffle?: ShuffleFn;
 }): Player {
 	return new Player({
 		id: options.id ?? "player-1",
@@ -21,6 +22,7 @@ function createPlayer(options: {
 		played: options.played ?? [],
 		engine: options.engine ?? [],
 		discard: options.discard ?? [],
+		shuffle: options.shuffle,
 	});
 }
 
@@ -86,6 +88,37 @@ describe("Player", () => {
 			expect(() => player.draw()).toThrow(
 				"No cards left to draw (deck and discard empty).",
 			);
+		});
+
+		it("uses injected shuffle when reshuffling discard into deck", () => {
+			const noShuffle = <T>(items: T[]) => items;
+			const discard: Card[] = [
+				{ type: "speed", value: 1 },
+				{ type: "speed", value: 2 },
+				{ type: "speed", value: 3 },
+				{ type: "speed", value: 4 },
+				{ type: "upgrade", value: 0 },
+				{ type: "upgrade", value: 5 },
+				{ type: "stress" },
+			];
+			const player = createPlayer({
+				deck: [],
+				discard,
+				shuffle: noShuffle,
+			});
+
+			player.draw();
+
+			// With no shuffle, cards are drawn from end of array (pop)
+			expect(player.hand).toEqual([
+				{ type: "stress" },
+				{ type: "upgrade", value: 5 },
+				{ type: "upgrade", value: 0 },
+				{ type: "speed", value: 4 },
+				{ type: "speed", value: 3 },
+				{ type: "speed", value: 2 },
+				{ type: "speed", value: 1 },
+			]);
 		});
 	});
 

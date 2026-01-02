@@ -38,22 +38,25 @@ describe("Player", () => {
 				{ type: "upgrade", value: 5 },
 				{ type: "heat" },
 			];
-			const expectedCards = [...deck];
 			const player = createPlayer({ deck });
 
 			player.draw();
 
-			expect(player.hand).toHaveLength(7);
 			expect(player.deck).toHaveLength(0);
-			expect([...player.hand, ...player.deck]).toEqual(
-				expect.arrayContaining(expectedCards),
-			);
-			expect(expectedCards).toEqual(
-				expect.arrayContaining([...player.hand, ...player.deck]),
-			);
+			// Cards are popped from end of deck
+			expect(player.hand).toEqual([
+				{ type: "heat" },
+				{ type: "upgrade", value: 5 },
+				{ type: "upgrade", value: 0 },
+				{ type: "speed", value: 4 },
+				{ type: "speed", value: 3 },
+				{ type: "speed", value: 2 },
+				{ type: "speed", value: 1 },
+			]);
 		});
 
 		it("draws from discard when the deck is empty", () => {
+			const noShuffle = <T>(items: T[]) => items;
 			const discard: Card[] = [
 				{ type: "speed", value: 1 },
 				{ type: "speed", value: 2 },
@@ -63,16 +66,22 @@ describe("Player", () => {
 				{ type: "upgrade", value: 5 },
 				{ type: "heat" },
 			];
-			const expectedCards = [...discard];
-			const player = createPlayer({ deck: [], discard });
+			const player = createPlayer({ deck: [], discard, shuffle: noShuffle });
 
 			player.draw();
 
-			expect(player.hand).toHaveLength(7);
 			expect(player.deck).toHaveLength(0);
 			expect(player.discard).toHaveLength(0);
-			expect(player.hand).toEqual(expect.arrayContaining(expectedCards));
-			expect(expectedCards).toEqual(expect.arrayContaining(player.hand));
+			// Discard becomes deck, cards popped from end
+			expect(player.hand).toEqual([
+				{ type: "heat" },
+				{ type: "upgrade", value: 5 },
+				{ type: "upgrade", value: 0 },
+				{ type: "speed", value: 4 },
+				{ type: "speed", value: 3 },
+				{ type: "speed", value: 2 },
+				{ type: "speed", value: 1 },
+			]);
 		});
 
 		it("throws when there are not enough cards to reach 7", () => {
@@ -88,37 +97,6 @@ describe("Player", () => {
 			expect(() => player.draw()).toThrow(
 				"No cards left to draw (deck and discard empty).",
 			);
-		});
-
-		it("uses injected shuffle when reshuffling discard into deck", () => {
-			const noShuffle = <T>(items: T[]) => items;
-			const discard: Card[] = [
-				{ type: "speed", value: 1 },
-				{ type: "speed", value: 2 },
-				{ type: "speed", value: 3 },
-				{ type: "speed", value: 4 },
-				{ type: "upgrade", value: 0 },
-				{ type: "upgrade", value: 5 },
-				{ type: "stress" },
-			];
-			const player = createPlayer({
-				deck: [],
-				discard,
-				shuffle: noShuffle,
-			});
-
-			player.draw();
-
-			// With no shuffle, cards are drawn from end of array (pop)
-			expect(player.hand).toEqual([
-				{ type: "stress" },
-				{ type: "upgrade", value: 5 },
-				{ type: "upgrade", value: 0 },
-				{ type: "speed", value: 4 },
-				{ type: "speed", value: 3 },
-				{ type: "speed", value: 2 },
-				{ type: "speed", value: 1 },
-			]);
 		});
 	});
 

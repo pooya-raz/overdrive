@@ -61,7 +61,7 @@ src/
 
 1. **Shift** - Select a new gear (1-4)
 2. **PlayCards** - Play cards from hand equal to current gear
-3. **Move** - Move based on played card values *(in progress)*
+3. **Move** - Move based on played card values
 4. **DiscardAndReplenish** - Discard cards and refill hand to 7
 
 ### Gear & Shifting
@@ -108,6 +108,17 @@ Tests are written with Vitest and cover:
 ```bash
 pnpm run test
 ```
+
+## Todo
+
+- [ ] Track representation (spaces, corners, sectors)
+- [ ] Corner speed limits and heat penalties
+- [ ] Stress card resolution (draw from deck during movement)
+- [ ] Slipstream/drafting mechanics
+- [ ] Win condition and lap tracking
+- [ ] Turn order based on track position
+- [ ] REST API endpoints
+- [ ] Game persistence
 
 ## License
 

@@ -307,7 +307,9 @@ describe("Game", () => {
 					cardIndices: [firstCard.index],
 				});
 
-				expect(game.state.players[PLAYER_1_ID].position).toBe(firstCard.card.value);
+				expect(game.state.players[PLAYER_1_ID].position).toBe(
+					firstCard.card.value,
+				);
 
 				game.dispatch(PLAYER_1_ID, {
 					type: "discardAndReplenish",

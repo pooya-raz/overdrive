@@ -282,10 +282,7 @@ describe("Player", () => {
 		});
 
 		it("treats heat cards as 0 movement", () => {
-			const played: Card[] = [
-				{ type: "speed", value: 3 },
-				{ type: "heat" },
-			];
+			const played: Card[] = [{ type: "speed", value: 3 }, { type: "heat" }];
 			const player = createPlayer({ position: 0, played });
 
 			player.move();
@@ -294,10 +291,7 @@ describe("Player", () => {
 		});
 
 		it("treats stress cards as 0 movement", () => {
-			const played: Card[] = [
-				{ type: "speed", value: 4 },
-				{ type: "stress" },
-			];
+			const played: Card[] = [{ type: "speed", value: 4 }, { type: "stress" }];
 			const player = createPlayer({ position: 0, played });
 
 			player.move();

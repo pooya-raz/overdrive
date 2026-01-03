@@ -18,6 +18,16 @@ export interface Card {
 	value?: number;
 }
 
+export interface Corner {
+	position: number;
+	speedLimit: number;
+}
+
+export interface Track {
+	length: number;
+	corners: Corner[];
+}
+
 const STARTING_SPEED_CARDS: Card[] = [
 	{ type: "speed", value: 1 },
 	{ type: "speed", value: 1 },
@@ -55,14 +65,31 @@ export type Action =
 	| { type: "discardAndReplenish"; discardIndices: number[] };
 
 export interface GameState {
+	map: Map;
 	players: Record<string, Player>;
 	turn: number;
 	phase: Phase;
 	pendingPlayers: Record<string, boolean>;
 }
 
-const MAP_CONFIG: Record<Map, { stressCards: number; heatCards: number }> = {
-	USA: { stressCards: 3, heatCards: 6 },
+interface MapConfig {
+	stressCards: number;
+	heatCards: number;
+	track: Track;
+}
+
+const MAP_CONFIG: Record<Map, MapConfig> = {
+	USA: {
+		stressCards: 3,
+		heatCards: 6,
+		track: {
+			length: 24,
+			corners: [
+				{ position: 6, speedLimit: 4 },
+				{ position: 15, speedLimit: 3 },
+			],
+		},
+	},
 };
 
 function createStartingDeck(map: Map): Card[] {
@@ -116,6 +143,7 @@ export class Game {
 			player.draw();
 		}
 		this._state = {
+			map: request.map,
 			players,
 			turn: 1,
 			phase: "shift",

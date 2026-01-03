@@ -91,6 +91,18 @@ describe("Game", () => {
 			const uniqueHands = new Set(hands);
 			expect(uniqueHands.size).toBeGreaterThan(1);
 		});
+
+		it("should store map in game state", () => {
+			const game = new Game(
+				{
+					playerIds: [PLAYER_1_ID],
+					map: "USA",
+				},
+				{ shuffle: noShuffle },
+			);
+
+			expect(game.state.map).toBe("USA");
+		});
 	});
 
 	describe("dispatch", () => {

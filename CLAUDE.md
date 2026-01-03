@@ -10,14 +10,14 @@ Digital implementation of the "Heat: Pedal to the Metal" racing board game. Turn
 - **Framework:** Hono (TypeScript)
 - **Testing:** Vitest
 - **Linting:** Biome
-- **Package Manager:** pnpm
+- **Package Manager:** pnpm (always use pnpm, not npm)
 
 ## Commands
 
 ```bash
 pnpm run dev      # Start local dev server
-pnpm run test     # Run tests
-pnpm run lint     # Lint and auto-fix
+pnpm run test     # Run tests (use during development)
+pnpm run verify   # Lint + test (use before committing)
 pnpm run deploy   # Deploy to Cloudflare
 ```
 

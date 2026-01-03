@@ -304,9 +304,126 @@ describe("Player", () => {
 			expect(player.position).toBe(3);
 		});
 
-		it("treats stress cards as 0 movement", () => {
+		describe("stress card resolution", () => {
+			it("draws speed card and adds to played", () => {
+				const player = createPlayer({
+					position: 0,
+					played: [{ type: "stress" }],
+					deck: [{ type: "speed", value: 3 }],
+				});
+
+				player.move();
+
+				expect(player.played).toContainEqual({ type: "speed", value: 3 });
+				expect(player.deck).toHaveLength(0);
+				expect(player.position).toBe(3);
+			});
+
+			it("draws upgrade card and adds to played", () => {
+				const player = createPlayer({
+					position: 0,
+					played: [{ type: "stress" }],
+					deck: [{ type: "upgrade", value: 5 }],
+				});
+
+				player.move();
+
+				expect(player.played).toContainEqual({ type: "upgrade", value: 5 });
+				expect(player.position).toBe(5);
+			});
+
+			it("draws stress card and adds to discard", () => {
+				const player = createPlayer({
+					position: 0,
+					played: [{ type: "stress" }],
+					deck: [{ type: "stress" }],
+					discard: [],
+				});
+
+				player.move();
+
+				expect(player.discard).toContainEqual({ type: "stress" });
+				expect(player.position).toBe(0);
+			});
+
+			it("draws heat card and adds to discard", () => {
+				const player = createPlayer({
+					position: 0,
+					played: [{ type: "stress" }],
+					deck: [{ type: "heat" }],
+					discard: [],
+				});
+
+				player.move();
+
+				expect(player.discard).toContainEqual({ type: "heat" });
+				expect(player.position).toBe(0);
+			});
+
+			it("resolves multiple stress cards", () => {
+				const player = createPlayer({
+					position: 0,
+					played: [{ type: "stress" }, { type: "stress" }],
+					deck: [
+						{ type: "speed", value: 2 },
+						{ type: "speed", value: 3 },
+					],
+				});
+
+				player.move();
+
+				expect(player.position).toBe(5);
+				expect(player.deck).toHaveLength(0);
+			});
+
+			it("shuffles discard into deck when deck is empty", () => {
+				const player = createPlayer({
+					position: 0,
+					played: [{ type: "stress" }],
+					deck: [],
+					discard: [{ type: "speed", value: 4 }],
+				});
+
+				player.move();
+
+				expect(player.position).toBe(4);
+				expect(player.discard).toHaveLength(0);
+			});
+
+			it("handles empty deck and discard gracefully", () => {
+				const player = createPlayer({
+					position: 5,
+					played: [{ type: "stress" }],
+					deck: [],
+					discard: [],
+				});
+
+				player.move();
+
+				expect(player.position).toBe(5);
+			});
+
+			it("combines stress resolution with normal card values", () => {
+				const player = createPlayer({
+					position: 0,
+					played: [{ type: "speed", value: 3 }, { type: "stress" }],
+					deck: [{ type: "speed", value: 2 }],
+				});
+
+				player.move();
+
+				expect(player.position).toBe(5);
+			});
+		});
+
+		it("treats stress cards as 0 movement when no deck", () => {
 			const played: Card[] = [{ type: "speed", value: 4 }, { type: "stress" }];
-			const player = createPlayer({ position: 0, played });
+			const player = createPlayer({
+				position: 0,
+				played,
+				deck: [],
+				discard: [],
+			});
 
 			player.move();
 

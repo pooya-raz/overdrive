@@ -367,6 +367,27 @@ describe("Game", () => {
 
 				expect(game.state.players[PLAYER_1_ID].position).toBe(8);
 			});
+
+			it("should resolve stress cards by drawing from deck", () => {
+				const game = new Game(
+					{
+						playerIds: [PLAYER_1_ID],
+						map: "USA",
+					},
+					{ shuffle: noShuffle },
+				);
+
+				// With noShuffle:
+				// Hand: stress, stress, stress, heat, upgrade(5), upgrade(0), speed(4)
+				// Deck: speed(1), speed(1), speed(1), speed(2), speed(2), speed(2),
+				//       speed(3), speed(3), speed(3), speed(4), speed(4)
+				// Playing stress card at index 0 should draw speed(4) from deck end
+				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
+				game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [0] });
+
+				// Stress resolves to speed(4) from deck
+				expect(game.state.players[PLAYER_1_ID].position).toBe(4);
+			});
 		});
 	});
 });

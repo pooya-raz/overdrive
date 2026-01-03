@@ -118,13 +118,49 @@ export class Player {
 		}
 	}
 
-	move(): void {
-		const spaces = this.played.reduce((sum, card) => {
-			if (card.type === "stress") {
-				return sum;
+	/**
+	 * Draws a single card from deck. Shuffles discard into deck if needed.
+	 * Returns undefined if no cards available.
+	 */
+	private drawOne(): Card | undefined {
+		if (this.deck.length === 0) {
+			if (this.discard.length === 0) {
+				return undefined;
 			}
-			return sum + (card.value ?? 0);
-		}, 0);
+			this.deck = this.shuffle(this.discard);
+			this.discard = [];
+		}
+		return this.deck.pop();
+	}
+
+	/**
+	 * Resolves stress cards in played array by drawing replacements.
+	 * Speed/upgrade cards go to played; stress/heat cards go to discard.
+	 */
+	private resolveStressCards(): void {
+		const stressCount = this.played.filter((c) => c.type === "stress").length;
+
+		for (let i = 0; i < stressCount; i++) {
+			const drawn = this.drawOne();
+			if (!drawn) continue;
+
+			const destination =
+				drawn.type === "stress" || drawn.type === "heat"
+					? this.discard
+					: this.played;
+			destination.push(drawn);
+		}
+	}
+
+	/**
+	 * Resolves stress cards, then calculates and applies movement.
+	 */
+	move(): void {
+		this.resolveStressCards();
+		const spaces = this.played.reduce(
+			(sum, card) => sum + (card.value ?? 0),
+			0,
+		);
 		this.position += spaces;
 	}
 }

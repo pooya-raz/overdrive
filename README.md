@@ -71,11 +71,34 @@ src/
 - Shift by 2: Costs 1 heat card from engine
 - Cannot shift more than 2 gears at once
 
+### Track & Corners
+
+Tracks have a length and an array of corners with speed limits:
+
+```typescript
+{
+  length: 24,
+  corners: [
+    { position: 6, speedLimit: 4 },
+    { position: 15, speedLimit: 3 },
+  ]
+}
+```
+
+When crossing a corner, if your speed (sum of played card values) exceeds the speed limit, you pay heat equal to the difference.
+
+### Stress Card Resolution
+
+When a stress card is played, during movement a replacement card is drawn from the deck:
+- Speed/Upgrade cards are added to played cards (contributing to movement)
+- Stress/Heat cards go directly to discard
+
 ### Starting Setup (USA Map)
 
 - **Hand:** 7 cards
 - **Deck:** 12 speed cards, 2 upgrade cards, 1 heat card, 3 stress cards
 - **Engine:** 6 heat cards
+- **Track:** Length 24, corners at position 6 (limit 4) and 15 (limit 3)
 
 ## Development
 
@@ -101,7 +124,9 @@ const app = new Hono<{ Bindings: CloudflareBindings }>()
 
 Tests are written with Vitest and cover:
 
-- Player mechanics (draw, shift, play cards, discard)
+- Player mechanics (draw, shift, play cards, discard, move)
+- Stress card resolution during movement
+- Corner speed checking and heat penalties
 - Game state management and phase transitions
 - Input validation and error handling
 
@@ -111,9 +136,9 @@ pnpm run test
 
 ## Todo
 
-- [ ] Track representation (spaces, corners, sectors)
-- [ ] Corner speed limits and heat penalties
-- [ ] Stress card resolution (draw from deck during movement)
+- [x] Track representation (corners array with position and speedLimit)
+- [x] Corner speed limits and heat penalties
+- [x] Stress card resolution (draw from deck during movement)
 - [ ] Slipstream/drafting mechanics
 - [ ] Win condition and lap tracking
 - [ ] Turn order based on track position

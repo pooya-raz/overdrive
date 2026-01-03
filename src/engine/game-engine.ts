@@ -1,6 +1,6 @@
-import { Player, type ShuffleFn } from "./player";
+import { Player, type PlayerState, type ShuffleFn } from "./player";
 
-export { Player, type ShuffleFn };
+export { Player, type PlayerState, type ShuffleFn };
 
 export type Map = "USA";
 
@@ -66,7 +66,7 @@ export type Action =
 
 export interface GameState {
 	map: Map;
-	players: Record<string, Player>;
+	players: Record<string, PlayerState>;
 	turn: number;
 	phase: Phase;
 	pendingPlayers: Record<string, boolean>;
@@ -134,8 +134,16 @@ function parseCreateGameRequest(
 	return players;
 }
 
+interface InternalGameState {
+	map: Map;
+	players: Record<string, Player>;
+	turn: number;
+	phase: Phase;
+	pendingPlayers: Record<string, boolean>;
+}
+
 export class Game {
-	private _state: GameState;
+	private _state: InternalGameState;
 
 	constructor(request: CreateGameRequest, options: GameOptions = {}) {
 		const players = parseCreateGameRequest(request, options);
@@ -154,7 +162,18 @@ export class Game {
 	}
 
 	get state(): GameState {
-		return structuredClone(this._state);
+		return {
+			map: this._state.map,
+			players: Object.fromEntries(
+				Object.entries(this._state.players).map(([id, player]) => [
+					id,
+					player.state,
+				]),
+			),
+			turn: this._state.turn,
+			phase: this._state.phase,
+			pendingPlayers: { ...this._state.pendingPlayers },
+		};
 	}
 
 	dispatch(playerId: string, action: Action): void {

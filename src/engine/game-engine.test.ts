@@ -228,7 +228,7 @@ describe("Game", () => {
 					{ shuffle: noShuffle },
 				);
 
-				game._state.players[PLAYER_1_ID].engine = [];
+				game._state.players[PLAYER_1_ID]._setEngine([]);
 
 				expect(() =>
 					game.dispatch(PLAYER_1_ID, { type: "shift", gear: 3 }),
@@ -414,7 +414,7 @@ describe("Game", () => {
 
 					// Start at position 3, play speed(4) to end at 7
 					// Crosses corner at position 6 with speed 4, limit 4 - no penalty
-					game._state.players[PLAYER_1_ID].position = 3;
+					game._state.players[PLAYER_1_ID]._setPosition(3);
 					game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
 					game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [6] });
 
@@ -433,7 +433,7 @@ describe("Game", () => {
 
 					// Start at position 3, play upgrade(5) + speed(4) = 9 movement
 					// Crosses corner at 6 (limit 4): speed 9 - limit 4 = 5 heat
-					game._state.players[PLAYER_1_ID].position = 3;
+					game._state.players[PLAYER_1_ID]._setPosition(3);
 					game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
 					game.dispatch(PLAYER_1_ID, {
 						type: "playCards",
@@ -473,7 +473,7 @@ describe("Game", () => {
 
 					// Start at position 10, play upgrade(5) + speed(4) = 9, ends at 19
 					// Crosses corner at 15 (limit 3): speed 9 - limit 3 = 6 heat
-					game._state.players[PLAYER_1_ID].position = 10;
+					game._state.players[PLAYER_1_ID]._setPosition(10);
 					game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
 					game.dispatch(PLAYER_1_ID, {
 						type: "playCards",

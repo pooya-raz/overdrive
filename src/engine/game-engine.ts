@@ -1,6 +1,6 @@
-import { Player } from "./player";
+import { Player, type ShuffleFn } from "./player";
 
-export { Player };
+export { Player, type ShuffleFn };
 
 export type Map = "USA";
 
@@ -79,8 +79,13 @@ function createStartingEngine(map: Map): Card[] {
 	return createHeatCards(config.heatCards);
 }
 
+export interface GameOptions {
+	shuffle?: ShuffleFn;
+}
+
 function parseCreateGameRequest(
 	request: CreateGameRequest,
+	options: GameOptions = {},
 ): Record<string, Player> {
 	if (new Set(request.playerIds).size !== request.playerIds.length) {
 		throw new Error("Player IDs must be unique");
@@ -96,6 +101,7 @@ function parseCreateGameRequest(
 			played: [],
 			engine: createStartingEngine(request.map),
 			discard: [],
+			shuffle: options.shuffle,
 		});
 	}
 	return players;
@@ -104,8 +110,8 @@ function parseCreateGameRequest(
 export class Game {
 	private _state: GameState;
 
-	constructor(request: CreateGameRequest) {
-		const players = parseCreateGameRequest(request);
+	constructor(request: CreateGameRequest, options: GameOptions = {}) {
+		const players = parseCreateGameRequest(request, options);
 		for (const player of Object.values(players)) {
 			player.draw();
 		}

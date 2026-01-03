@@ -2,7 +2,7 @@ import type { Card, Gear } from "./game-engine";
 
 export type ShuffleFn = <T>(items: T[]) => T[];
 
-const defaultShuffle: ShuffleFn = (items) => {
+export const defaultShuffle: ShuffleFn = (items) => {
 	const shuffled = [...items];
 
 	for (let i = shuffled.length - 1; i > 0; i--) {
@@ -35,17 +35,18 @@ export class Player {
 		discard: Card[];
 		shuffle?: ShuffleFn;
 	}) {
+		const shuffle = options.shuffle ?? defaultShuffle;
 		this.id = options.id;
 		this.gear = options.gear;
 		this.position = options.position;
-		this.deck = options.deck;
+		this.deck = shuffle(options.deck);
 		this.hand = options.hand;
 		this.played = options.played;
 		this.engine = options.engine;
 		this.discard = options.discard;
 		// Non-enumerable so structuredClone doesn't try to clone the function
 		Object.defineProperty(this, "shuffle", {
-			value: options.shuffle ?? defaultShuffle,
+			value: shuffle,
 			enumerable: false,
 		});
 	}

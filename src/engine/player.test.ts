@@ -2,17 +2,21 @@ import { describe, expect, it } from "vitest";
 import type { Card, Gear } from "./game-engine";
 import { Player, type ShuffleFn } from "./player";
 
-function createPlayer(options: {
-	id?: string;
-	gear?: Gear;
-	position?: number;
-	deck?: Card[];
-	hand?: Card[];
-	played?: Card[];
-	engine?: Card[];
-	discard?: Card[];
-	shuffle?: ShuffleFn;
-}): Player {
+const noShuffle: ShuffleFn = <T>(items: T[]) => items;
+
+function createPlayer(
+	options: {
+		id?: string;
+		gear?: Gear;
+		position?: number;
+		deck?: Card[];
+		hand?: Card[];
+		played?: Card[];
+		engine?: Card[];
+		discard?: Card[];
+		shuffle?: ShuffleFn;
+	} = {},
+): Player {
 	return new Player({
 		id: options.id ?? "player-1",
 		gear: options.gear ?? 1,
@@ -22,7 +26,7 @@ function createPlayer(options: {
 		played: options.played ?? [],
 		engine: options.engine ?? [],
 		discard: options.discard ?? [],
-		shuffle: options.shuffle,
+		shuffle: options.shuffle ?? noShuffle,
 	});
 }
 
@@ -56,7 +60,6 @@ describe("Player", () => {
 		});
 
 		it("draws from discard when the deck is empty", () => {
-			const noShuffle = <T>(items: T[]) => items;
 			const discard: Card[] = [
 				{ type: "speed", value: 1 },
 				{ type: "speed", value: 2 },

@@ -1,29 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { type Card, type CreateGameRequest, Game } from "./game-engine";
+import {
+	type Card,
+	type CreateGameRequest,
+	Game,
+	type ShuffleFn,
+} from "./game-engine";
 
 const PLAYER_1_ID = "550e8400-e29b-41d4-a716-446655440001";
 const PLAYER_2_ID = "550e8400-e29b-41d4-a716-446655440002";
 
-const USA_STARTING_DECK: Card[] = [
-	{ type: "speed", value: 1 },
-	{ type: "speed", value: 1 },
-	{ type: "speed", value: 1 },
-	{ type: "speed", value: 2 },
-	{ type: "speed", value: 2 },
-	{ type: "speed", value: 2 },
-	{ type: "speed", value: 3 },
-	{ type: "speed", value: 3 },
-	{ type: "speed", value: 3 },
-	{ type: "speed", value: 4 },
-	{ type: "speed", value: 4 },
-	{ type: "speed", value: 4 },
-	{ type: "upgrade", value: 0 },
-	{ type: "upgrade", value: 5 },
-	{ type: "heat" },
-	{ type: "stress" },
-	{ type: "stress" },
-	{ type: "stress" },
-];
+const noShuffle: ShuffleFn = <T>(items: T[]) => items;
 
 const USA_STARTING_ENGINE: Card[] = [
 	{ type: "heat" },
@@ -42,7 +28,7 @@ describe("Game", () => {
 				map: "USA",
 			};
 
-			const game = new Game(request);
+			const game = new Game(request, { shuffle: noShuffle });
 
 			expect(game.state.turn).toBe(1);
 			expect(game.state.phase).toBe("shift");
@@ -56,14 +42,29 @@ describe("Game", () => {
 				expect(player.gear).toBe(1);
 				expect(player.engine).toEqual(USA_STARTING_ENGINE);
 				expect(player.discard).toEqual([]);
-				expect(player.hand).toHaveLength(7);
-				expect(player.deck).toHaveLength(USA_STARTING_DECK.length - 7);
-				expect([...player.deck, ...player.hand]).toEqual(
-					expect.arrayContaining(USA_STARTING_DECK),
-				);
-				expect(USA_STARTING_DECK).toEqual(
-					expect.arrayContaining([...player.deck, ...player.hand]),
-				);
+				// With noShuffle, hand is last 7 cards from deck (popped from end)
+				expect(player.hand).toEqual([
+					{ type: "stress" },
+					{ type: "stress" },
+					{ type: "stress" },
+					{ type: "heat" },
+					{ type: "upgrade", value: 5 },
+					{ type: "upgrade", value: 0 },
+					{ type: "speed", value: 4 },
+				]);
+				expect(player.deck).toEqual([
+					{ type: "speed", value: 1 },
+					{ type: "speed", value: 1 },
+					{ type: "speed", value: 1 },
+					{ type: "speed", value: 2 },
+					{ type: "speed", value: 2 },
+					{ type: "speed", value: 2 },
+					{ type: "speed", value: 3 },
+					{ type: "speed", value: 3 },
+					{ type: "speed", value: 3 },
+					{ type: "speed", value: 4 },
+					{ type: "speed", value: 4 },
+				]);
 			}
 		});
 
@@ -75,14 +76,32 @@ describe("Game", () => {
 
 			expect(() => new Game(request)).toThrow("Player IDs must be unique");
 		});
+
+		it("should shuffle deck at game start", () => {
+			const hands: string[] = [];
+
+			for (let i = 0; i < 10; i++) {
+				const game = new Game({
+					playerIds: [PLAYER_1_ID],
+					map: "USA",
+				});
+				hands.push(JSON.stringify(game.state.players[PLAYER_1_ID].hand));
+			}
+
+			const uniqueHands = new Set(hands);
+			expect(uniqueHands.size).toBeGreaterThan(1);
+		});
 	});
 
 	describe("dispatch", () => {
 		it("should mark player as acted after action", () => {
-			const game = new Game({
-				playerIds: [PLAYER_1_ID, PLAYER_2_ID],
-				map: "USA",
-			});
+			const game = new Game(
+				{
+					playerIds: [PLAYER_1_ID, PLAYER_2_ID],
+					map: "USA",
+				},
+				{ shuffle: noShuffle },
+			);
 
 			game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
 
@@ -93,10 +112,13 @@ describe("Game", () => {
 		});
 
 		it("should advance turn after all phases complete", () => {
-			const game = new Game({
-				playerIds: [PLAYER_1_ID],
-				map: "USA",
-			});
+			const game = new Game(
+				{
+					playerIds: [PLAYER_1_ID],
+					map: "USA",
+				},
+				{ shuffle: noShuffle },
+			);
 
 			game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
 			game._state.phase = "discardAndReplenish";
@@ -111,10 +133,13 @@ describe("Game", () => {
 		});
 
 		it("should reject action for wrong phase", () => {
-			const game = new Game({
-				playerIds: [PLAYER_1_ID],
-				map: "USA",
-			});
+			const game = new Game(
+				{
+					playerIds: [PLAYER_1_ID],
+					map: "USA",
+				},
+				{ shuffle: noShuffle },
+			);
 			game._state.phase = "playCards";
 
 			expect(() =>
@@ -123,10 +148,13 @@ describe("Game", () => {
 		});
 
 		it("should reject action for unknown player", () => {
-			const game = new Game({
-				playerIds: [PLAYER_1_ID],
-				map: "USA",
-			});
+			const game = new Game(
+				{
+					playerIds: [PLAYER_1_ID],
+					map: "USA",
+				},
+				{ shuffle: noShuffle },
+			);
 
 			expect(() =>
 				game.dispatch("unknown-player-id", { type: "shift", gear: 2 }),
@@ -134,10 +162,13 @@ describe("Game", () => {
 		});
 
 		it("should reject action if player already acted", () => {
-			const game = new Game({
-				playerIds: [PLAYER_1_ID, PLAYER_2_ID],
-				map: "USA",
-			});
+			const game = new Game(
+				{
+					playerIds: [PLAYER_1_ID, PLAYER_2_ID],
+					map: "USA",
+				},
+				{ shuffle: noShuffle },
+			);
 
 			game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
 
@@ -148,10 +179,13 @@ describe("Game", () => {
 
 		describe("shift", () => {
 			it("should shift player gear and move to new phase", () => {
-				const game = new Game({
-					playerIds: [PLAYER_1_ID, PLAYER_2_ID],
-					map: "USA",
-				});
+				const game = new Game(
+					{
+						playerIds: [PLAYER_1_ID, PLAYER_2_ID],
+						map: "USA",
+					},
+					{ shuffle: noShuffle },
+				);
 
 				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
 				game.dispatch(PLAYER_2_ID, { type: "shift", gear: 2 });
@@ -169,21 +203,18 @@ describe("Game", () => {
 					expect(player.engine).toEqual(USA_STARTING_ENGINE);
 					expect(player.discard).toEqual([]);
 					expect(player.hand).toHaveLength(7);
-					expect(player.deck).toHaveLength(USA_STARTING_DECK.length - 7);
-					expect([...player.deck, ...player.hand]).toEqual(
-						expect.arrayContaining(USA_STARTING_DECK),
-					);
-					expect(USA_STARTING_DECK).toEqual(
-						expect.arrayContaining([...player.deck, ...player.hand]),
-					);
+					expect(player.deck).toHaveLength(11);
 				}
 			});
 
 			it("should reject shift of more than 1 gear", () => {
-				const game = new Game({
-					playerIds: [PLAYER_1_ID],
-					map: "USA",
-				});
+				const game = new Game(
+					{
+						playerIds: [PLAYER_1_ID],
+						map: "USA",
+					},
+					{ shuffle: noShuffle },
+				);
 
 				game._state.players[PLAYER_1_ID].engine = [];
 
@@ -195,29 +226,37 @@ describe("Game", () => {
 
 		describe("playCards", () => {
 			it("should move cards from hand to played", () => {
-				const game = new Game({
-					playerIds: [PLAYER_1_ID],
-					map: "USA",
-				});
+				const game = new Game(
+					{
+						playerIds: [PLAYER_1_ID],
+						map: "USA",
+					},
+					{ shuffle: noShuffle },
+				);
 
 				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
 
-				const handBefore = game.state.players[PLAYER_1_ID].hand;
-				const cardsToBePlayed = [handBefore[1], handBefore[0]];
-
-				game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [0, 1] });
+				// With noShuffle, hand is: stress, stress, stress, heat, upgrade(5), upgrade(0), speed(4)
+				// Playing indices [5, 6] plays upgrade(0) and speed(4)
+				game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [5, 6] });
 
 				const player = game.state.players[PLAYER_1_ID];
-				expect(player.played).toEqual(cardsToBePlayed);
+				expect(player.played).toEqual([
+					{ type: "speed", value: 4 },
+					{ type: "upgrade", value: 0 },
+				]);
 				expect(player.hand).toHaveLength(5);
 				expect(game.state.phase).toBe("discardAndReplenish");
 			});
 
 			it("should reject wrong number of cards", () => {
-				const game = new Game({
-					playerIds: [PLAYER_1_ID],
-					map: "USA",
-				});
+				const game = new Game(
+					{
+						playerIds: [PLAYER_1_ID],
+						map: "USA",
+					},
+					{ shuffle: noShuffle },
+				);
 
 				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
 
@@ -227,10 +266,13 @@ describe("Game", () => {
 			});
 
 			it("should reject invalid card index", () => {
-				const game = new Game({
-					playerIds: [PLAYER_1_ID],
-					map: "USA",
-				});
+				const game = new Game(
+					{
+						playerIds: [PLAYER_1_ID],
+						map: "USA",
+					},
+					{ shuffle: noShuffle },
+				);
 
 				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
 
@@ -245,91 +287,85 @@ describe("Game", () => {
 
 		describe("move", () => {
 			it("should initialize players at position 0", () => {
-				const game = new Game({
-					playerIds: [PLAYER_1_ID, PLAYER_2_ID],
-					map: "USA",
-				});
+				const game = new Game(
+					{
+						playerIds: [PLAYER_1_ID, PLAYER_2_ID],
+						map: "USA",
+					},
+					{ shuffle: noShuffle },
+				);
 
 				expect(game.state.players[PLAYER_1_ID].position).toBe(0);
 				expect(game.state.players[PLAYER_2_ID].position).toBe(0);
 			});
 
 			it("should move players based on played card values", () => {
-				const game = new Game({
-					playerIds: [PLAYER_1_ID],
-					map: "USA",
-				});
-
-				const hand = game.state.players[PLAYER_1_ID].hand;
-				const cardsWithValues = hand
-					.map((card, index) => ({ card, index }))
-					.filter((c) => c.card.value !== undefined);
-				const card1 = cardsWithValues[0];
-				const card2 = cardsWithValues[1];
+				const game = new Game(
+					{
+						playerIds: [PLAYER_1_ID],
+						map: "USA",
+					},
+					{ shuffle: noShuffle },
+				);
 
 				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
+				// With noShuffle, hand is: stress, stress, stress, heat, upgrade(5), upgrade(0), speed(4)
+				// Playing indices [4, 6] plays upgrade(5) and speed(4) = 9 movement
 				game.dispatch(PLAYER_1_ID, {
 					type: "playCards",
-					cardIndices: [card1.index, card2.index],
+					cardIndices: [4, 6],
 				});
 
-				expect(game.state.players[PLAYER_1_ID].position).toBe(
-					card1.card.value! + card2.card.value!,
-				);
+				expect(game.state.players[PLAYER_1_ID].position).toBe(9);
 			});
 
 			it("should auto-advance from move to discardAndReplenish", () => {
-				const game = new Game({
-					playerIds: [PLAYER_1_ID],
-					map: "USA",
-				});
+				const game = new Game(
+					{
+						playerIds: [PLAYER_1_ID],
+						map: "USA",
+					},
+					{ shuffle: noShuffle },
+				);
 
 				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
-				game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [0] });
+				// Playing index 6 plays speed(4)
+				game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [6] });
 
 				expect(game.state.phase).toBe("discardAndReplenish");
 			});
 
 			it("should accumulate position across turns", () => {
-				const game = new Game({
-					playerIds: [PLAYER_1_ID],
-					map: "USA",
-				});
+				const game = new Game(
+					{
+						playerIds: [PLAYER_1_ID],
+						map: "USA",
+					},
+					{ shuffle: noShuffle },
+				);
 
-				const hand1 = game.state.players[PLAYER_1_ID].hand;
-				const firstCard = hand1
-					.map((card, index) => ({ card, index }))
-					.find((c) => c.card.value !== undefined)!;
-
+				// Turn 1: play speed(4) at index 6
 				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
 				game.dispatch(PLAYER_1_ID, {
 					type: "playCards",
-					cardIndices: [firstCard.index],
+					cardIndices: [6],
 				});
 
-				expect(game.state.players[PLAYER_1_ID].position).toBe(
-					firstCard.card.value,
-				);
+				expect(game.state.players[PLAYER_1_ID].position).toBe(4);
 
 				game.dispatch(PLAYER_1_ID, {
 					type: "discardAndReplenish",
 					discardIndices: [],
 				});
 
-				const hand2 = game.state.players[PLAYER_1_ID].hand;
-				const secondCard = hand2
-					.map((card, index) => ({ card, index }))
-					.find((c) => c.card.value !== undefined)!;
-
+				// Turn 2: hand now has speed(4) at index 6 (drawn from deck)
 				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
 				game.dispatch(PLAYER_1_ID, {
 					type: "playCards",
-					cardIndices: [secondCard.index],
+					cardIndices: [6],
 				});
 
-				expect(game.state.players[PLAYER_1_ID].position).toBe(
-					firstCard.card.value! + secondCard.card.value!,
-				);
+				expect(game.state.players[PLAYER_1_ID].position).toBe(8);
 			});
 		});
 	});

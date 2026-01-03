@@ -77,6 +77,7 @@ Central `dispatch(playerId, action)` method validates actions and advances phase
 - Tests colocated with source (`*.test.ts`)
 - Use deterministic shuffle injection for predictable tests
 - Non-null assertions (`!`) allowed in test files (Biome override)
+- Engine tests (`game-engine.test.ts`) should only test through the `Game` class interface, never instantiate encapsulated classes like `Player` directly
 
 ## Code Style
 

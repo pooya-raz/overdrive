@@ -458,5 +458,120 @@ describe("Player", () => {
 
 			expect(player.position).toBe(13);
 		});
+
+		describe("corner checking", () => {
+			const track = {
+				length: 20,
+				corners: [
+					{ position: 5, speedLimit: 3 },
+					{ position: 15, speedLimit: 2 },
+				],
+			};
+
+			it("pays heat when crossing corner over speed limit", () => {
+				const player = createPlayer({
+					position: 2,
+					played: [{ type: "speed", value: 4 }],
+					engine: [{ type: "heat" }, { type: "heat" }, { type: "heat" }],
+					discard: [],
+				});
+
+				player.move(track);
+
+				expect(player.position).toBe(6);
+				// Speed 4 - limit 3 = 1 heat
+				expect(player.engine).toHaveLength(2);
+				expect(player.discard).toEqual([{ type: "heat" }]);
+			});
+
+			it("does not pay heat when at or under speed limit", () => {
+				const player = createPlayer({
+					position: 2,
+					played: [{ type: "speed", value: 3 }],
+					engine: [{ type: "heat" }, { type: "heat" }],
+					discard: [],
+				});
+
+				player.move(track);
+
+				expect(player.position).toBe(5);
+				expect(player.engine).toHaveLength(2);
+				expect(player.discard).toEqual([]);
+			});
+
+			it("does not check corner when not crossed", () => {
+				const player = createPlayer({
+					position: 0,
+					played: [{ type: "speed", value: 4 }],
+					engine: [{ type: "heat" }],
+					discard: [],
+				});
+
+				player.move(track);
+
+				expect(player.position).toBe(4);
+				expect(player.engine).toHaveLength(1);
+			});
+
+			it("pays heat for multiple corners crossed", () => {
+				const player = createPlayer({
+					position: 4,
+					played: [
+						{ type: "speed", value: 4 },
+						{ type: "upgrade", value: 8 },
+					],
+					engine: Array(10).fill({ type: "heat" }),
+					discard: [],
+				});
+
+				player.move(track);
+
+				expect(player.position).toBe(16);
+				// Corner at 5: speed 12 - limit 3 = 9 heat
+				// Corner at 15: speed 12 - limit 2 = 10 heat
+				// Total: 19 heat, but only 10 available
+				expect(player.engine).toHaveLength(0);
+			});
+		});
+	});
+
+	describe("payHeat", () => {
+		it("moves heat cards from engine to discard", () => {
+			const player = createPlayer({
+				engine: [{ type: "heat" }, { type: "heat" }, { type: "heat" }],
+				discard: [],
+			});
+
+			const paid = player.payHeat(2);
+
+			expect(paid).toBe(2);
+			expect(player.engine).toHaveLength(1);
+			expect(player.discard).toHaveLength(2);
+		});
+
+		it("returns actual amount paid when engine runs out", () => {
+			const player = createPlayer({
+				engine: [{ type: "heat" }],
+				discard: [],
+			});
+
+			const paid = player.payHeat(5);
+
+			expect(paid).toBe(1);
+			expect(player.engine).toHaveLength(0);
+			expect(player.discard).toHaveLength(1);
+		});
+
+		it("returns 0 when engine is empty", () => {
+			const player = createPlayer({
+				engine: [],
+				discard: [],
+			});
+
+			const paid = player.payHeat(3);
+
+			expect(paid).toBe(0);
+			expect(player.discard).toHaveLength(0);
+		});
 	});
 });

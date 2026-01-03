@@ -400,6 +400,91 @@ describe("Game", () => {
 				// Stress resolves to speed(4) from deck
 				expect(game.state.players[PLAYER_1_ID].position).toBe(4);
 			});
+
+			// USA track: corners at position 6 (limit 4) and position 15 (limit 3)
+			describe("corner checking", () => {
+				it("should not pay heat when crossing corner at speed limit", () => {
+					const game = new Game(
+						{
+							playerIds: [PLAYER_1_ID],
+							map: "USA",
+						},
+						{ shuffle: noShuffle },
+					);
+
+					// Start at position 3, play speed(4) to end at 7
+					// Crosses corner at position 6 with speed 4, limit 4 - no penalty
+					game._state.players[PLAYER_1_ID].position = 3;
+					game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
+					game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [6] });
+
+					expect(game.state.players[PLAYER_1_ID].position).toBe(7);
+					expect(game.state.players[PLAYER_1_ID].engine).toHaveLength(6);
+				});
+
+				it("should pay heat when crossing corner over speed limit", () => {
+					const game = new Game(
+						{
+							playerIds: [PLAYER_1_ID],
+							map: "USA",
+						},
+						{ shuffle: noShuffle },
+					);
+
+					// Start at position 3, play upgrade(5) + speed(4) = 9 movement
+					// Crosses corner at 6 (limit 4): speed 9 - limit 4 = 5 heat
+					game._state.players[PLAYER_1_ID].position = 3;
+					game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
+					game.dispatch(PLAYER_1_ID, {
+						type: "playCards",
+						cardIndices: [4, 6],
+					});
+
+					expect(game.state.players[PLAYER_1_ID].position).toBe(12);
+					// Paid 5 heat: 6 - 5 = 1 heat card left in engine
+					expect(game.state.players[PLAYER_1_ID].engine).toHaveLength(1);
+				});
+
+				it("should not pay heat when stopping before corner", () => {
+					const game = new Game(
+						{
+							playerIds: [PLAYER_1_ID],
+							map: "USA",
+						},
+						{ shuffle: noShuffle },
+					);
+
+					// Start at 0, play speed(4), stopping at position 4 (before corner at 6)
+					game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
+					game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [6] });
+
+					expect(game.state.players[PLAYER_1_ID].position).toBe(4);
+					expect(game.state.players[PLAYER_1_ID].engine).toHaveLength(6);
+				});
+
+				it("should pay heat for multiple corners crossed in one move", () => {
+					const game = new Game(
+						{
+							playerIds: [PLAYER_1_ID],
+							map: "USA",
+						},
+						{ shuffle: noShuffle },
+					);
+
+					// Start at position 10, play upgrade(5) + speed(4) = 9, ends at 19
+					// Crosses corner at 15 (limit 3): speed 9 - limit 3 = 6 heat
+					game._state.players[PLAYER_1_ID].position = 10;
+					game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
+					game.dispatch(PLAYER_1_ID, {
+						type: "playCards",
+						cardIndices: [4, 6],
+					});
+
+					expect(game.state.players[PLAYER_1_ID].position).toBe(19);
+					// All 6 heat cards paid
+					expect(game.state.players[PLAYER_1_ID].engine).toHaveLength(0);
+				});
+			});
 		});
 	});
 });

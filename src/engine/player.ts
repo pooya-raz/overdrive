@@ -1,4 +1,4 @@
-import type { Card, Gear } from "./game-engine";
+import type { Card, Gear, Track } from "./game-engine";
 
 export type ShuffleFn = <T>(items: T[]) => T[];
 
@@ -153,14 +153,40 @@ export class Player {
 	}
 
 	/**
-	 * Resolves stress cards, then calculates and applies movement.
+	 * Pays heat by moving cards from engine to discard.
+	 * Returns actual heat paid (may be less if engine runs out).
 	 */
-	move(): void {
+	payHeat(amount: number): number {
+		let paid = 0;
+		while (paid < amount && this.engine.length > 0) {
+			const heat = this.engine.pop();
+			if (heat) {
+				this.discard.push(heat);
+				paid++;
+			}
+		}
+		return paid;
+	}
+
+	/**
+	 * Resolves stress cards, then calculates and applies movement.
+	 * If track provided, checks corners and applies heat penalties.
+	 */
+	move(track?: Track): void {
 		this.resolveStressCards();
-		const spaces = this.played.reduce(
-			(sum, card) => sum + (card.value ?? 0),
-			0,
-		);
-		this.position += spaces;
+		const speed = this.played.reduce((sum, card) => sum + (card.value ?? 0), 0);
+		const startPosition = this.position;
+		this.position += speed;
+
+		if (!track) return;
+
+		for (const corner of track.corners) {
+			const crossed =
+				startPosition < corner.position && corner.position <= this.position;
+			if (!crossed) continue;
+
+			const penalty = speed - corner.speedLimit;
+			if (penalty > 0) this.payHeat(penalty);
+		}
 	}
 }

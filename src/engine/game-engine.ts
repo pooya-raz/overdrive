@@ -213,8 +213,9 @@ export class Game {
 		}
 
 		if (this._state.phase === "move") {
+			const track = MAP_CONFIG[this._state.map].track;
 			for (const player of Object.values(this._state.players)) {
-				player.move();
+				player.move(track);
 			}
 			this._state.phase = "discardAndReplenish";
 		}

@@ -50,11 +50,11 @@ const STARTING_UPGRADE_CARDS: Card[] = [
 ];
 
 function createStressCards(count: number): Card[] {
-	return Array(count).fill({ type: "stress" });
+	return Array.from({ length: count }, () => ({ type: "stress" }));
 }
 
 function createHeatCards(count: number): Card[] {
-	return Array(count).fill({ type: "heat" });
+	return Array.from({ length: count }, () => ({ type: "heat" }));
 }
 
 export type Phase = "shift" | "playCards" | "move" | "discardAndReplenish";

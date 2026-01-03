@@ -87,6 +87,9 @@ export class Player {
 	discardAndReplenish(discardIndices: number[]): void {
 		const sortedIndices = [...discardIndices].sort((a, b) => b - a);
 		for (const index of sortedIndices) {
+			if (index < 0 || index >= this.hand.length) {
+				throw new Error(`Invalid card index: ${index}`);
+			}
 			const card = this.hand[index];
 			if (card.type === "heat") {
 				throw new Error("Cannot discard heat cards");

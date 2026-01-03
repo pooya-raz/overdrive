@@ -230,6 +230,18 @@ describe("Player", () => {
 				"Cannot discard stress cards",
 			);
 		});
+
+		it("throws on invalid card index", () => {
+			const hand: Card[] = [
+				{ type: "speed", value: 1 },
+				{ type: "speed", value: 2 },
+			];
+			const player = createPlayer({ played: [], deck: [], hand, discard: [] });
+
+			expect(() => player.discardAndReplenish([99])).toThrow(
+				"Invalid card index: 99",
+			);
+		});
 	});
 
 	describe("playCards", () => {

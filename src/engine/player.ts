@@ -62,6 +62,7 @@ export class Player {
 		});
 	}
 
+	/** Returns a deep copy of player state to prevent external mutation. */
 	get state(): PlayerState {
 		return structuredClone({
 			id: this.id,
@@ -89,6 +90,7 @@ export class Player {
 		}
 	}
 
+	/** Shifting by 2 gears costs 1 heat (moved from engine to discard). */
 	shift(nextGear: Gear): void {
 		const diff = Math.abs(nextGear - this._gear);
 
@@ -108,6 +110,7 @@ export class Player {
 		this._gear = nextGear;
 	}
 
+	/** Heat and stress cards cannot be discarded from hand. */
 	discardAndReplenish(discardIndices: number[]): void {
 		const sortedIndices = [...discardIndices].sort((a, b) => b - a);
 		for (const index of sortedIndices) {
@@ -129,6 +132,7 @@ export class Player {
 		this.draw();
 	}
 
+	/** Number of cards played must equal current gear. */
 	playCards(cardIndices: number[]): void {
 		if (cardIndices.length !== this._gear) {
 			throw new Error(`Must play exactly ${this._gear} cards`);

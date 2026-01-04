@@ -85,3 +85,4 @@ Central `dispatch(playerId, action)` method validates actions and advances phase
 - Descriptive variable names
 - Explicit error messages
 - No unnecessary comments (only for non-obvious logic)
+- Avoid nested if statements (use early returns, continue, or extract methods)

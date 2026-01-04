@@ -227,6 +227,7 @@ export class Game {
 		if (isEndOfTurn) {
 			this._state.phase = phaseOrder[0];
 			this._state.turn += 1;
+			this.resetAdrenaline();
 		} else {
 			this._state.phase = phaseOrder[nextPhase];
 		}
@@ -236,11 +237,32 @@ export class Game {
 			for (const player of Object.values(this._state.players)) {
 				player.move(track);
 			}
+			this.assignAdrenaline();
 			this._state.phase = "discardAndReplenish";
 		}
 
 		this._state.pendingPlayers = Object.fromEntries(
 			Object.keys(this._state.players).map((id) => [id, true]),
 		);
+	}
+
+	private resetAdrenaline(): void {
+		for (const player of Object.values(this._state.players)) {
+			player.setAdrenaline(false);
+		}
+	}
+
+	private assignAdrenaline(): void {
+		const players = Object.values(this._state.players);
+		const playerCount = players.length;
+		const adrenalineSlots = playerCount >= 5 ? 2 : 1;
+
+		const sortedByPosition = [...players].sort(
+			(a, b) => a.state.position - b.state.position,
+		);
+
+		for (let i = 0; i < adrenalineSlots && i < sortedByPosition.length; i++) {
+			sortedByPosition[i].setAdrenaline(true);
+		}
 	}
 }

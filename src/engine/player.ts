@@ -22,6 +22,7 @@ export interface PlayerState {
 	played: Card[];
 	engine: Card[];
 	discard: Card[];
+	hasAdrenaline: boolean;
 }
 
 export class Player {
@@ -33,6 +34,7 @@ export class Player {
 	private _played: Card[];
 	private _engine: Card[];
 	private _discard: Card[];
+	private _hasAdrenaline: boolean;
 	private declare shuffle: ShuffleFn;
 
 	constructor(options: {
@@ -55,6 +57,7 @@ export class Player {
 		this._played = options.played;
 		this._engine = options.engine;
 		this._discard = options.discard;
+		this._hasAdrenaline = false;
 		// Non-enumerable so structuredClone doesn't try to clone the function
 		Object.defineProperty(this, "shuffle", {
 			value: shuffle,
@@ -73,7 +76,17 @@ export class Player {
 			played: this._played,
 			engine: this._engine,
 			discard: this._discard,
+			hasAdrenaline: this._hasAdrenaline,
 		});
+	}
+
+	/**
+	 * Adrenaline helps trailing players catch up. Players in last position
+	 * (or last 2 in 5+ player games) gain adrenaline after movement, granting
+	 * +1 speed and +1 cooldown during the React phase. Resets each turn.
+	 */
+	setAdrenaline(value: boolean): void {
+		this._hasAdrenaline = value;
 	}
 
 	draw(): void {

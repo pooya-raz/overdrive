@@ -640,4 +640,29 @@ describe("Player", () => {
 			expect(paid).toBe(0);
 		});
 	});
+
+	describe("setAdrenaline", () => {
+		it("sets adrenaline to true", () => {
+			const player = createPlayer();
+
+			player.setAdrenaline(true);
+
+			expect(player.state.hasAdrenaline).toBe(true);
+		});
+
+		it("sets adrenaline to false", () => {
+			const player = createPlayer();
+			player.setAdrenaline(true);
+
+			player.setAdrenaline(false);
+
+			expect(player.state.hasAdrenaline).toBe(false);
+		});
+
+		it("initializes with adrenaline false", () => {
+			const player = createPlayer();
+
+			expect(player.state.hasAdrenaline).toBe(false);
+		});
+	});
 });

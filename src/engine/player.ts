@@ -75,16 +75,6 @@ export class Player {
 		});
 	}
 
-	/** @internal Test only - set position directly */
-	_setPosition(position: number): void {
-		this._position = position;
-	}
-
-	/** @internal Test only - set engine directly */
-	_setEngine(engine: Card[]): void {
-		this._engine = engine;
-	}
-
 	draw(): void {
 		while (this._hand.length < 7) {
 			if (this._deck.length === 0) {

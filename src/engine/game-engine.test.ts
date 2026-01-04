@@ -104,7 +104,9 @@ describe("Game", () => {
 					},
 					{ shuffle: noShuffle },
 				);
-				game._state.phase = "playCards";
+
+				// Advance to playCards phase naturally
+				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
 
 				expect(() =>
 					game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 }),
@@ -213,9 +215,9 @@ describe("Game", () => {
 					{ shuffle: noShuffle },
 				);
 
-				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
-				game._state.phase = "discardAndReplenish";
-				game._state.pendingPlayers = { [PLAYER_1_ID]: true };
+				// Play through a complete turn
+				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
+				game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [6] });
 				game.dispatch(PLAYER_1_ID, {
 					type: "discardAndReplenish",
 					discardIndices: [],

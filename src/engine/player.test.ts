@@ -30,6 +30,33 @@ function createPlayer(
 	});
 }
 
+describe("defaultShuffle", () => {
+	it("is used when no shuffle option is provided", () => {
+		const deck: Card[] = Array.from({ length: 10 }, (_, i) => ({
+			type: "speed",
+			value: (i % 4) + 1,
+		})) as Card[];
+		const results: string[] = [];
+
+		for (let i = 0; i < 10; i++) {
+			const player = new Player({
+				id: "test",
+				gear: 1,
+				position: 0,
+				deck: [...deck],
+				hand: [],
+				played: [],
+				engine: [],
+				discard: [],
+			});
+			results.push(JSON.stringify(player.state.deck));
+		}
+
+		const uniqueResults = new Set(results);
+		expect(uniqueResults.size).toBeGreaterThan(1);
+	});
+});
+
 describe("Player", () => {
 	describe("draw", () => {
 		it("fills the hand to 7 cards from the deck", () => {

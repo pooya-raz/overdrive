@@ -198,25 +198,39 @@ export class Player {
 	/**
 	 * Resolves stress cards, then calculates and applies movement.
 	 * If track provided, checks corners and applies heat penalties.
+	 * If not enough heat to pay penalty, spins out.
 	 */
 	move(track?: Track): void {
 		this.resolveStressCards();
-		const speed = this._played.reduce(
-			(sum, card) => sum + (card.value ?? 0),
-			0,
-		);
+		const speed = this.calculateSpeed();
 		const startPosition = this._position;
 		this._position += speed;
 
-		if (!track) return;
+		const crossedCorners =
+			track?.corners.filter(
+				(c) => startPosition < c.position && c.position <= this._position,
+			) ?? [];
 
-		for (const corner of track.corners) {
-			const crossed =
-				startPosition < corner.position && corner.position <= this._position;
-			if (!crossed) continue;
-
+		for (const corner of crossedCorners) {
 			const penalty = speed - corner.speedLimit;
-			if (penalty > 0) this.payHeat(penalty);
+			const paid = this.payHeat(penalty);
+			if (paid < penalty) {
+				this.spinOut(corner.position);
+				return;
+			}
 		}
+	}
+
+	private calculateSpeed(): number {
+		return this._played.reduce((sum, card) => sum + (card.value ?? 0), 0);
+	}
+
+	private spinOut(cornerPosition: number): void {
+		this._position = cornerPosition - 1;
+		const stressCount = this._gear <= 2 ? 1 : 2;
+		for (let i = 0; i < stressCount; i++) {
+			this._hand.push({ type: "stress" });
+		}
+		this._gear = 1;
 	}
 }

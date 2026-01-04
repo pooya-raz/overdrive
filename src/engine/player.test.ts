@@ -424,7 +424,8 @@ describe("Player", () => {
 					{ type: "speed", value: 4 },
 					{ type: "upgrade", value: 8 },
 				],
-				engine: Array(10).fill({ type: "heat" }),
+				// Corner at 5: 12 - 3 = 9 heat, Corner at 15: 12 - 2 = 10 heat
+				engine: Array(19).fill({ type: "heat" }),
 				discard: [],
 			});
 
@@ -432,6 +433,56 @@ describe("Player", () => {
 
 			expect(player.state.position).toBe(16);
 			expect(player.state.engine).toHaveLength(0);
+		});
+
+		it("spins out when not enough heat to pay for corner", () => {
+			const player = createPlayer({
+				position: 2,
+				gear: 2,
+				hand: [],
+				played: [
+					{ type: "speed", value: 2 },
+					{ type: "speed", value: 3 },
+				],
+				engine: [{ type: "heat" }],
+				discard: [],
+			});
+
+			player.move(track);
+
+			// Moves back to space before corner (5 - 1 = 4)
+			expect(player.state.position).toBe(4);
+			// Pays all available heat
+			expect(player.state.engine).toHaveLength(0);
+			expect(player.state.discard).toEqual([{ type: "heat" }]);
+			// Gear reset to 1
+			expect(player.state.gear).toBe(1);
+			// 1 stress card for 1st/2nd gear
+			expect(player.state.hand).toEqual([{ type: "stress" }]);
+		});
+
+		it("spins out with 2 stress cards when in 3rd/4th gear", () => {
+			const player = createPlayer({
+				position: 2,
+				gear: 4,
+				hand: [],
+				played: [
+					{ type: "speed", value: 4 },
+					{ type: "speed", value: 4 },
+				],
+				engine: [{ type: "heat" }],
+				discard: [],
+			});
+
+			player.move(track);
+
+			expect(player.state.position).toBe(4);
+			expect(player.state.gear).toBe(1);
+			// 2 stress cards for 3rd/4th gear
+			expect(player.state.hand).toEqual([
+				{ type: "stress" },
+				{ type: "stress" },
+			]);
 		});
 	});
 

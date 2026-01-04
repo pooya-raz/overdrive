@@ -95,91 +95,72 @@ describe("Game", () => {
 	});
 
 	describe("dispatch", () => {
-		it("should mark player as acted after action", () => {
-			const game = new Game(
-				{
-					playerIds: [PLAYER_1_ID, PLAYER_2_ID],
-					map: "USA",
-				},
-				{ shuffle: noShuffle },
-			);
+		describe("validation", () => {
+			it("should reject action for wrong phase", () => {
+				const game = new Game(
+					{
+						playerIds: [PLAYER_1_ID],
+						map: "USA",
+					},
+					{ shuffle: noShuffle },
+				);
+				game._state.phase = "playCards";
 
-			game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
+				expect(() =>
+					game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 }),
+				).toThrow("Invalid action for phase playCards");
+			});
 
-			expect(game.state.pendingPlayers).toEqual({
-				[PLAYER_1_ID]: false,
-				[PLAYER_2_ID]: true,
+			it("should reject action for unknown player", () => {
+				const game = new Game(
+					{
+						playerIds: [PLAYER_1_ID],
+						map: "USA",
+					},
+					{ shuffle: noShuffle },
+				);
+
+				expect(() =>
+					game.dispatch("unknown-player-id", { type: "shift", gear: 2 }),
+				).toThrow("Player not found");
+			});
+
+			it("should reject action if player already acted", () => {
+				const game = new Game(
+					{
+						playerIds: [PLAYER_1_ID, PLAYER_2_ID],
+						map: "USA",
+					},
+					{ shuffle: noShuffle },
+				);
+
+				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
+
+				expect(() =>
+					game.dispatch(PLAYER_1_ID, { type: "shift", gear: 3 }),
+				).toThrow("Player has already acted this phase");
 			});
 		});
 
-		it("should advance turn after all phases complete", () => {
-			const game = new Game(
-				{
-					playerIds: [PLAYER_1_ID],
-					map: "USA",
-				},
-				{ shuffle: noShuffle },
-			);
+		describe("phase transitions", () => {
+			it("should mark player as acted after action", () => {
+				const game = new Game(
+					{
+						playerIds: [PLAYER_1_ID, PLAYER_2_ID],
+						map: "USA",
+					},
+					{ shuffle: noShuffle },
+				);
 
-			game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
-			game._state.phase = "discardAndReplenish";
-			game._state.pendingPlayers = { [PLAYER_1_ID]: true };
-			game.dispatch(PLAYER_1_ID, {
-				type: "discardAndReplenish",
-				discardIndices: [],
+				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
+
+				expect(game.state.pendingPlayers).toEqual({
+					[PLAYER_1_ID]: false,
+					[PLAYER_2_ID]: true,
+				});
 			});
 
-			expect(game.state.turn).toBe(2);
-			expect(game.state.phase).toBe("shift");
-		});
-
-		it("should reject action for wrong phase", () => {
-			const game = new Game(
-				{
-					playerIds: [PLAYER_1_ID],
-					map: "USA",
-				},
-				{ shuffle: noShuffle },
-			);
-			game._state.phase = "playCards";
-
-			expect(() =>
-				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 }),
-			).toThrow("Invalid action for phase playCards");
-		});
-
-		it("should reject action for unknown player", () => {
-			const game = new Game(
-				{
-					playerIds: [PLAYER_1_ID],
-					map: "USA",
-				},
-				{ shuffle: noShuffle },
-			);
-
-			expect(() =>
-				game.dispatch("unknown-player-id", { type: "shift", gear: 2 }),
-			).toThrow("Player not found");
-		});
-
-		it("should reject action if player already acted", () => {
-			const game = new Game(
-				{
-					playerIds: [PLAYER_1_ID, PLAYER_2_ID],
-					map: "USA",
-				},
-				{ shuffle: noShuffle },
-			);
-
-			game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
-
-			expect(() =>
-				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 3 }),
-			).toThrow("Player has already acted this phase");
-		});
-
-		describe("shift", () => {
-			it("should shift player gear and move to new phase", () => {
+			it("should advance from shift to playCards when all players act", () => {
 				const game = new Game(
 					{
 						playerIds: [PLAYER_1_ID, PLAYER_2_ID],
@@ -207,30 +188,8 @@ describe("Game", () => {
 					expect(player.deck).toHaveLength(11);
 				}
 			});
-		});
 
-		describe("playCards", () => {
-			it("should move cards from hand to played and advance phase", () => {
-				const game = new Game(
-					{
-						playerIds: [PLAYER_1_ID],
-						map: "USA",
-					},
-					{ shuffle: noShuffle },
-				);
-
-				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
-
-				// With noShuffle, hand is: stress, stress, stress, heat, upgrade(5), upgrade(0), speed(4)
-				// Playing indices [5, 6] plays upgrade(0) and speed(4)
-				game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [5, 6] });
-
-				expect(game.state.phase).toBe("discardAndReplenish");
-			});
-		});
-
-		describe("move", () => {
-			it("should auto-advance from move to discardAndReplenish", () => {
+			it("should advance from playCards through move to discardAndReplenish", () => {
 				const game = new Game(
 					{
 						playerIds: [PLAYER_1_ID],
@@ -243,6 +202,27 @@ describe("Game", () => {
 				game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [6] });
 
 				expect(game.state.phase).toBe("discardAndReplenish");
+			});
+
+			it("should advance to next turn after discardAndReplenish", () => {
+				const game = new Game(
+					{
+						playerIds: [PLAYER_1_ID],
+						map: "USA",
+					},
+					{ shuffle: noShuffle },
+				);
+
+				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
+				game._state.phase = "discardAndReplenish";
+				game._state.pendingPlayers = { [PLAYER_1_ID]: true };
+				game.dispatch(PLAYER_1_ID, {
+					type: "discardAndReplenish",
+					discardIndices: [],
+				});
+
+				expect(game.state.turn).toBe(2);
+				expect(game.state.phase).toBe("shift");
 			});
 		});
 	});

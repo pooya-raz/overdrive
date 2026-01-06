@@ -171,11 +171,6 @@ export class Player {
 		this._played = [];
 	}
 
-	/** Draws cards until hand has 7 cards. */
-	replenishHand(): void {
-		this.draw();
-	}
-
 	/** Number of cards played must equal current gear. */
 	playCards(cardIndices: number[]): void {
 		if (cardIndices.length !== this._gear) {

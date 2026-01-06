@@ -511,7 +511,7 @@ describe("Player", () => {
 		});
 	});
 
-	describe("replenishHand", () => {
+	describe("draw (at end of turn)", () => {
 		it("draws cards to fill hand to 7", () => {
 			const player = createPlayer({
 				deck: [
@@ -527,7 +527,7 @@ describe("Player", () => {
 				],
 			});
 
-			player.replenishHand();
+			player.draw();
 
 			expect(player.state.hand).toHaveLength(7);
 		});

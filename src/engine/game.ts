@@ -226,7 +226,7 @@ export class Game {
 			}
 			case "discard": {
 				player.discard(action.cardIndices);
-				player.replenishHand();
+				player.draw();
 				this._state.currentPlayerIndex++;
 				if (this._state.currentPlayerIndex >= this._state.turnOrder.length) {
 					this.assignAdrenaline();

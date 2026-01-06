@@ -4,7 +4,7 @@ import {
 	type CreateGameRequest,
 	Game,
 	type ShuffleFn,
-} from "./game-engine";
+} from "./game";
 
 const PLAYER_1_ID = "550e8400-e29b-41d4-a716-446655440001";
 const PLAYER_2_ID = "550e8400-e29b-41d4-a716-446655440002";

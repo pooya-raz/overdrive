@@ -1,6 +1,6 @@
-import type { Card, Gear, Track } from "./game-engine";
+import type { Card, Gear, PlayerData, ShuffleFn, Track } from "./types";
 
-export type ShuffleFn = <T>(items: T[]) => T[];
+export type { PlayerData, ShuffleFn };
 
 export const defaultShuffle: ShuffleFn = (items) => {
 	const shuffled = [...items];
@@ -12,19 +12,6 @@ export const defaultShuffle: ShuffleFn = (items) => {
 
 	return shuffled;
 };
-
-export interface PlayerData {
-	id: string;
-	gear: Gear;
-	position: number;
-	onRaceline: boolean;
-	deck: Card[];
-	hand: Card[];
-	played: Card[];
-	engine: Card[];
-	discard: Card[];
-	hasAdrenaline: boolean;
-}
 
 export class Player {
 	readonly id: string;

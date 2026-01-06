@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { Card, Gear } from "./game-engine";
 import { Player, type ShuffleFn } from "./player";
+import type { Card, Gear } from "./types";
 
 const noShuffle: ShuffleFn = <T>(items: T[]) => items;
 

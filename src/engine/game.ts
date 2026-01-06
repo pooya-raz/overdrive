@@ -1,10 +1,6 @@
 import { createStartingDeck, createStartingEngine } from "./cards";
 import { Player } from "./player";
-import {
-	getInitialReactions,
-	getNextState,
-	isAutoState,
-} from "./state-machine";
+import { getInitialReactions } from "./state-machine";
 import { getMapTrack } from "./track";
 import type {
 	Action,
@@ -94,7 +90,7 @@ export class Game {
 			),
 			turnOrder: [],
 			currentPlayerIndex: 0,
-			availableReactions: [],
+			availableReactions: getInitialReactions(),
 		};
 	}
 
@@ -154,7 +150,13 @@ export class Game {
 
 		const allActed = Object.values(this._state.pendingPlayers).every((v) => !v);
 		if (allActed) {
-			this.enterResolutionPhase();
+			for (const p of Object.values(this._state.players)) {
+				p.setAdrenaline(false);
+			}
+			this._state.phase = "resolution";
+			this._state.turnOrder = this.getPlayersInRaceOrder().map((p) => p.id);
+			this._state.currentPlayerIndex = 0;
+			this.runPlayerTurn();
 		}
 	}
 
@@ -172,124 +174,73 @@ export class Game {
 		switch (action.type) {
 			case "adrenaline": {
 				// TODO: Apply adrenaline bonuses
+				this._state.currentState = "react";
 				break;
 			}
 			case "react": {
 				if (action.action === "skip") {
+					this._state.currentState = "slipstream";
 					break;
 				}
-
 				if (!this._state.availableReactions.includes(action.action)) {
 					throw new Error(`Reaction ${action.action} not available`);
 				}
-
 				// TODO: Apply cooldown/boost based on action.action and action.amount
-
 				this._state.availableReactions = this._state.availableReactions.filter(
 					(r) => r !== action.action,
 				);
-
-				if (this._state.availableReactions.length > 0) {
-					return;
+				if (this._state.availableReactions.length === 0) {
+					this._state.currentState = "slipstream";
 				}
 				break;
 			}
 			case "slipstream": {
 				// TODO: Apply slipstream movement
+				this._state.currentState = "checkCollision";
+				break;
+			}
+			case "checkCollision": {
+				// TODO: Resolve collisions
+				this._state.currentState = "discard";
 				break;
 			}
 			case "discard": {
 				player.discard(action.cardIndices);
+				player.replenishHand();
+				this._state.currentPlayerIndex++;
+				if (this._state.currentPlayerIndex >= this._state.turnOrder.length) {
+					const raceOrder = this.getPlayersInRaceOrder();
+					const adrenalineSlots = raceOrder.length >= 5 ? 2 : 1;
+					for (let i = 0; i < adrenalineSlots; i++) {
+						raceOrder[raceOrder.length - 1 - i].setAdrenaline(true);
+					}
+					this._state.phase = "planning";
+					this._state.currentState = "plan";
+					this._state.turn += 1;
+					this._state.turnOrder = [];
+					this._state.currentPlayerIndex = 0;
+					this._state.pendingPlayers = Object.fromEntries(
+						Object.keys(this._state.players).map((id) => [id, true]),
+					);
+				} else {
+					this.runPlayerTurn();
+				}
 				break;
 			}
 			default:
 				throw new Error(`Action ${action.type} not valid in resolution phase`);
 		}
-
-		this.advanceResolutionState();
 	}
 
-	private enterResolutionPhase(): void {
-		this.resetAdrenaline();
-		this._state.phase = "resolution";
-		this._state.turnOrder = this.getPlayersInRaceOrder().map((p) => p.id);
-		this._state.currentPlayerIndex = 0;
-		this._state.currentState = "revealAndMove";
-		this.runAutoStates();
-	}
-
-	private advanceResolutionState(): void {
-		const nextState = getNextState(this._state.currentState);
-
-		if (nextState === null) {
-			this.advanceToNextPlayer();
-		} else {
-			this._state.currentState = nextState;
-			this.runAutoStates();
-		}
-	}
-
-	private advanceToNextPlayer(): void {
-		this._state.currentPlayerIndex++;
-
-		if (this._state.currentPlayerIndex >= this._state.turnOrder.length) {
-			this.endResolutionPhase();
-		} else {
-			this._state.currentState = "revealAndMove";
-			this.runAutoStates();
-		}
-	}
-
-	private endResolutionPhase(): void {
-		this.assignAdrenaline();
-		this._state.phase = "planning";
-		this._state.currentState = "plan";
-		this._state.turn += 1;
-		this._state.turnOrder = [];
-		this._state.currentPlayerIndex = 0;
-		this._state.pendingPlayers = Object.fromEntries(
-			Object.keys(this._state.players).map((id) => [id, true]),
-		);
-	}
-
-	private runAutoStates(): void {
-		while (isAutoState(this._state.currentState)) {
-			this.executeAutoState();
-
-			const nextState = getNextState(this._state.currentState);
-			if (nextState === null) {
-				this.advanceToNextPlayer();
-				return;
-			}
-			this._state.currentState = nextState;
-		}
-
-		if (this._state.currentState === "react") {
-			this._state.availableReactions = getInitialReactions();
-		}
-	}
-
-	private executeAutoState(): void {
+	/** Reveals cards, moves player, then waits for adrenaline input. */
+	private runPlayerTurn(): void {
 		const playerId = this._state.turnOrder[this._state.currentPlayerIndex];
 		const player = this._state.players[playerId];
 		const track = getMapTrack(this._state.map);
-
-		switch (this._state.currentState) {
-			case "revealAndMove": {
-				const targetPosition = player.move(track);
-				player.setPosition(targetPosition);
-				// TODO: Proper collision resolution
-				break;
-			}
-			case "checkCorner": {
-				// Corner handling is currently in player.move()
-				break;
-			}
-			case "replenishHand": {
-				player.replenishHand();
-				break;
-			}
-		}
+		const targetPosition = player.move(track);
+		player.setPosition(targetPosition);
+		// TODO: Proper collision resolution
+		this._state.currentState = "adrenaline";
 	}
 
 	private getPlayersInRaceOrder(): Player[] {
@@ -301,21 +252,5 @@ export class Game {
 			}
 			return a.state.onRaceline ? -1 : 1;
 		});
-	}
-
-	private resetAdrenaline(): void {
-		for (const player of Object.values(this._state.players)) {
-			player.setAdrenaline(false);
-		}
-	}
-
-	private assignAdrenaline(): void {
-		const raceOrder = this.getPlayersInRaceOrder();
-		const adrenalineSlots = raceOrder.length >= 5 ? 2 : 1;
-
-		for (let i = 0; i < adrenalineSlots; i++) {
-			const player = raceOrder[raceOrder.length - 1 - i];
-			player.setAdrenaline(true);
-		}
 	}
 }

@@ -25,6 +25,7 @@ function completeResolutionPhase(game: Game): void {
 		});
 		game.dispatch(playerId, { type: "react", action: "skip" });
 		game.dispatch(playerId, { type: "slipstream", distance: 0 });
+		game.dispatch(playerId, { type: "checkCollision" });
 		game.dispatch(playerId, { type: "discard", cardIndices: [] });
 	}
 }
@@ -256,6 +257,7 @@ describe("Game", () => {
 				});
 				game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
 				game.dispatch(PLAYER_1_ID, { type: "slipstream", distance: 0 });
+				game.dispatch(PLAYER_1_ID, { type: "checkCollision" });
 				game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
 
 				// After all resolution states, should be back to planning phase turn 2

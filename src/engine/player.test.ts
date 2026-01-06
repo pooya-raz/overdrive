@@ -216,7 +216,7 @@ describe("Player", () => {
 	});
 
 	describe("move", () => {
-		it("moves by sum of played card values", () => {
+		it("returns target position as sum of played card values", () => {
 			const player = createPlayer({
 				position: 0,
 				played: [
@@ -225,9 +225,9 @@ describe("Player", () => {
 				],
 			});
 
-			player.move();
+			const targetPosition = player.move();
 
-			expect(player.state.position).toBe(5);
+			expect(targetPosition).toBe(5);
 		});
 
 		it("accumulates position from starting position", () => {
@@ -236,9 +236,9 @@ describe("Player", () => {
 				played: [{ type: "speed", value: 3 }],
 			});
 
-			player.move();
+			const targetPosition = player.move();
 
-			expect(player.state.position).toBe(13);
+			expect(targetPosition).toBe(13);
 		});
 
 		it("includes upgrade card values", () => {
@@ -250,9 +250,9 @@ describe("Player", () => {
 				],
 			});
 
-			player.move();
+			const targetPosition = player.move();
 
-			expect(player.state.position).toBe(7);
+			expect(targetPosition).toBe(7);
 		});
 
 		it("treats heat cards as 0 movement", () => {
@@ -261,17 +261,17 @@ describe("Player", () => {
 				played: [{ type: "speed", value: 3 }, { type: "heat" }],
 			});
 
-			player.move();
+			const targetPosition = player.move();
 
-			expect(player.state.position).toBe(3);
+			expect(targetPosition).toBe(3);
 		});
 
-		it("does not move when no cards played", () => {
+		it("returns starting position when no cards played", () => {
 			const player = createPlayer({ position: 5, played: [] });
 
-			player.move();
+			const targetPosition = player.move();
 
-			expect(player.state.position).toBe(5);
+			expect(targetPosition).toBe(5);
 		});
 
 		describe("stress card resolution", () => {
@@ -282,13 +282,13 @@ describe("Player", () => {
 					deck: [{ type: "speed", value: 3 }],
 				});
 
-				player.move();
+				const targetPosition = player.move();
 
 				expect(player.state.played).toContainEqual({
 					type: "speed",
 					value: 3,
 				});
-				expect(player.state.position).toBe(3);
+				expect(targetPosition).toBe(3);
 			});
 
 			it("draws upgrade card and adds to played", () => {
@@ -298,13 +298,13 @@ describe("Player", () => {
 					deck: [{ type: "upgrade", value: 5 }],
 				});
 
-				player.move();
+				const targetPosition = player.move();
 
 				expect(player.state.played).toContainEqual({
 					type: "upgrade",
 					value: 5,
 				});
-				expect(player.state.position).toBe(5);
+				expect(targetPosition).toBe(5);
 			});
 
 			it("discards drawn stress or heat cards", () => {
@@ -315,10 +315,10 @@ describe("Player", () => {
 					discard: [],
 				});
 
-				player.move();
+				const targetPosition = player.move();
 
 				expect(player.state.discard).toContainEqual({ type: "stress" });
-				expect(player.state.position).toBe(0);
+				expect(targetPosition).toBe(0);
 			});
 
 			it("resolves multiple stress cards", () => {
@@ -331,9 +331,9 @@ describe("Player", () => {
 					],
 				});
 
-				player.move();
+				const targetPosition = player.move();
 
-				expect(player.state.position).toBe(5);
+				expect(targetPosition).toBe(5);
 			});
 
 			it("shuffles discard into deck when deck is empty", () => {
@@ -344,13 +344,13 @@ describe("Player", () => {
 					discard: [{ type: "speed", value: 4 }],
 				});
 
-				player.move();
+				const targetPosition = player.move();
 
-				expect(player.state.position).toBe(4);
+				expect(targetPosition).toBe(4);
 				expect(player.state.discard).toHaveLength(0);
 			});
 
-			it("treats as 0 movement when deck and discard empty", () => {
+			it("returns starting position when deck and discard empty", () => {
 				const player = createPlayer({
 					position: 5,
 					played: [{ type: "stress" }],
@@ -358,9 +358,9 @@ describe("Player", () => {
 					discard: [],
 				});
 
-				player.move();
+				const targetPosition = player.move();
 
-				expect(player.state.position).toBe(5);
+				expect(targetPosition).toBe(5);
 			});
 		});
 	});
@@ -382,9 +382,9 @@ describe("Player", () => {
 				discard: [],
 			});
 
-			player.move(track);
+			const targetPosition = player.move(track);
 
-			expect(player.state.position).toBe(6);
+			expect(targetPosition).toBe(6);
 			expect(player.state.engine).toHaveLength(2);
 			expect(player.state.discard).toEqual([{ type: "heat" }]);
 		});
@@ -397,9 +397,9 @@ describe("Player", () => {
 				discard: [],
 			});
 
-			player.move(track);
+			const targetPosition = player.move(track);
 
-			expect(player.state.position).toBe(5);
+			expect(targetPosition).toBe(5);
 			expect(player.state.engine).toHaveLength(2);
 		});
 
@@ -411,9 +411,9 @@ describe("Player", () => {
 				discard: [],
 			});
 
-			player.move(track);
+			const targetPosition = player.move(track);
 
-			expect(player.state.position).toBe(4);
+			expect(targetPosition).toBe(4);
 			expect(player.state.engine).toHaveLength(1);
 		});
 
@@ -429,9 +429,9 @@ describe("Player", () => {
 				discard: [],
 			});
 
-			player.move(track);
+			const targetPosition = player.move(track);
 
-			expect(player.state.position).toBe(16);
+			expect(targetPosition).toBe(16);
 			expect(player.state.engine).toHaveLength(0);
 		});
 
@@ -448,10 +448,10 @@ describe("Player", () => {
 				discard: [],
 			});
 
-			player.move(track);
+			const targetPosition = player.move(track);
 
-			// Moves back to space before corner (5 - 1 = 4)
-			expect(player.state.position).toBe(4);
+			// Returns position before corner (5 - 1 = 4)
+			expect(targetPosition).toBe(4);
 			// Pays all available heat
 			expect(player.state.engine).toHaveLength(0);
 			expect(player.state.discard).toEqual([{ type: "heat" }]);
@@ -474,9 +474,9 @@ describe("Player", () => {
 				discard: [],
 			});
 
-			player.move(track);
+			const targetPosition = player.move(track);
 
-			expect(player.state.position).toBe(4);
+			expect(targetPosition).toBe(4);
 			expect(player.state.gear).toBe(1);
 			// 2 stress cards for 3rd/4th gear
 			expect(player.state.hand).toEqual([

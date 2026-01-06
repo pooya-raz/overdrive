@@ -17,6 +17,7 @@ export interface PlayerState {
 	id: string;
 	gear: Gear;
 	position: number;
+	onRaceline: boolean;
 	deck: Card[];
 	hand: Card[];
 	played: Card[];
@@ -29,6 +30,7 @@ export class Player {
 	readonly id: string;
 	private _gear: Gear;
 	private _position: number;
+	private _onRaceline: boolean;
 	private _deck: Card[];
 	private _hand: Card[];
 	private _played: Card[];
@@ -41,6 +43,7 @@ export class Player {
 		id: string;
 		gear: Gear;
 		position: number;
+		onRaceline?: boolean;
 		deck: Card[];
 		hand: Card[];
 		played: Card[];
@@ -52,6 +55,7 @@ export class Player {
 		this.id = options.id;
 		this._gear = options.gear;
 		this._position = options.position;
+		this._onRaceline = options.onRaceline ?? true;
 		this._deck = shuffle(options.deck);
 		this._hand = options.hand;
 		this._played = options.played;
@@ -71,6 +75,7 @@ export class Player {
 			id: this.id,
 			gear: this._gear,
 			position: this._position,
+			onRaceline: this._onRaceline,
 			deck: this._deck,
 			hand: this._hand,
 			played: this._played,
@@ -87,6 +92,16 @@ export class Player {
 	 */
 	setAdrenaline(value: boolean): void {
 		this._hasAdrenaline = value;
+	}
+
+	/** Players on the raceline go first when sharing a position. */
+	setRaceline(onRaceline: boolean): void {
+		this._onRaceline = onRaceline;
+	}
+
+	/** Sets final track position after collision resolution. */
+	setPosition(position: number): void {
+		this._position = position;
 	}
 
 	draw(): void {
@@ -213,41 +228,44 @@ export class Player {
 	}
 
 	/**
-	 * Resolves stress cards, then calculates and applies movement.
-	 * If track provided, checks corners and applies heat penalties.
-	 * If not enough heat to pay penalty, spins out.
+	 * Resolves stress cards, calculates movement, handles corners and spinout.
+	 * Returns target position without setting it (Game handles collision resolution).
+	 * Still mutates: played cards (stress resolution), engine/discard (heat payment),
+	 * hand (spinout stress cards), gear (spinout reset).
 	 */
-	move(track?: Track): void {
+	move(track?: Track): number {
 		this.resolveStressCards();
 		const speed = this.calculateSpeed();
 		const startPosition = this._position;
-		this._position += speed;
+		const targetPosition = startPosition + speed;
 
 		const crossedCorners =
 			track?.corners.filter(
-				(c) => startPosition < c.position && c.position <= this._position,
+				(c) => startPosition < c.position && c.position <= targetPosition,
 			) ?? [];
 
 		for (const corner of crossedCorners) {
 			const penalty = speed - corner.speedLimit;
 			const paid = this.payHeat(penalty);
 			if (paid < penalty) {
-				this.spinOut(corner.position);
-				return;
+				return this.spinOut(corner.position);
 			}
 		}
+
+		return targetPosition;
 	}
 
 	private calculateSpeed(): number {
 		return this._played.reduce((sum, card) => sum + (card.value ?? 0), 0);
 	}
 
-	private spinOut(cornerPosition: number): void {
-		this._position = cornerPosition - 1;
+	/** Handles spinout effects and returns the spinout position. */
+	private spinOut(cornerPosition: number): number {
 		const stressCount = this._gear <= 2 ? 1 : 2;
 		for (let i = 0; i < stressCount; i++) {
 			this._hand.push({ type: "stress" });
 		}
 		this._gear = 1;
+		return cornerPosition - 1;
 	}
 }

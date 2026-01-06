@@ -2,11 +2,11 @@ import { Player, type PlayerState, type ShuffleFn } from "./player";
 
 export { Player, type PlayerState, type ShuffleFn };
 
-export type Map = "USA";
+export type GameMap = "USA";
 
 export interface CreateGameRequest {
 	playerIds: string[];
-	map: Map;
+	map: GameMap;
 }
 
 export type Gear = 1 | 2 | 3 | 4;
@@ -65,7 +65,7 @@ export type Action =
 	| { type: "discardAndReplenish"; discardIndices: number[] };
 
 export interface GameState {
-	map: Map;
+	map: GameMap;
 	players: Record<string, PlayerState>;
 	turn: number;
 	phase: Phase;
@@ -78,7 +78,7 @@ interface MapConfig {
 	track: Track;
 }
 
-const MAP_CONFIG: Record<Map, MapConfig> = {
+const MAP_CONFIG: Record<GameMap, MapConfig> = {
 	USA: {
 		stressCards: 3,
 		heatCards: 6,
@@ -92,7 +92,7 @@ const MAP_CONFIG: Record<Map, MapConfig> = {
 	},
 };
 
-function createStartingDeck(map: Map): Card[] {
+function createStartingDeck(map: GameMap): Card[] {
 	const config = MAP_CONFIG[map];
 	return [
 		...STARTING_SPEED_CARDS,
@@ -101,7 +101,7 @@ function createStartingDeck(map: Map): Card[] {
 	];
 }
 
-function createStartingEngine(map: Map): Card[] {
+function createStartingEngine(map: GameMap): Card[] {
 	const config = MAP_CONFIG[map];
 	return createHeatCards(config.heatCards);
 }
@@ -118,11 +118,16 @@ function parseCreateGameRequest(
 		throw new Error("Player IDs must be unique");
 	}
 	const players: Record<string, Player> = {};
-	for (const id of request.playerIds) {
+	for (let i = 0; i < request.playerIds.length; i++) {
+		const id = request.playerIds[i];
+		// Stagger starting positions: 2 players per position, first on raceline
+		const position = -Math.floor(i / 2);
+		const onRaceline = i % 2 === 0;
 		players[id] = new Player({
 			id,
 			gear: 1,
-			position: 0,
+			position,
+			onRaceline,
 			deck: createStartingDeck(request.map),
 			hand: [],
 			played: [],
@@ -135,7 +140,7 @@ function parseCreateGameRequest(
 }
 
 interface InternalGameState {
-	map: Map;
+	map: GameMap;
 	players: Record<string, Player>;
 	turn: number;
 	phase: Phase;
@@ -234,9 +239,7 @@ export class Game {
 
 		if (this._state.phase === "move") {
 			const track = MAP_CONFIG[this._state.map].track;
-			for (const player of Object.values(this._state.players)) {
-				player.move(track);
-			}
+			this.resolveMovePhase(track);
 			this.assignAdrenaline();
 			this._state.phase = "discardAndReplenish";
 		}
@@ -246,6 +249,61 @@ export class Game {
 		);
 	}
 
+	/**
+	 * Resolves movement with collision detection. Players are processed in turn
+	 * order (leader first). Max 2 players per position; additional players
+	 * cascade back until finding space.
+	 */
+	private resolveMovePhase(track: Track): void {
+		const turnOrder = this.getPlayersInRaceOrder();
+
+		// Track how many players are at each position
+		const positionCounts = new Map<number, number>();
+
+		for (const player of turnOrder) {
+			const targetPosition = player.move(track);
+			const finalPosition = this.cascadeToOpenPosition(
+				targetPosition,
+				positionCounts,
+			);
+
+			// First player at a position gets the raceline
+			const playersAtPosition = positionCounts.get(finalPosition) ?? 0;
+			const onRaceline = playersAtPosition === 0;
+
+			// Update player and position map
+			player.setPosition(finalPosition);
+			player.setRaceline(onRaceline);
+			positionCounts.set(finalPosition, playersAtPosition + 1);
+		}
+	}
+
+	/** Finds nearest position with space, cascading back if target is full. */
+	private cascadeToOpenPosition(
+		targetPosition: number,
+		positionCounts: Map<number, number>,
+	): number {
+		const isFull = (pos: number) => (positionCounts.get(pos) ?? 0) >= 2;
+
+		let position = targetPosition;
+		while (isFull(position)) {
+			position--;
+		}
+		return position;
+	}
+
+	/** Returns players sorted by race position, leader first. */
+	private getPlayersInRaceOrder(): Player[] {
+		const players = Object.values(this._state.players);
+		return [...players].sort((a, b) => {
+			const positionDiff = b.state.position - a.state.position;
+			if (positionDiff !== 0) {
+				return positionDiff;
+			}
+			return a.state.onRaceline ? -1 : 1;
+		});
+	}
+
 	private resetAdrenaline(): void {
 		for (const player of Object.values(this._state.players)) {
 			player.setAdrenaline(false);
@@ -253,16 +311,13 @@ export class Game {
 	}
 
 	private assignAdrenaline(): void {
-		const players = Object.values(this._state.players);
-		const playerCount = players.length;
-		const adrenalineSlots = playerCount >= 5 ? 2 : 1;
+		const raceOrder = this.getPlayersInRaceOrder();
+		const adrenalineSlots = raceOrder.length >= 5 ? 2 : 1;
 
-		const sortedByPosition = [...players].sort(
-			(a, b) => a.state.position - b.state.position,
-		);
-
-		for (let i = 0; i < adrenalineSlots && i < sortedByPosition.length; i++) {
-			sortedByPosition[i].setAdrenaline(true);
+		// Trailing players (end of race order) get adrenaline
+		for (let i = 0; i < adrenalineSlots; i++) {
+			const player = raceOrder[raceOrder.length - 1 - i];
+			player.setAdrenaline(true);
 		}
 	}
 }

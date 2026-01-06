@@ -383,4 +383,101 @@ describe("Game", () => {
 			expect(game.state.players[PLAYER_2_ID].hasAdrenaline).toBe(false);
 		});
 	});
+
+	describe("position collision", () => {
+		it("should assign raceline to first player arriving at position", () => {
+			const game = new Game(
+				{
+					playerIds: [PLAYER_1_ID, PLAYER_2_ID],
+					map: "USA",
+				},
+				{ shuffle: noShuffle },
+			);
+
+			// Both players stay in gear 1 and play speed 4 = 4 movement
+			game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
+			game.dispatch(PLAYER_2_ID, { type: "shift", gear: 1 });
+			game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [6] });
+			game.dispatch(PLAYER_2_ID, { type: "playCards", cardIndices: [6] });
+
+			// Both end at position 4, first in turn order (PLAYER_1) gets raceline
+			expect(game.state.players[PLAYER_1_ID].position).toBe(4);
+			expect(game.state.players[PLAYER_1_ID].onRaceline).toBe(true);
+			expect(game.state.players[PLAYER_2_ID].position).toBe(4);
+			expect(game.state.players[PLAYER_2_ID].onRaceline).toBe(false);
+
+			//Player 2 should get adrenaline
+			expect(game.state.players[PLAYER_2_ID].hasAdrenaline).toBe(true);
+			expect(game.state.players[PLAYER_1_ID].hasAdrenaline).toBe(false);
+		});
+
+		it("should cascade third player back when position is full", () => {
+			const game = new Game(
+				{
+					playerIds: [PLAYER_1_ID, PLAYER_2_ID, PLAYER_3_ID],
+					map: "USA",
+				},
+				{ shuffle: noShuffle },
+			);
+
+			// All three players play speed 4 = 4 movement
+			game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
+			game.dispatch(PLAYER_2_ID, { type: "shift", gear: 1 });
+			game.dispatch(PLAYER_3_ID, { type: "shift", gear: 1 });
+			game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [6] });
+			game.dispatch(PLAYER_2_ID, { type: "playCards", cardIndices: [6] });
+			game.dispatch(PLAYER_3_ID, { type: "playCards", cardIndices: [6] });
+
+			// Position 4 is full (P1 on raceline, P2 off), P3 cascades to position 3
+			expect(game.state.players[PLAYER_1_ID].position).toBe(4);
+			expect(game.state.players[PLAYER_1_ID].onRaceline).toBe(true);
+			expect(game.state.players[PLAYER_2_ID].position).toBe(4);
+			expect(game.state.players[PLAYER_2_ID].onRaceline).toBe(false);
+			expect(game.state.players[PLAYER_3_ID].position).toBe(3);
+			expect(game.state.players[PLAYER_3_ID].onRaceline).toBe(true);
+		});
+
+		it("should cascade multiple positions when all are full", () => {
+			const game = new Game(
+				{
+					playerIds: [
+						PLAYER_1_ID,
+						PLAYER_2_ID,
+						PLAYER_3_ID,
+						PLAYER_4_ID,
+						PLAYER_5_ID,
+					],
+					map: "USA",
+				},
+				{ shuffle: noShuffle },
+			);
+
+			// All five players play speed 4 = 4 movement
+			for (const id of [
+				PLAYER_1_ID,
+				PLAYER_2_ID,
+				PLAYER_3_ID,
+				PLAYER_4_ID,
+				PLAYER_5_ID,
+			]) {
+				game.dispatch(id, { type: "shift", gear: 1 });
+			}
+			for (const id of [
+				PLAYER_1_ID,
+				PLAYER_2_ID,
+				PLAYER_3_ID,
+				PLAYER_4_ID,
+				PLAYER_5_ID,
+			]) {
+				game.dispatch(id, { type: "playCards", cardIndices: [6] });
+			}
+
+			// P1, P2 at position 4; P3, P4 at position 3; P5 at position 2
+			expect(game.state.players[PLAYER_1_ID].position).toBe(4);
+			expect(game.state.players[PLAYER_2_ID].position).toBe(4);
+			expect(game.state.players[PLAYER_3_ID].position).toBe(3);
+			expect(game.state.players[PLAYER_4_ID].position).toBe(3);
+			expect(game.state.players[PLAYER_5_ID].position).toBe(2);
+		});
+	});
 });

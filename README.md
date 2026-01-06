@@ -93,12 +93,35 @@ When a stress card is played, during movement a replacement card is drawn from t
 - Speed/Upgrade cards are added to played cards (contributing to movement)
 - Stress/Heat cards go directly to discard
 
+### Spin Out
+
+If you can't pay the full heat penalty at a corner:
+- You stop one space before the corner
+- Gear resets to 1
+- Gain 1 stress card (gear 1-2) or 2 stress cards (gear 3-4)
+
+### Position & Raceline
+
+- Maximum 2 players per track position
+- First player to arrive at a position gets the **raceline** (front)
+- Second player is off the raceline (back)
+- Third+ players cascade back to previous positions
+- Turn order: leader (highest position, on raceline) moves first
+
+### Adrenaline
+
+Trailing players receive adrenaline after movement:
+- In 2-4 player games: last place gets adrenaline
+- In 5+ player games: last 2 places get adrenaline
+- Resets at the start of each turn
+
 ### Starting Setup (USA Map)
 
 - **Hand:** 7 cards
 - **Deck:** 12 speed cards, 2 upgrade cards, 1 heat card, 3 stress cards
 - **Engine:** 6 heat cards
 - **Track:** Length 24, corners at position 6 (limit 4) and 15 (limit 3)
+- **Starting grid:** Players staggered at positions 0, 0, -1, -1, -2... (2 per position)
 
 ## Development
 
@@ -127,6 +150,9 @@ Tests are written with Vitest and cover:
 - Player mechanics (draw, shift, play cards, discard, move)
 - Stress card resolution during movement
 - Corner speed checking and heat penalties
+- Spin out mechanics
+- Position collision and raceline assignment
+- Adrenaline assignment for trailing players
 - Game state management and phase transitions
 - Input validation and error handling
 
@@ -139,9 +165,12 @@ pnpm run test
 - [x] Track representation (corners array with position and speedLimit)
 - [x] Corner speed limits and heat penalties
 - [x] Stress card resolution (draw from deck during movement)
+- [x] Spin out mechanics
+- [x] Position collision (max 2 per position, raceline)
+- [x] Turn order based on race position
+- [x] Adrenaline for trailing players
 - [ ] Slipstream/drafting mechanics
 - [ ] Win condition and lap tracking
-- [ ] Turn order based on track position
 - [ ] REST API endpoints
 - [ ] Game persistence
 

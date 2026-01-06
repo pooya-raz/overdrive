@@ -1,6 +1,6 @@
-import { Player, type PlayerState, type ShuffleFn } from "./player";
+import { Player, type PlayerData, type ShuffleFn } from "./player";
 
-export { Player, type PlayerState, type ShuffleFn };
+export { Player, type PlayerData, type ShuffleFn };
 
 export type GameMap = "USA";
 
@@ -57,19 +57,40 @@ function createHeatCards(count: number): Card[] {
 	return Array.from({ length: count }, () => ({ type: "heat" }));
 }
 
-export type Phase = "shift" | "playCards" | "move" | "discardAndReplenish";
+export type GamePhase = "planning" | "resolution";
+
+export type TurnState =
+	| "plan"
+	| "revealAndMove"
+	| "adrenaline"
+	| "react"
+	| "react2"
+	| "slipstream"
+	| "checkCorner"
+	| "discard"
+	| "replenishHand";
+
+export type ReactChoice = "cooldown" | "boost" | "skip";
 
 export type Action =
-	| { type: "shift"; gear: Gear }
-	| { type: "playCards"; cardIndices: number[] }
-	| { type: "discardAndReplenish"; discardIndices: number[] };
+	| { type: "plan"; gear: Gear; cardIndices: number[] }
+	| { type: "adrenaline"; acceptMove: boolean; acceptCooldown: boolean }
+	| { type: "react"; action: ReactChoice; amount?: number }
+	| { type: "react2"; action: ReactChoice; amount?: number }
+	| { type: "slipstream"; distance: 0 | 1 | 2 }
+	| { type: "discard"; cardIndices: number[] };
 
 export interface GameState {
 	map: GameMap;
-	players: Record<string, PlayerState>;
+	players: Record<string, PlayerData>;
 	turn: number;
-	phase: Phase;
+	phase: GamePhase;
+	currentState: TurnState;
+	// For planning phase: tracks which players have acted
 	pendingPlayers: Record<string, boolean>;
+	// For resolution phase: player order and current player
+	turnOrder: string[];
+	currentPlayerIndex: number;
 }
 
 interface MapConfig {
@@ -143,8 +164,11 @@ interface InternalGameState {
 	map: GameMap;
 	players: Record<string, Player>;
 	turn: number;
-	phase: Phase;
+	phase: GamePhase;
+	currentState: TurnState;
 	pendingPlayers: Record<string, boolean>;
+	turnOrder: string[];
+	currentPlayerIndex: number;
 }
 
 export class Game {
@@ -159,10 +183,13 @@ export class Game {
 			map: request.map,
 			players,
 			turn: 1,
-			phase: "shift",
+			phase: "planning",
+			currentState: "plan",
 			pendingPlayers: Object.fromEntries(
 				Object.keys(players).map((id) => [id, true]),
 			),
+			turnOrder: [],
+			currentPlayerIndex: 0,
 		};
 	}
 
@@ -177,13 +204,16 @@ export class Game {
 			),
 			turn: this._state.turn,
 			phase: this._state.phase,
+			currentState: this._state.currentState,
 			pendingPlayers: { ...this._state.pendingPlayers },
+			turnOrder: [...this._state.turnOrder],
+			currentPlayerIndex: this._state.currentPlayerIndex,
 		};
 	}
 
 	dispatch(playerId: string, action: Action): void {
-		if (action.type !== this._state.phase) {
-			throw new Error(`Invalid action for phase ${this._state.phase}`);
+		if (action.type !== this._state.currentState) {
+			throw new Error(`Invalid action for state ${this._state.currentState}`);
 		}
 
 		const player = this._state.players[playerId];
@@ -191,105 +221,185 @@ export class Game {
 			throw new Error("Player not found");
 		}
 
+		if (this._state.phase === "planning") {
+			this.handlePlanningAction(playerId, player, action);
+		} else {
+			this.handleResolutionAction(playerId, player, action);
+		}
+	}
+
+	private handlePlanningAction(
+		playerId: string,
+		player: Player,
+		action: Action,
+	): void {
 		if (!this._state.pendingPlayers[playerId]) {
-			throw new Error("Player has already acted this phase");
+			throw new Error("Player has already acted this state");
 		}
 
-		switch (action.type) {
-			case "shift": {
-				player.shift(action.gear);
-				break;
-			}
-			case "playCards": {
-				player.playCards(action.cardIndices);
-				break;
-			}
-			case "discardAndReplenish": {
-				player.discardAndReplenish(action.discardIndices);
-				break;
-			}
+		if (action.type !== "plan") {
+			throw new Error(`Action ${action.type} not valid in planning phase`);
 		}
+
+		player.shiftGears(action.gear);
+		player.playCards(action.cardIndices);
 
 		this._state.pendingPlayers[playerId] = false;
 
 		const allActed = Object.values(this._state.pendingPlayers).every((v) => !v);
 		if (allActed) {
-			this.advancePhase();
+			this.enterResolutionPhase();
 		}
 	}
 
-	private advancePhase(): void {
-		const phaseOrder: Phase[] = [
-			"shift",
-			"playCards",
-			"move",
-			"discardAndReplenish",
+	private handleResolutionAction(
+		playerId: string,
+		player: Player,
+		action: Action,
+	): void {
+		const currentPlayerId =
+			this._state.turnOrder[this._state.currentPlayerIndex];
+		if (playerId !== currentPlayerId) {
+			throw new Error("Not your turn");
+		}
+
+		switch (action.type) {
+			case "adrenaline": {
+				// TODO: Apply adrenaline bonuses
+				break;
+			}
+			case "react":
+			case "react2": {
+				// TODO: Apply cooldown/boost based on action.action and action.amount
+				break;
+			}
+			case "slipstream": {
+				// TODO: Apply slipstream movement
+				break;
+			}
+			case "discard": {
+				player.discard(action.cardIndices);
+				break;
+			}
+			default:
+				throw new Error(`Action ${action.type} not valid in resolution phase`);
+		}
+
+		this.advanceResolutionState();
+	}
+
+	private enterResolutionPhase(): void {
+		this.resetAdrenaline();
+		this._state.phase = "resolution";
+		this._state.turnOrder = this.getPlayersInRaceOrder().map((p) => p.id);
+		this._state.currentPlayerIndex = 0;
+		this._state.currentState = "revealAndMove";
+		this.runAutoStates();
+	}
+
+	private advanceResolutionState(): void {
+		const stateOrder: TurnState[] = [
+			"revealAndMove",
+			"adrenaline",
+			"react",
+			"react2",
+			"slipstream",
+			"checkCorner",
+			"discard",
+			"replenishHand",
 		];
-		const currentPhase = phaseOrder.indexOf(this._state.phase);
-		const nextPhase = currentPhase + 1;
-		const isEndOfTurn = nextPhase >= phaseOrder.length;
+		const currentIndex = stateOrder.indexOf(this._state.currentState);
+		const nextIndex = currentIndex + 1;
 
-		if (isEndOfTurn) {
-			this._state.phase = phaseOrder[0];
-			this._state.turn += 1;
-			this.resetAdrenaline();
+		if (nextIndex >= stateOrder.length) {
+			this.advanceToNextPlayer();
 		} else {
-			this._state.phase = phaseOrder[nextPhase];
+			this._state.currentState = stateOrder[nextIndex];
+			this.runAutoStates();
 		}
+	}
 
-		if (this._state.phase === "move") {
-			const track = MAP_CONFIG[this._state.map].track;
-			this.resolveMovePhase(track);
-			this.assignAdrenaline();
-			this._state.phase = "discardAndReplenish";
+	private advanceToNextPlayer(): void {
+		this._state.currentPlayerIndex++;
+
+		if (this._state.currentPlayerIndex >= this._state.turnOrder.length) {
+			this.endResolutionPhase();
+		} else {
+			this._state.currentState = "revealAndMove";
+			this.runAutoStates();
 		}
+	}
 
+	private endResolutionPhase(): void {
+		this.assignAdrenaline();
+		this._state.phase = "planning";
+		this._state.currentState = "plan";
+		this._state.turn += 1;
+		this._state.turnOrder = [];
+		this._state.currentPlayerIndex = 0;
+		this.resetPendingPlayers();
+	}
+
+	/** Executes automatic states until reaching an input state. */
+	private runAutoStates(): void {
+		const autoStates: TurnState[] = [
+			"revealAndMove",
+			"checkCorner",
+			"replenishHand",
+		];
+
+		while (autoStates.includes(this._state.currentState)) {
+			this.executeAutoState();
+
+			const stateOrder: TurnState[] = [
+				"revealAndMove",
+				"adrenaline",
+				"react",
+				"react2",
+				"slipstream",
+				"checkCorner",
+				"discard",
+				"replenishHand",
+			];
+			const currentIndex = stateOrder.indexOf(this._state.currentState);
+			const nextIndex = currentIndex + 1;
+
+			if (nextIndex >= stateOrder.length) {
+				this.advanceToNextPlayer();
+				return;
+			}
+			this._state.currentState = stateOrder[nextIndex];
+		}
+	}
+
+	private executeAutoState(): void {
+		const playerId = this._state.turnOrder[this._state.currentPlayerIndex];
+		const player = this._state.players[playerId];
+		const track = MAP_CONFIG[this._state.map].track;
+
+		switch (this._state.currentState) {
+			case "revealAndMove": {
+				const targetPosition = player.move(track);
+				player.setPosition(targetPosition);
+				// TODO: Proper collision resolution
+				break;
+			}
+			case "checkCorner": {
+				// Corner handling is currently in player.move()
+				// TODO: Split out corner logic
+				break;
+			}
+			case "replenishHand": {
+				player.replenishHand();
+				break;
+			}
+		}
+	}
+
+	private resetPendingPlayers(): void {
 		this._state.pendingPlayers = Object.fromEntries(
 			Object.keys(this._state.players).map((id) => [id, true]),
 		);
-	}
-
-	/**
-	 * Resolves movement with collision detection. Players are processed in turn
-	 * order (leader first). Max 2 players per position; additional players
-	 * cascade back until finding space.
-	 */
-	private resolveMovePhase(track: Track): void {
-		const turnOrder = this.getPlayersInRaceOrder();
-
-		// Track how many players are at each position
-		const positionCounts = new Map<number, number>();
-
-		for (const player of turnOrder) {
-			const targetPosition = player.move(track);
-			const finalPosition = this.cascadeToOpenPosition(
-				targetPosition,
-				positionCounts,
-			);
-
-			// First player at a position gets the raceline
-			const playersAtPosition = positionCounts.get(finalPosition) ?? 0;
-			const onRaceline = playersAtPosition === 0;
-
-			// Update player and position map
-			player.setPosition(finalPosition);
-			player.setRaceline(onRaceline);
-			positionCounts.set(finalPosition, playersAtPosition + 1);
-		}
-	}
-
-	/** Finds nearest position with space, cascading back if target is full. */
-	private cascadeToOpenPosition(
-		targetPosition: number,
-		positionCounts: Map<number, number>,
-	): number {
-		const isFull = (pos: number) => (positionCounts.get(pos) ?? 0) >= 2;
-
-		let position = targetPosition;
-		while (isFull(position)) {
-			position--;
-		}
-		return position;
 	}
 
 	/** Returns players sorted by race position, leader first. */

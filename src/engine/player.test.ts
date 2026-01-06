@@ -118,11 +118,11 @@ describe("Player", () => {
 		});
 	});
 
-	describe("shift", () => {
+	describe("shiftGears", () => {
 		it("updates gear when shifting by 1", () => {
 			const player = createPlayer({ gear: 2 });
 
-			player.shift(3);
+			player.shiftGears(3);
 
 			expect(player.state.gear).toBe(3);
 		});
@@ -134,7 +134,7 @@ describe("Player", () => {
 				discard: [],
 			});
 
-			player.shift(3);
+			player.shiftGears(3);
 
 			expect(player.state.gear).toBe(3);
 			expect(player.state.engine).toHaveLength(0);
@@ -145,7 +145,7 @@ describe("Player", () => {
 			it("throws when shifting by 2 without heat in engine", () => {
 				const player = createPlayer({ gear: 1, engine: [] });
 
-				expect(() => player.shift(3)).toThrow(
+				expect(() => player.shiftGears(3)).toThrow(
 					"Heat card required to shift by 2 gears",
 				);
 			});
@@ -153,7 +153,7 @@ describe("Player", () => {
 			it("throws when shifting by more than 2 gears", () => {
 				const player = createPlayer({ gear: 1, engine: [{ type: "heat" }] });
 
-				expect(() => player.shift(4)).toThrow(
+				expect(() => player.shiftGears(4)).toThrow(
 					"Can only shift up or down by max 2 gears",
 				);
 			});
@@ -486,16 +486,12 @@ describe("Player", () => {
 		});
 	});
 
-	describe("discardAndReplenish", () => {
-		it("moves played cards to discard and draws new hand", () => {
+	describe("discard", () => {
+		it("moves played cards to discard", () => {
 			const player = createPlayer({
 				played: [
 					{ type: "speed", value: 1 },
 					{ type: "speed", value: 2 },
-				],
-				deck: [
-					{ type: "speed", value: 3 },
-					{ type: "speed", value: 4 },
 				],
 				hand: [
 					{ type: "upgrade", value: 0 },
@@ -507,23 +503,18 @@ describe("Player", () => {
 				discard: [],
 			});
 
-			player.discardAndReplenish([]);
+			player.discard([]);
 
 			expect(player.state.played).toEqual([]);
 			expect(player.state.discard).toEqual([
 				{ type: "speed", value: 1 },
 				{ type: "speed", value: 2 },
 			]);
-			expect(player.state.hand).toHaveLength(7);
 		});
 
 		it("allows discarding speed and upgrade cards from hand", () => {
 			const player = createPlayer({
 				played: [],
-				deck: [
-					{ type: "speed", value: 1 },
-					{ type: "speed", value: 2 },
-				],
 				hand: [
 					{ type: "speed", value: 1 },
 					{ type: "upgrade", value: 5 },
@@ -536,13 +527,13 @@ describe("Player", () => {
 				discard: [],
 			});
 
-			player.discardAndReplenish([0, 1]);
+			player.discard([0, 1]);
 
 			expect(player.state.discard).toEqual([
 				{ type: "upgrade", value: 5 },
 				{ type: "speed", value: 1 },
 			]);
-			expect(player.state.hand).toHaveLength(7);
+			expect(player.state.hand).toHaveLength(5);
 		});
 
 		describe("validation", () => {
@@ -561,9 +552,7 @@ describe("Player", () => {
 					],
 				});
 
-				expect(() => player.discardAndReplenish([0])).toThrow(
-					"Cannot discard heat cards",
-				);
+				expect(() => player.discard([0])).toThrow("Cannot discard heat cards");
 			});
 
 			it("throws when discarding stress cards", () => {
@@ -581,7 +570,7 @@ describe("Player", () => {
 					],
 				});
 
-				expect(() => player.discardAndReplenish([0])).toThrow(
+				expect(() => player.discard([0])).toThrow(
 					"Cannot discard stress cards",
 				);
 			});
@@ -596,10 +585,30 @@ describe("Player", () => {
 					],
 				});
 
-				expect(() => player.discardAndReplenish([99])).toThrow(
-					"Invalid card index: 99",
-				);
+				expect(() => player.discard([99])).toThrow("Invalid card index: 99");
 			});
+		});
+	});
+
+	describe("replenishHand", () => {
+		it("draws cards to fill hand to 7", () => {
+			const player = createPlayer({
+				deck: [
+					{ type: "speed", value: 3 },
+					{ type: "speed", value: 4 },
+				],
+				hand: [
+					{ type: "upgrade", value: 0 },
+					{ type: "upgrade", value: 5 },
+					{ type: "heat" },
+					{ type: "stress" },
+					{ type: "stress" },
+				],
+			});
+
+			player.replenishHand();
+
+			expect(player.state.hand).toHaveLength(7);
 		});
 	});
 

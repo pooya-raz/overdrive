@@ -14,6 +14,22 @@ const PLAYER_5_ID = "550e8400-e29b-41d4-a716-446655440005";
 
 const noShuffle: ShuffleFn = <T>(items: T[]) => items;
 
+/** Helper to complete resolution phase for all players in turn order */
+function completeResolutionPhase(game: Game): void {
+	// Players resolve in turn order (leader first), one at a time
+	for (const playerId of game.state.turnOrder) {
+		game.dispatch(playerId, {
+			type: "adrenaline",
+			acceptMove: false,
+			acceptCooldown: false,
+		});
+		game.dispatch(playerId, { type: "react", action: "skip" });
+		game.dispatch(playerId, { type: "react2", action: "skip" });
+		game.dispatch(playerId, { type: "slipstream", distance: 0 });
+		game.dispatch(playerId, { type: "discard", cardIndices: [] });
+	}
+}
+
 const USA_STARTING_ENGINE: Card[] = [
 	{ type: "heat" },
 	{ type: "heat" },
@@ -34,7 +50,8 @@ describe("Game", () => {
 			const game = new Game(request, { shuffle: noShuffle });
 
 			expect(game.state.turn).toBe(1);
-			expect(game.state.phase).toBe("shift");
+			expect(game.state.phase).toBe("planning");
+			expect(game.state.currentState).toBe("plan");
 			expect(game.state.pendingPlayers).toEqual({
 				[PLAYER_1_ID]: true,
 				[PLAYER_2_ID]: true,
@@ -99,7 +116,7 @@ describe("Game", () => {
 
 	describe("dispatch", () => {
 		describe("validation", () => {
-			it("should reject action for wrong phase", () => {
+			it("should reject action for wrong state", () => {
 				const game = new Game(
 					{
 						playerIds: [PLAYER_1_ID],
@@ -108,12 +125,17 @@ describe("Game", () => {
 					{ shuffle: noShuffle },
 				);
 
-				// Advance to playCards phase naturally
-				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
+				// Submit plan to enter resolution phase
+				game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [6] });
 
+				// Now in resolution phase, plan action should be rejected
 				expect(() =>
-					game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 }),
-				).toThrow("Invalid action for phase playCards");
+					game.dispatch(PLAYER_1_ID, {
+						type: "plan",
+						gear: 2,
+						cardIndices: [5],
+					}),
+				).toThrow("Invalid action for state adrenaline");
 			});
 
 			it("should reject action for unknown player", () => {
@@ -126,7 +148,11 @@ describe("Game", () => {
 				);
 
 				expect(() =>
-					game.dispatch("unknown-player-id", { type: "shift", gear: 2 }),
+					game.dispatch("unknown-player-id", {
+						type: "plan",
+						gear: 2,
+						cardIndices: [6, 5],
+					}),
 				).toThrow("Player not found");
 			});
 
@@ -139,15 +165,23 @@ describe("Game", () => {
 					{ shuffle: noShuffle },
 				);
 
-				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
+				game.dispatch(PLAYER_1_ID, {
+					type: "plan",
+					gear: 2,
+					cardIndices: [6, 5],
+				});
 
 				expect(() =>
-					game.dispatch(PLAYER_1_ID, { type: "shift", gear: 3 }),
-				).toThrow("Player has already acted this phase");
+					game.dispatch(PLAYER_1_ID, {
+						type: "plan",
+						gear: 3,
+						cardIndices: [4, 3, 2],
+					}),
+				).toThrow("Player has already acted this state");
 			});
 		});
 
-		describe("phase transitions", () => {
+		describe("state transitions", () => {
 			it("should mark player as acted after action", () => {
 				const game = new Game(
 					{
@@ -157,7 +191,11 @@ describe("Game", () => {
 					{ shuffle: noShuffle },
 				);
 
-				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
+				game.dispatch(PLAYER_1_ID, {
+					type: "plan",
+					gear: 2,
+					cardIndices: [6, 5],
+				});
 
 				expect(game.state.pendingPlayers).toEqual({
 					[PLAYER_1_ID]: false,
@@ -165,7 +203,7 @@ describe("Game", () => {
 				});
 			});
 
-			it("should advance from shift to playCards when all players act", () => {
+			it("should enter resolution phase when all players submit plan", () => {
 				const game = new Game(
 					{
 						playerIds: [PLAYER_1_ID, PLAYER_2_ID],
@@ -174,27 +212,32 @@ describe("Game", () => {
 					{ shuffle: noShuffle },
 				);
 
-				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
-				game.dispatch(PLAYER_2_ID, { type: "shift", gear: 2 });
+				game.dispatch(PLAYER_1_ID, {
+					type: "plan",
+					gear: 2,
+					cardIndices: [6, 5],
+				});
+				game.dispatch(PLAYER_2_ID, {
+					type: "plan",
+					gear: 2,
+					cardIndices: [6, 5],
+				});
 
 				expect(game.state.turn).toBe(1);
-				expect(game.state.phase).toBe("playCards");
-				expect(game.state.pendingPlayers).toEqual({
-					[PLAYER_1_ID]: true,
-					[PLAYER_2_ID]: true,
-				});
+				expect(game.state.phase).toBe("resolution");
+				expect(game.state.currentState).toBe("adrenaline");
 
 				for (const id of [PLAYER_1_ID, PLAYER_2_ID]) {
 					const player = game.state.players[id];
 					expect(player.gear).toBe(2);
 					expect(player.engine).toEqual(USA_STARTING_ENGINE);
 					expect(player.discard).toEqual([]);
-					expect(player.hand).toHaveLength(7);
+					expect(player.hand).toHaveLength(5); // 7 - 2 played
 					expect(player.deck).toHaveLength(11);
 				}
 			});
 
-			it("should advance from playCards through move to discardAndReplenish", () => {
+			it("should advance to next turn after resolution phase completes", () => {
 				const game = new Game(
 					{
 						playerIds: [PLAYER_1_ID],
@@ -203,31 +246,24 @@ describe("Game", () => {
 					{ shuffle: noShuffle },
 				);
 
-				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
-				game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [6] });
+				// Planning phase - gear 1 means play 1 card
+				game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [6] });
 
-				expect(game.state.phase).toBe("discardAndReplenish");
-			});
-
-			it("should advance to next turn after discardAndReplenish", () => {
-				const game = new Game(
-					{
-						playerIds: [PLAYER_1_ID],
-						map: "USA",
-					},
-					{ shuffle: noShuffle },
-				);
-
-				// Play through a complete turn
-				game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
-				game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [6] });
+				// Resolution phase - dispatch required input actions
 				game.dispatch(PLAYER_1_ID, {
-					type: "discardAndReplenish",
-					discardIndices: [],
+					type: "adrenaline",
+					acceptMove: false,
+					acceptCooldown: false,
 				});
+				game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
+				game.dispatch(PLAYER_1_ID, { type: "react2", action: "skip" });
+				game.dispatch(PLAYER_1_ID, { type: "slipstream", distance: 0 });
+				game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
 
+				// After all resolution states, should be back to planning phase turn 2
 				expect(game.state.turn).toBe(2);
-				expect(game.state.phase).toBe("shift");
+				expect(game.state.phase).toBe("planning");
+				expect(game.state.currentState).toBe("plan");
 			});
 		});
 	});
@@ -246,7 +282,7 @@ describe("Game", () => {
 			expect(game.state.players[PLAYER_2_ID].hasAdrenaline).toBe(false);
 		});
 
-		it("should give adrenaline to last position player after move", () => {
+		it("should give adrenaline to last position player after resolution", () => {
 			const game = new Game(
 				{
 					playerIds: [PLAYER_1_ID, PLAYER_2_ID],
@@ -255,26 +291,24 @@ describe("Game", () => {
 				{ shuffle: noShuffle },
 			);
 
-			// Player 1 shifts to gear 2 (plays 2 cards), Player 2 stays in gear 1 (plays 1 card)
-			game.dispatch(PLAYER_1_ID, { type: "shift", gear: 2 });
-			game.dispatch(PLAYER_2_ID, { type: "shift", gear: 1 });
-
-			// Player 1 plays speed 4 + upgrade 0 = 4 movement
-			// Player 2 plays speed 4 = 4 movement
+			// Player 1: gear 2, speed 4 + upgrade 0 = 4 movement
+			// Player 2: gear 1, speed 4 = 4 movement
 			// With noShuffle, hand[6] = speed 4, hand[5] = upgrade 0
-			game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [6, 5] });
-			game.dispatch(PLAYER_2_ID, { type: "playCards", cardIndices: [6] });
+			game.dispatch(PLAYER_1_ID, {
+				type: "plan",
+				gear: 2,
+				cardIndices: [6, 5],
+			});
+			game.dispatch(PLAYER_2_ID, { type: "plan", gear: 1, cardIndices: [6] });
 
-			// After move: both at position 4, but Player 2 moved less (tied at 4)
-			// When tied, one of them gets adrenaline (implementation sorts by position)
-			expect(game.state.phase).toBe("discardAndReplenish");
+			// Complete resolution phase
+			completeResolutionPhase(game);
+
+			// After resolution: adrenaline assigned to trailing player
+			expect(game.state.phase).toBe("planning");
 
 			const p1Adrenaline = game.state.players[PLAYER_1_ID].hasAdrenaline;
 			const p2Adrenaline = game.state.players[PLAYER_2_ID].hasAdrenaline;
-			// Exactly one player should have adrenaline
-			expect(
-				p1Adrenaline !== p2Adrenaline || p1Adrenaline === p2Adrenaline,
-			).toBe(true);
 			// At least one should have it (the one in last or tied for last)
 			expect(p1Adrenaline || p2Adrenaline).toBe(true);
 		});
@@ -288,14 +322,17 @@ describe("Game", () => {
 				{ shuffle: noShuffle },
 			);
 
-			// Player 1 shifts to gear 1, Player 2 shifts to gear 2
-			game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
-			game.dispatch(PLAYER_2_ID, { type: "shift", gear: 2 });
+			// Player 1: gear 1, upgrade 0 (0 movement) - index 5
+			// Player 2: gear 2, speed 4 + upgrade 5 = 9 movement - indices 6, 4
+			game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [5] });
+			game.dispatch(PLAYER_2_ID, {
+				type: "plan",
+				gear: 2,
+				cardIndices: [6, 4],
+			});
 
-			// Player 1 plays upgrade 0 (0 movement) - index 5
-			// Player 2 plays speed 4 + upgrade 5 = 9 movement - indices 6, 4
-			game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [5] });
-			game.dispatch(PLAYER_2_ID, { type: "playCards", cardIndices: [6, 4] });
+			// Complete resolution phase
+			completeResolutionPhase(game);
 
 			// Player 1 at position 0, Player 2 at position 9
 			// Player 1 (lower position) should have adrenaline
@@ -318,27 +355,19 @@ describe("Game", () => {
 				{ shuffle: noShuffle },
 			);
 
-			// All stay in gear 1
-			for (const id of [
-				PLAYER_1_ID,
-				PLAYER_2_ID,
-				PLAYER_3_ID,
-				PLAYER_4_ID,
-				PLAYER_5_ID,
-			]) {
-				game.dispatch(id, { type: "shift", gear: 1 });
-			}
-
 			// Player 1: upgrade 0 = 0 movement
 			// Player 2: upgrade 0 = 0 movement
 			// Player 3: speed 4 = 4 movement
 			// Player 4: speed 4 = 4 movement
 			// Player 5: speed 4 = 4 movement
-			game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [5] });
-			game.dispatch(PLAYER_2_ID, { type: "playCards", cardIndices: [5] });
-			game.dispatch(PLAYER_3_ID, { type: "playCards", cardIndices: [6] });
-			game.dispatch(PLAYER_4_ID, { type: "playCards", cardIndices: [6] });
-			game.dispatch(PLAYER_5_ID, { type: "playCards", cardIndices: [6] });
+			game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [5] });
+			game.dispatch(PLAYER_2_ID, { type: "plan", gear: 1, cardIndices: [5] });
+			game.dispatch(PLAYER_3_ID, { type: "plan", gear: 1, cardIndices: [6] });
+			game.dispatch(PLAYER_4_ID, { type: "plan", gear: 1, cardIndices: [6] });
+			game.dispatch(PLAYER_5_ID, { type: "plan", gear: 1, cardIndices: [6] });
+
+			// Complete resolution phase
+			completeResolutionPhase(game);
 
 			// Players 1 and 2 at position 0 (tied for last)
 			// They should both have adrenaline
@@ -349,7 +378,7 @@ describe("Game", () => {
 			expect(game.state.players[PLAYER_5_ID].hasAdrenaline).toBe(false);
 		});
 
-		it("should reset adrenaline at start of next turn", () => {
+		it("should reset adrenaline when entering resolution phase", () => {
 			const game = new Game(
 				{
 					playerIds: [PLAYER_1_ID, PLAYER_2_ID],
@@ -359,26 +388,24 @@ describe("Game", () => {
 			);
 
 			// Complete turn 1
-			game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
-			game.dispatch(PLAYER_2_ID, { type: "shift", gear: 2 });
-			game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [5] });
-			game.dispatch(PLAYER_2_ID, { type: "playCards", cardIndices: [6, 4] });
+			game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [5] });
+			game.dispatch(PLAYER_2_ID, {
+				type: "plan",
+				gear: 2,
+				cardIndices: [6, 4],
+			});
+			completeResolutionPhase(game);
 
-			// Verify adrenaline was assigned
+			// Verify adrenaline was assigned after turn 1
+			expect(game.state.turn).toBe(2);
 			expect(game.state.players[PLAYER_1_ID].hasAdrenaline).toBe(true);
 
-			// Complete discardAndReplenish to advance to turn 2
-			game.dispatch(PLAYER_1_ID, {
-				type: "discardAndReplenish",
-				discardIndices: [],
-			});
-			game.dispatch(PLAYER_2_ID, {
-				type: "discardAndReplenish",
-				discardIndices: [],
-			});
+			// After entering resolution (both players submit plan), adrenaline resets
+			game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [4] });
+			game.dispatch(PLAYER_2_ID, { type: "plan", gear: 1, cardIndices: [3] });
 
-			// Adrenaline should be reset
-			expect(game.state.turn).toBe(2);
+			// Now in resolution phase, adrenaline should be reset
+			expect(game.state.phase).toBe("resolution");
 			expect(game.state.players[PLAYER_1_ID].hasAdrenaline).toBe(false);
 			expect(game.state.players[PLAYER_2_ID].hasAdrenaline).toBe(false);
 		});
@@ -394,11 +421,12 @@ describe("Game", () => {
 				{ shuffle: noShuffle },
 			);
 
-			// Both players stay in gear 1 and play speed 4 = 4 movement
-			game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
-			game.dispatch(PLAYER_2_ID, { type: "shift", gear: 1 });
-			game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [6] });
-			game.dispatch(PLAYER_2_ID, { type: "playCards", cardIndices: [6] });
+			// Both players: gear 1, speed 4 = 4 movement
+			game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [6] });
+			game.dispatch(PLAYER_2_ID, { type: "plan", gear: 1, cardIndices: [6] });
+
+			// Complete resolution phase
+			completeResolutionPhase(game);
 
 			// Both end at position 4, first in turn order (PLAYER_1) gets raceline
 			expect(game.state.players[PLAYER_1_ID].position).toBe(4);
@@ -420,13 +448,13 @@ describe("Game", () => {
 				{ shuffle: noShuffle },
 			);
 
-			// All three players play speed 4 = 4 movement
-			game.dispatch(PLAYER_1_ID, { type: "shift", gear: 1 });
-			game.dispatch(PLAYER_2_ID, { type: "shift", gear: 1 });
-			game.dispatch(PLAYER_3_ID, { type: "shift", gear: 1 });
-			game.dispatch(PLAYER_1_ID, { type: "playCards", cardIndices: [6] });
-			game.dispatch(PLAYER_2_ID, { type: "playCards", cardIndices: [6] });
-			game.dispatch(PLAYER_3_ID, { type: "playCards", cardIndices: [6] });
+			// All three players: gear 1, speed 4 = 4 movement
+			game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [6] });
+			game.dispatch(PLAYER_2_ID, { type: "plan", gear: 1, cardIndices: [6] });
+			game.dispatch(PLAYER_3_ID, { type: "plan", gear: 1, cardIndices: [6] });
+
+			// Complete resolution phase
+			completeResolutionPhase(game);
 
 			// Position 4 is full (P1 on raceline, P2 off), P3 cascades to position 3
 			expect(game.state.players[PLAYER_1_ID].position).toBe(4);
@@ -452,7 +480,7 @@ describe("Game", () => {
 				{ shuffle: noShuffle },
 			);
 
-			// All five players play speed 4 = 4 movement
+			// All five players: gear 1, speed 4 = 4 movement
 			for (const id of [
 				PLAYER_1_ID,
 				PLAYER_2_ID,
@@ -460,17 +488,11 @@ describe("Game", () => {
 				PLAYER_4_ID,
 				PLAYER_5_ID,
 			]) {
-				game.dispatch(id, { type: "shift", gear: 1 });
+				game.dispatch(id, { type: "plan", gear: 1, cardIndices: [6] });
 			}
-			for (const id of [
-				PLAYER_1_ID,
-				PLAYER_2_ID,
-				PLAYER_3_ID,
-				PLAYER_4_ID,
-				PLAYER_5_ID,
-			]) {
-				game.dispatch(id, { type: "playCards", cardIndices: [6] });
-			}
+
+			// Complete resolution phase
+			completeResolutionPhase(game);
 
 			// P1, P2 at position 4; P3, P4 at position 3; P5 at position 2
 			expect(game.state.players[PLAYER_1_ID].position).toBe(4);

@@ -13,7 +13,7 @@ export const defaultShuffle: ShuffleFn = (items) => {
 	return shuffled;
 };
 
-export interface PlayerState {
+export interface PlayerData {
 	id: string;
 	gear: Gear;
 	position: number;
@@ -70,7 +70,7 @@ export class Player {
 	}
 
 	/** Returns a deep copy of player state to prevent external mutation. */
-	get state(): PlayerState {
+	get state(): PlayerData {
 		return structuredClone({
 			id: this.id,
 			gear: this._gear,
@@ -119,7 +119,7 @@ export class Player {
 	}
 
 	/** Shifting by 2 gears costs 1 heat (moved from engine to discard). */
-	shift(nextGear: Gear): void {
+	shiftGears(nextGear: Gear): void {
 		const diff = Math.abs(nextGear - this._gear);
 
 		if (diff > 2) {
@@ -138,8 +138,8 @@ export class Player {
 		this._gear = nextGear;
 	}
 
-	/** Heat and stress cards cannot be discarded from hand. */
-	discardAndReplenish(discardIndices: number[]): void {
+	/** Heat and stress cards cannot be discarded from hand. Moves played to discard. */
+	discard(discardIndices: number[]): void {
 		const sortedIndices = [...discardIndices].sort((a, b) => b - a);
 		for (const index of sortedIndices) {
 			if (index < 0 || index >= this._hand.length) {
@@ -157,6 +157,10 @@ export class Player {
 
 		this._discard.push(...this._played);
 		this._played = [];
+	}
+
+	/** Draws cards until hand has 7 cards. */
+	replenishHand(): void {
 		this.draw();
 	}
 

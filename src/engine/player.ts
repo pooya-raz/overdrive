@@ -91,6 +91,16 @@ export class Player {
 		this._position = position;
 	}
 
+	/** Moves heat cards from hand back to engine. */
+	cooldown(amount: number): void {
+		for (let i = 0; i < amount; i++) {
+			const heatIndex = this._hand.findIndex((c) => c.type === "heat");
+			if (heatIndex === -1) break;
+			const [heat] = this._hand.splice(heatIndex, 1);
+			this._engine.push(heat);
+		}
+	}
+
 	draw(): void {
 		while (this._hand.length < 7) {
 			if (this._deck.length === 0) {

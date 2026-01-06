@@ -41,6 +41,7 @@ interface InternalGameState {
 	turnOrder: string[];
 	currentPlayerIndex: number;
 	availableReactions: ("cooldown" | "boost")[];
+	availableCooldowns: number;
 }
 
 function createPlayers(
@@ -91,6 +92,7 @@ export class Game {
 			turnOrder: [],
 			currentPlayerIndex: 0,
 			availableReactions: getInitialReactions(),
+			availableCooldowns: 0,
 		};
 	}
 
@@ -110,6 +112,7 @@ export class Game {
 			turnOrder: [...this._state.turnOrder],
 			currentPlayerIndex: this._state.currentPlayerIndex,
 			availableReactions: [...this._state.availableReactions],
+			availableCooldowns: this._state.availableCooldowns,
 		};
 	}
 
@@ -173,7 +176,14 @@ export class Game {
 
 		switch (action.type) {
 			case "adrenaline": {
-				// TODO: Apply adrenaline bonuses
+				if (player.state.hasAdrenaline) {
+					if (action.acceptMove) {
+						player.setPosition(player.state.position + 1);
+					}
+					if (action.acceptCooldown) {
+						this._state.availableCooldowns++;
+					}
+				}
 				this._state.currentState = "react";
 				break;
 			}
@@ -182,10 +192,17 @@ export class Game {
 					this._state.currentState = "slipstream";
 					break;
 				}
+				if (action.action === "cooldown") {
+					if (this._state.availableCooldowns <= 0) {
+						throw new Error("No cooldowns available");
+					}
+					player.cooldown(1);
+					this._state.availableCooldowns--;
+				}
+				// TODO: Apply boost
 				if (!this._state.availableReactions.includes(action.action)) {
 					throw new Error(`Reaction ${action.action} not available`);
 				}
-				// TODO: Apply cooldown/boost based on action.action and action.amount
 				this._state.availableReactions = this._state.availableReactions.filter(
 					(r) => r !== action.action,
 				);
@@ -255,7 +272,7 @@ export class Game {
 		const track = getMapTrack(this._state.map);
 		const targetPosition = player.move(track);
 		player.setPosition(targetPosition);
-		// TODO: Proper collision resolution
+		this._state.availableCooldowns = 0;
 		this._state.currentState = "adrenaline";
 	}
 

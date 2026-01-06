@@ -650,6 +650,66 @@ describe("Player", () => {
 		});
 	});
 
+	describe("cooldown", () => {
+		it("moves heat cards from hand to engine", () => {
+			const player = createPlayer({
+				hand: [
+					{ type: "speed", value: 1 },
+					{ type: "heat" },
+					{ type: "speed", value: 2 },
+				],
+				engine: [],
+			});
+
+			player.cooldown(1);
+
+			expect(player.state.hand).toEqual([
+				{ type: "speed", value: 1 },
+				{ type: "speed", value: 2 },
+			]);
+			expect(player.state.engine).toEqual([{ type: "heat" }]);
+		});
+
+		it("moves multiple heat cards", () => {
+			const player = createPlayer({
+				hand: [{ type: "heat" }, { type: "speed", value: 1 }, { type: "heat" }],
+				engine: [],
+			});
+
+			player.cooldown(2);
+
+			expect(player.state.hand).toEqual([{ type: "speed", value: 1 }]);
+			expect(player.state.engine).toHaveLength(2);
+		});
+
+		it("stops when no heat cards left in hand", () => {
+			const player = createPlayer({
+				hand: [{ type: "heat" }, { type: "speed", value: 1 }],
+				engine: [],
+			});
+
+			player.cooldown(3);
+
+			expect(player.state.hand).toEqual([{ type: "speed", value: 1 }]);
+			expect(player.state.engine).toHaveLength(1);
+		});
+
+		it("does nothing when no heat in hand", () => {
+			const player = createPlayer({
+				hand: [
+					{ type: "speed", value: 1 },
+					{ type: "speed", value: 2 },
+				],
+				engine: [],
+			});
+
+			player.cooldown(1);
+
+			expect(player.state.hand).toHaveLength(2);
+			expect(player.state.engine).toHaveLength(0);
+		});
+	});
+
 	describe("setAdrenaline", () => {
 		it("sets adrenaline to true", () => {
 			const player = createPlayer();

@@ -76,4 +76,5 @@ export interface GameState {
 	turnOrder: string[];
 	currentPlayerIndex: number;
 	availableReactions: ("cooldown" | "boost")[];
+	availableCooldowns: number;
 }

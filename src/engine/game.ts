@@ -42,6 +42,7 @@ interface InternalGameState {
 	currentPlayerIndex: number;
 	availableReactions: ("cooldown" | "boost")[];
 	availableCooldowns: number;
+	adrenalineSlots: number;
 }
 
 function createPlayers(
@@ -80,6 +81,7 @@ export class Game {
 		for (const player of Object.values(players)) {
 			player.draw();
 		}
+		const adrenalineSlots = request.playerIds.length >= 5 ? 2 : 1;
 		this._state = {
 			map: request.map,
 			players,
@@ -93,6 +95,7 @@ export class Game {
 			currentPlayerIndex: 0,
 			availableReactions: getInitialReactions(),
 			availableCooldowns: 0,
+			adrenalineSlots,
 		};
 	}
 
@@ -242,11 +245,7 @@ export class Game {
 				player.replenishHand();
 				this._state.currentPlayerIndex++;
 				if (this._state.currentPlayerIndex >= this._state.turnOrder.length) {
-					const raceOrder = this.getPlayersInRaceOrder();
-					const adrenalineSlots = raceOrder.length >= 5 ? 2 : 1;
-					for (let i = 0; i < adrenalineSlots; i++) {
-						raceOrder[raceOrder.length - 1 - i].setAdrenaline(true);
-					}
+					this.assignAdrenaline();
 					this._state.phase = "planning";
 					this._state.currentState = "plan";
 					this._state.turn += 1;
@@ -274,6 +273,13 @@ export class Game {
 		player.setPosition(targetPosition);
 		this._state.availableCooldowns = 0;
 		this._state.currentState = "adrenaline";
+	}
+
+	private assignAdrenaline(): void {
+		const raceOrder = this.getPlayersInRaceOrder();
+		for (let i = 0; i < this._state.adrenalineSlots; i++) {
+			raceOrder[raceOrder.length - 1 - i].setAdrenaline(true);
+		}
 	}
 
 	private getPlayersInRaceOrder(): Player[] {

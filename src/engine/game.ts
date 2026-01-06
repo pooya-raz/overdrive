@@ -215,7 +215,12 @@ export class Game {
 				break;
 			}
 			case "slipstream": {
-				// TODO: Apply slipstream movement
+				if (action.use) {
+					if (!this.canSlipstream(playerId)) {
+						throw new Error("Slipstream not available");
+					}
+					player.setPosition(player.state.position + 2);
+				}
 				this._state.currentState = "checkCollision";
 				break;
 			}
@@ -280,6 +285,16 @@ export class Game {
 		for (let i = 0; i < this._state.adrenalineSlots; i++) {
 			raceOrder[raceOrder.length - 1 - i].setAdrenaline(true);
 		}
+	}
+
+	private canSlipstream(playerId: string): boolean {
+		const player = this._state.players[playerId];
+		const pos = player.state.position;
+		return Object.values(this._state.players).some(
+			(p) =>
+				p.id !== playerId &&
+				(p.state.position === pos || p.state.position === pos + 1),
+		);
 	}
 
 	private getPlayersInRaceOrder(): Player[] {

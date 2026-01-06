@@ -24,7 +24,7 @@ function completeResolutionPhase(game: Game): void {
 			acceptCooldown: false,
 		});
 		game.dispatch(playerId, { type: "react", action: "skip" });
-		game.dispatch(playerId, { type: "slipstream", distance: 0 });
+		game.dispatch(playerId, { type: "slipstream", use: false });
 		game.dispatch(playerId, { type: "checkCollision" });
 		game.dispatch(playerId, { type: "discard", cardIndices: [] });
 	}
@@ -256,7 +256,7 @@ describe("Game", () => {
 					acceptCooldown: false,
 				});
 				game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
-				game.dispatch(PLAYER_1_ID, { type: "slipstream", distance: 0 });
+				game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
 				game.dispatch(PLAYER_1_ID, { type: "checkCollision" });
 				game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
 
@@ -501,6 +501,126 @@ describe("Game", () => {
 			expect(game.state.players[PLAYER_3_ID].position).toBe(3);
 			expect(game.state.players[PLAYER_4_ID].position).toBe(3);
 			expect(game.state.players[PLAYER_5_ID].position).toBe(2);
+		});
+	});
+
+	describe("slipstream", () => {
+		it("should allow slipstream when car is at same position", () => {
+			const game = new Game(
+				{
+					playerIds: [PLAYER_1_ID, PLAYER_2_ID],
+					map: "USA",
+				},
+				{ shuffle: noShuffle },
+			);
+
+			// Both players move same distance, P1 leads (on raceline)
+			game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [6] });
+			game.dispatch(PLAYER_2_ID, { type: "plan", gear: 1, cardIndices: [6] });
+
+			// P1 resolves first (leader), doesn't slipstream
+			game.dispatch(PLAYER_1_ID, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
+			game.dispatch(PLAYER_1_ID, { type: "checkCollision" });
+			game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
+
+			// P2 can slipstream because P1 is at same position (4)
+			game.dispatch(PLAYER_2_ID, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_2_ID, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_2_ID, { type: "slipstream", use: true });
+			game.dispatch(PLAYER_2_ID, { type: "checkCollision" });
+			game.dispatch(PLAYER_2_ID, { type: "discard", cardIndices: [] });
+
+			// P2 moved from 4 to 6 via slipstream (+2 spaces)
+			expect(game.state.players[PLAYER_1_ID].position).toBe(4);
+			expect(game.state.players[PLAYER_2_ID].position).toBe(4 + 2);
+		});
+
+		it("should allow slipstream when car is 1 space ahead", () => {
+			const game = new Game(
+				{
+					playerIds: [PLAYER_1_ID, PLAYER_2_ID],
+					map: "USA",
+				},
+				{ shuffle: noShuffle },
+			);
+
+			// P1: upgrade 5 = 5 movement → position 5
+			// P2: speed 4 = 4 movement → position 4
+			game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [4] });
+			game.dispatch(PLAYER_2_ID, { type: "plan", gear: 1, cardIndices: [6] });
+
+			// P1 resolves first (leader at position 5)
+			game.dispatch(PLAYER_1_ID, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
+			game.dispatch(PLAYER_1_ID, { type: "checkCollision" });
+			game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
+
+			// P2 at position 4, P1 at position 5 (1 ahead) - can slipstream
+			game.dispatch(PLAYER_2_ID, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_2_ID, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_2_ID, { type: "slipstream", use: true });
+			game.dispatch(PLAYER_2_ID, { type: "checkCollision" });
+			game.dispatch(PLAYER_2_ID, { type: "discard", cardIndices: [] });
+
+			expect(game.state.players[PLAYER_1_ID].position).toBe(5);
+			expect(game.state.players[PLAYER_2_ID].position).toBe(6);
+		});
+
+		it("should throw when slipstream not available", () => {
+			const game = new Game(
+				{
+					playerIds: [PLAYER_1_ID, PLAYER_2_ID],
+					map: "USA",
+				},
+				{ shuffle: noShuffle },
+			);
+
+			// P1: upgrade 5 = 5 movement → position 5
+			// P2: upgrade 0 = 0 movement → position 0
+			game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [4] });
+			game.dispatch(PLAYER_2_ID, { type: "plan", gear: 1, cardIndices: [5] });
+
+			// P1 resolves first (leader at position 5)
+			game.dispatch(PLAYER_1_ID, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
+			game.dispatch(PLAYER_1_ID, { type: "checkCollision" });
+			game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
+
+			// P2 at position 0, P1 at position 5 - too far to slipstream
+			game.dispatch(PLAYER_2_ID, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_2_ID, { type: "react", action: "skip" });
+
+			expect(() =>
+				game.dispatch(PLAYER_2_ID, { type: "slipstream", use: true }),
+			).toThrow("Slipstream not available");
 		});
 	});
 });

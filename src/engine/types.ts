@@ -38,7 +38,7 @@ export type Action =
 	| { type: "plan"; gear: Gear; cardIndices: number[] }
 	| { type: "adrenaline"; acceptMove: boolean; acceptCooldown: boolean }
 	| { type: "react"; action: ReactChoice; amount?: number }
-	| { type: "slipstream"; distance: 0 | 1 | 2 }
+	| { type: "slipstream"; use: boolean }
 	| { type: "checkCollision" }
 	| { type: "discard"; cardIndices: number[] };
 

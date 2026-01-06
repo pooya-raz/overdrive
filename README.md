@@ -59,10 +59,17 @@ src/
 
 ### Turn Phases
 
-1. **Shift** - Select a new gear (1-4)
-2. **PlayCards** - Play cards from hand equal to current gear
-3. **Move** - Move based on played card values
-4. **DiscardAndReplenish** - Discard cards and refill hand to 7
+**Planning Phase** (all players simultaneously):
+1. **Plan** - Select gear (1-4) and play cards from hand equal to gear
+
+**Resolution Phase** (in race order, leader first):
+1. **Reveal & Move** - Reveal cards, resolve stress, calculate movement
+2. **Adrenaline** - Trailing players may accept +1 move and/or +1 cooldown
+3. **React** - Use cooldown (move heat from hand to engine) or boost
+4. **Slipstream** - If adjacent to another car, may draft +2 spaces
+5. **Check Corner** - Pay heat for exceeding corner speed limits
+6. **Check Collision** - Resolve position conflicts (max 2 per space)
+7. **Discard & Replenish** - Discard cards, refill hand to 7
 
 ### Gear & Shifting
 
@@ -108,12 +115,21 @@ If you can't pay the full heat penalty at a corner:
 - Third+ players cascade back to previous positions
 - Turn order: leader (highest position, on raceline) moves first
 
+### Slipstream
+
+After reacting, if you are at the same position or 1 space behind another car, you may slipstream:
+- Gain +2 spaces instantly
+- Does not count toward corner speed (only card speed + adrenaline counts)
+
 ### Adrenaline
 
-Trailing players receive adrenaline after movement:
+Trailing players receive adrenaline at the end of each turn:
 - In 2-4 player games: last place gets adrenaline
 - In 5+ player games: last 2 places get adrenaline
-- Resets at the start of each turn
+
+Adrenaline grants two optional bonuses during resolution:
+- **+1 Move** - Added to card speed (counts toward corner penalties)
+- **+1 Cooldown** - Extra cooldown reaction available
 
 ### Starting Setup (USA Map)
 
@@ -169,7 +185,8 @@ pnpm run test
 - [x] Position collision (max 2 per position, raceline)
 - [x] Turn order based on race position
 - [x] Adrenaline for trailing players
-- [ ] Slipstream/drafting mechanics
+- [x] Slipstream/drafting mechanics
+- [ ] Boost reaction
 - [ ] Win condition and lap tracking
 - [ ] REST API endpoints
 - [ ] Game persistence

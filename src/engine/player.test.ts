@@ -225,9 +225,10 @@ describe("Player", () => {
 				],
 			});
 
-			const targetPosition = player.move();
+			const result = player.move();
 
-			expect(targetPosition).toBe(5);
+			expect(result.position).toBe(5);
+			expect(result.speed).toBe(5);
 		});
 
 		it("accumulates position from starting position", () => {
@@ -236,9 +237,10 @@ describe("Player", () => {
 				played: [{ type: "speed", value: 3 }],
 			});
 
-			const targetPosition = player.move();
+			const result = player.move();
 
-			expect(targetPosition).toBe(13);
+			expect(result.position).toBe(13);
+			expect(result.speed).toBe(3);
 		});
 
 		it("includes upgrade card values", () => {
@@ -250,9 +252,10 @@ describe("Player", () => {
 				],
 			});
 
-			const targetPosition = player.move();
+			const result = player.move();
 
-			expect(targetPosition).toBe(7);
+			expect(result.position).toBe(7);
+			expect(result.speed).toBe(7);
 		});
 
 		it("treats heat cards as 0 movement", () => {
@@ -261,17 +264,19 @@ describe("Player", () => {
 				played: [{ type: "speed", value: 3 }, { type: "heat" }],
 			});
 
-			const targetPosition = player.move();
+			const result = player.move();
 
-			expect(targetPosition).toBe(3);
+			expect(result.position).toBe(3);
+			expect(result.speed).toBe(3);
 		});
 
 		it("returns starting position when no cards played", () => {
 			const player = createPlayer({ position: 5, played: [] });
 
-			const targetPosition = player.move();
+			const result = player.move();
 
-			expect(targetPosition).toBe(5);
+			expect(result.position).toBe(5);
+			expect(result.speed).toBe(0);
 		});
 
 		describe("stress card resolution", () => {
@@ -282,13 +287,13 @@ describe("Player", () => {
 					deck: [{ type: "speed", value: 3 }],
 				});
 
-				const targetPosition = player.move();
+				const result = player.move();
 
 				expect(player.state.played).toContainEqual({
 					type: "speed",
 					value: 3,
 				});
-				expect(targetPosition).toBe(3);
+				expect(result.position).toBe(3);
 			});
 
 			it("draws upgrade card and adds to played", () => {
@@ -298,13 +303,13 @@ describe("Player", () => {
 					deck: [{ type: "upgrade", value: 5 }],
 				});
 
-				const targetPosition = player.move();
+				const result = player.move();
 
 				expect(player.state.played).toContainEqual({
 					type: "upgrade",
 					value: 5,
 				});
-				expect(targetPosition).toBe(5);
+				expect(result.position).toBe(5);
 			});
 
 			it("discards drawn stress or heat cards", () => {
@@ -315,10 +320,10 @@ describe("Player", () => {
 					discard: [],
 				});
 
-				const targetPosition = player.move();
+				const result = player.move();
 
 				expect(player.state.discard).toContainEqual({ type: "stress" });
-				expect(targetPosition).toBe(0);
+				expect(result.position).toBe(0);
 			});
 
 			it("resolves multiple stress cards", () => {
@@ -331,9 +336,9 @@ describe("Player", () => {
 					],
 				});
 
-				const targetPosition = player.move();
+				const result = player.move();
 
-				expect(targetPosition).toBe(5);
+				expect(result.position).toBe(5);
 			});
 
 			it("shuffles discard into deck when deck is empty", () => {
@@ -344,9 +349,9 @@ describe("Player", () => {
 					discard: [{ type: "speed", value: 4 }],
 				});
 
-				const targetPosition = player.move();
+				const result = player.move();
 
-				expect(targetPosition).toBe(4);
+				expect(result.position).toBe(4);
 				expect(player.state.discard).toHaveLength(0);
 			});
 
@@ -358,131 +363,47 @@ describe("Player", () => {
 					discard: [],
 				});
 
-				const targetPosition = player.move();
+				const result = player.move();
 
-				expect(targetPosition).toBe(5);
+				expect(result.position).toBe(5);
 			});
 		});
 	});
 
-	describe("corner checking", () => {
-		const track = {
-			length: 20,
-			corners: [
-				{ position: 5, speedLimit: 3 },
-				{ position: 15, speedLimit: 2 },
-			],
-		};
+	describe("spinOut", () => {
+		it("adds 1 stress card when in gear 1 or 2", () => {
+			const player = createPlayer({ gear: 2, hand: [], position: 10 });
 
-		it("pays heat when crossing corner over speed limit", () => {
-			const player = createPlayer({
-				position: 2,
-				played: [{ type: "speed", value: 4 }],
-				engine: [{ type: "heat" }, { type: "heat" }, { type: "heat" }],
-				discard: [],
-			});
+			player.spinOut(5);
 
-			const targetPosition = player.move(track);
-
-			expect(targetPosition).toBe(6);
-			expect(player.state.engine).toHaveLength(2);
-			expect(player.state.discard).toEqual([{ type: "heat" }]);
-		});
-
-		it("does not pay heat when at or under speed limit", () => {
-			const player = createPlayer({
-				position: 2,
-				played: [{ type: "speed", value: 3 }],
-				engine: [{ type: "heat" }, { type: "heat" }],
-				discard: [],
-			});
-
-			const targetPosition = player.move(track);
-
-			expect(targetPosition).toBe(5);
-			expect(player.state.engine).toHaveLength(2);
-		});
-
-		it("does not check corner when not crossed", () => {
-			const player = createPlayer({
-				position: 0,
-				played: [{ type: "speed", value: 4 }],
-				engine: [{ type: "heat" }],
-				discard: [],
-			});
-
-			const targetPosition = player.move(track);
-
-			expect(targetPosition).toBe(4);
-			expect(player.state.engine).toHaveLength(1);
-		});
-
-		it("pays heat for multiple corners crossed", () => {
-			const player = createPlayer({
-				position: 4,
-				played: [
-					{ type: "speed", value: 4 },
-					{ type: "upgrade", value: 8 },
-				],
-				// Corner at 5: 12 - 3 = 9 heat, Corner at 15: 12 - 2 = 10 heat
-				engine: Array(19).fill({ type: "heat" }),
-				discard: [],
-			});
-
-			const targetPosition = player.move(track);
-
-			expect(targetPosition).toBe(16);
-			expect(player.state.engine).toHaveLength(0);
-		});
-
-		it("spins out when not enough heat to pay for corner", () => {
-			const player = createPlayer({
-				position: 2,
-				gear: 2,
-				hand: [],
-				played: [
-					{ type: "speed", value: 2 },
-					{ type: "speed", value: 3 },
-				],
-				engine: [{ type: "heat" }],
-				discard: [],
-			});
-
-			const targetPosition = player.move(track);
-
-			// Returns position before corner (5 - 1 = 4)
-			expect(targetPosition).toBe(4);
-			// Pays all available heat
-			expect(player.state.engine).toHaveLength(0);
-			expect(player.state.discard).toEqual([{ type: "heat" }]);
-			// Gear reset to 1
-			expect(player.state.gear).toBe(1);
-			// 1 stress card for 1st/2nd gear
 			expect(player.state.hand).toEqual([{ type: "stress" }]);
 		});
 
-		it("spins out with 2 stress cards when in 3rd/4th gear", () => {
-			const player = createPlayer({
-				position: 2,
-				gear: 4,
-				hand: [],
-				played: [
-					{ type: "speed", value: 4 },
-					{ type: "speed", value: 4 },
-				],
-				engine: [{ type: "heat" }],
-				discard: [],
-			});
+		it("adds 2 stress cards when in gear 3 or 4", () => {
+			const player = createPlayer({ gear: 4, hand: [], position: 10 });
 
-			const targetPosition = player.move(track);
+			player.spinOut(5);
 
-			expect(targetPosition).toBe(4);
-			expect(player.state.gear).toBe(1);
-			// 2 stress cards for 3rd/4th gear
 			expect(player.state.hand).toEqual([
 				{ type: "stress" },
 				{ type: "stress" },
 			]);
+		});
+
+		it("resets gear to 1", () => {
+			const player = createPlayer({ gear: 4, position: 10 });
+
+			player.spinOut(5);
+
+			expect(player.state.gear).toBe(1);
+		});
+
+		it("sets position to corner position - 1", () => {
+			const player = createPlayer({ position: 10 });
+
+			player.spinOut(5);
+
+			expect(player.state.position).toBe(4);
 		});
 	});
 

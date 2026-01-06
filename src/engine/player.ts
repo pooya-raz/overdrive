@@ -1,4 +1,4 @@
-import type { Card, Gear, PlayerData, ShuffleFn, Track } from "./types";
+import type { Card, Gear, PlayerData, ShuffleFn } from "./types";
 
 export type { PlayerData, ShuffleFn };
 
@@ -229,44 +229,27 @@ export class Player {
 	}
 
 	/**
-	 * Resolves stress cards, calculates movement, handles corners and spinout.
-	 * Returns target position without setting it (Game handles collision resolution).
-	 * Still mutates: played cards (stress resolution), engine/discard (heat payment),
-	 * hand (spinout stress cards), gear (spinout reset).
+	 * Resolves stress cards, calculates movement.
+	 * Returns target position and card speed. Game handles corner checks separately.
 	 */
-	move(track?: Track): number {
+	move(): { position: number; speed: number } {
 		this.resolveStressCards();
 		const speed = this.calculateSpeed();
-		const startPosition = this._position;
-		const targetPosition = startPosition + speed;
-
-		const crossedCorners =
-			track?.corners.filter(
-				(c) => startPosition < c.position && c.position <= targetPosition,
-			) ?? [];
-
-		for (const corner of crossedCorners) {
-			const penalty = speed - corner.speedLimit;
-			const paid = this.payHeat(penalty);
-			if (paid < penalty) {
-				return this.spinOut(corner.position);
-			}
-		}
-
-		return targetPosition;
+		const position = this._position + speed;
+		return { position, speed };
 	}
 
 	private calculateSpeed(): number {
 		return this._played.reduce((sum, card) => sum + (card.value ?? 0), 0);
 	}
 
-	/** Handles spinout effects and returns the spinout position. */
-	private spinOut(cornerPosition: number): number {
+	/** Handles spinout: adds stress cards, resets gear, sets position before corner. */
+	spinOut(cornerPosition: number): void {
 		const stressCount = this._gear <= 2 ? 1 : 2;
 		for (let i = 0; i < stressCount; i++) {
 			this._hand.push({ type: "stress" });
 		}
 		this._gear = 1;
-		return cornerPosition - 1;
+		this._position = cornerPosition - 1;
 	}
 }

@@ -43,6 +43,8 @@ interface InternalGameState {
 	availableReactions: ("cooldown" | "boost")[];
 	availableCooldowns: number;
 	adrenalineSlots: number;
+	startPosition: number;
+	cardSpeed: number;
 }
 
 function createPlayers(
@@ -96,6 +98,8 @@ export class Game {
 			availableReactions: getInitialReactions(),
 			availableCooldowns: 0,
 			adrenalineSlots,
+			startPosition: 0,
+			cardSpeed: 0,
 		};
 	}
 
@@ -156,9 +160,6 @@ export class Game {
 
 		const allActed = Object.values(this._state.pendingPlayers).every((v) => !v);
 		if (allActed) {
-			for (const p of Object.values(this._state.players)) {
-				p.setAdrenaline(false);
-			}
 			this._state.phase = "resolution";
 			this._state.turnOrder = this.getPlayersInRaceOrder().map((p) => p.id);
 			this._state.currentPlayerIndex = 0;
@@ -182,6 +183,7 @@ export class Game {
 				if (player.state.hasAdrenaline) {
 					if (action.acceptMove) {
 						player.setPosition(player.state.position + 1);
+						this._state.cardSpeed++;
 					}
 					if (action.acceptCooldown) {
 						this._state.availableCooldowns++;
@@ -221,6 +223,28 @@ export class Game {
 					}
 					player.setPosition(player.state.position + 2);
 				}
+				this._state.currentState = "checkCorner";
+				break;
+			}
+			case "checkCorner": {
+				const track = getMapTrack(this._state.map);
+				const currentPos = player.state.position;
+				const crossedCorners = track.corners.filter(
+					(c) =>
+						this._state.startPosition < c.position && c.position <= currentPos,
+				);
+
+				for (const corner of crossedCorners) {
+					const penalty = this._state.cardSpeed - corner.speedLimit;
+					if (penalty <= 0) continue;
+
+					const paid = player.payHeat(penalty);
+					if (paid < penalty) {
+						player.spinOut(corner.position);
+						break;
+					}
+				}
+
 				this._state.currentState = "checkCollision";
 				break;
 			}
@@ -273,14 +297,18 @@ export class Game {
 	private revealAndMove(): void {
 		const playerId = this._state.turnOrder[this._state.currentPlayerIndex];
 		const player = this._state.players[playerId];
-		const track = getMapTrack(this._state.map);
-		const targetPosition = player.move(track);
-		player.setPosition(targetPosition);
+		this._state.startPosition = player.state.position;
+		const { position, speed } = player.move();
+		this._state.cardSpeed = speed;
+		player.setPosition(position);
 		this._state.availableCooldowns = 0;
 		this._state.currentState = "adrenaline";
 	}
 
 	private assignAdrenaline(): void {
+		for (const p of Object.values(this._state.players)) {
+			p.setAdrenaline(false);
+		}
 		const raceOrder = this.getPlayersInRaceOrder();
 		for (let i = 0; i < this._state.adrenalineSlots; i++) {
 			raceOrder[raceOrder.length - 1 - i].setAdrenaline(true);

@@ -25,6 +25,7 @@ function completeResolutionPhase(game: Game): void {
 		});
 		game.dispatch(playerId, { type: "react", action: "skip" });
 		game.dispatch(playerId, { type: "slipstream", use: false });
+		game.dispatch(playerId, { type: "checkCorner" });
 		game.dispatch(playerId, { type: "checkCollision" });
 		game.dispatch(playerId, { type: "discard", cardIndices: [] });
 	}
@@ -257,6 +258,7 @@ describe("Game", () => {
 				});
 				game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
 				game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
+				game.dispatch(PLAYER_1_ID, { type: "checkCorner" });
 				game.dispatch(PLAYER_1_ID, { type: "checkCollision" });
 				game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
 
@@ -378,7 +380,7 @@ describe("Game", () => {
 			expect(game.state.players[PLAYER_5_ID].hasAdrenaline).toBe(false);
 		});
 
-		it("should reset adrenaline when entering resolution phase", () => {
+		it("should keep adrenaline available during resolution phase", () => {
 			const game = new Game(
 				{
 					playerIds: [PLAYER_1_ID, PLAYER_2_ID],
@@ -400,13 +402,13 @@ describe("Game", () => {
 			expect(game.state.turn).toBe(2);
 			expect(game.state.players[PLAYER_1_ID].hasAdrenaline).toBe(true);
 
-			// After entering resolution (both players submit plan), adrenaline resets
+			// After entering resolution, adrenaline should still be available
 			game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [4] });
 			game.dispatch(PLAYER_2_ID, { type: "plan", gear: 1, cardIndices: [3] });
 
-			// Now in resolution phase, adrenaline should be reset
+			// Now in resolution phase, adrenaline should still be available
 			expect(game.state.phase).toBe("resolution");
-			expect(game.state.players[PLAYER_1_ID].hasAdrenaline).toBe(false);
+			expect(game.state.players[PLAYER_1_ID].hasAdrenaline).toBe(true);
 			expect(game.state.players[PLAYER_2_ID].hasAdrenaline).toBe(false);
 		});
 	});
@@ -526,6 +528,7 @@ describe("Game", () => {
 			});
 			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
 			game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
+			game.dispatch(PLAYER_1_ID, { type: "checkCorner" });
 			game.dispatch(PLAYER_1_ID, { type: "checkCollision" });
 			game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
 
@@ -537,6 +540,7 @@ describe("Game", () => {
 			});
 			game.dispatch(PLAYER_2_ID, { type: "react", action: "skip" });
 			game.dispatch(PLAYER_2_ID, { type: "slipstream", use: true });
+			game.dispatch(PLAYER_2_ID, { type: "checkCorner" });
 			game.dispatch(PLAYER_2_ID, { type: "checkCollision" });
 			game.dispatch(PLAYER_2_ID, { type: "discard", cardIndices: [] });
 
@@ -567,6 +571,7 @@ describe("Game", () => {
 			});
 			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
 			game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
+			game.dispatch(PLAYER_1_ID, { type: "checkCorner" });
 			game.dispatch(PLAYER_1_ID, { type: "checkCollision" });
 			game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
 
@@ -578,6 +583,7 @@ describe("Game", () => {
 			});
 			game.dispatch(PLAYER_2_ID, { type: "react", action: "skip" });
 			game.dispatch(PLAYER_2_ID, { type: "slipstream", use: true });
+			game.dispatch(PLAYER_2_ID, { type: "checkCorner" });
 			game.dispatch(PLAYER_2_ID, { type: "checkCollision" });
 			game.dispatch(PLAYER_2_ID, { type: "discard", cardIndices: [] });
 
@@ -607,6 +613,7 @@ describe("Game", () => {
 			});
 			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
 			game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
+			game.dispatch(PLAYER_1_ID, { type: "checkCorner" });
 			game.dispatch(PLAYER_1_ID, { type: "checkCollision" });
 			game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
 
@@ -621,6 +628,169 @@ describe("Game", () => {
 			expect(() =>
 				game.dispatch(PLAYER_2_ID, { type: "slipstream", use: true }),
 			).toThrow("Slipstream not available");
+		});
+	});
+
+	describe("checkCorner", () => {
+		it("should pay heat when crossing corner over speed limit", () => {
+			const game = new Game(
+				{ playerIds: [PLAYER_1_ID], map: "USA" },
+				{ shuffle: noShuffle },
+			);
+
+			game.dispatch(PLAYER_1_ID, {
+				type: "plan",
+				gear: 2,
+				cardIndices: [6, 4], // speed 4 + upgrade 5 = 9, corner limit 4, penalty 5
+			});
+			game.dispatch(PLAYER_1_ID, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
+			game.dispatch(PLAYER_1_ID, { type: "checkCorner" });
+
+			expect(game.state.players[PLAYER_1_ID].engine).toHaveLength(1);
+			expect(game.state.players[PLAYER_1_ID].discard).toHaveLength(5);
+		});
+
+		it("should not pay heat when at or under speed limit", () => {
+			const game = new Game(
+				{ playerIds: [PLAYER_1_ID], map: "USA" },
+				{ shuffle: noShuffle },
+			);
+
+			game.dispatch(PLAYER_1_ID, {
+				type: "plan",
+				gear: 1,
+				cardIndices: [6], // speed 4, exactly at corner limit
+			});
+			game.dispatch(PLAYER_1_ID, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
+			game.dispatch(PLAYER_1_ID, { type: "checkCorner" });
+
+			expect(game.state.players[PLAYER_1_ID].engine).toHaveLength(6);
+		});
+
+		it("should spinout when not enough heat to pay penalty", () => {
+			const game = new Game(
+				{ playerIds: [PLAYER_1_ID], map: "USA" },
+				{ shuffle: noShuffle },
+			);
+
+			// Turn 1: drain all heat (shift costs 1, corner penalty 5)
+			game.dispatch(PLAYER_1_ID, {
+				type: "plan",
+				gear: 3,
+				cardIndices: [6, 4, 5],
+			});
+			completeResolutionPhase(game);
+			expect(game.state.players[PLAYER_1_ID].engine).toHaveLength(0);
+
+			// Turn 2: cross corner 15 with no heat → spinout
+			game.dispatch(PLAYER_1_ID, {
+				type: "plan",
+				gear: 2,
+				cardIndices: [4, 5],
+			});
+			game.dispatch(PLAYER_1_ID, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
+			game.dispatch(PLAYER_1_ID, { type: "checkCorner" });
+
+			expect(game.state.players[PLAYER_1_ID].position).toBe(14);
+			expect(game.state.players[PLAYER_1_ID].gear).toBe(1);
+			expect(
+				game.state.players[PLAYER_1_ID].hand.filter((c) => c.type === "stress"),
+			).toHaveLength(4);
+		});
+
+		it("should count adrenaline +1 move toward corner speed", () => {
+			const game = new Game(
+				{ playerIds: [PLAYER_1_ID, PLAYER_2_ID], map: "USA" },
+				{ shuffle: noShuffle },
+			);
+
+			// Turn 1: P2 stays behind to get adrenaline
+			game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [4] });
+			game.dispatch(PLAYER_2_ID, { type: "plan", gear: 1, cardIndices: [5] });
+			completeResolutionPhase(game);
+			expect(game.state.players[PLAYER_2_ID].hasAdrenaline).toBe(true);
+
+			// Turn 2: P2 uses adrenaline, speed 9 + 1 = 10, penalty 6
+			game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [3] });
+			game.dispatch(PLAYER_2_ID, {
+				type: "plan",
+				gear: 2,
+				cardIndices: [6, 4],
+			});
+
+			game.dispatch(PLAYER_1_ID, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
+			game.dispatch(PLAYER_1_ID, { type: "checkCorner" });
+			game.dispatch(PLAYER_1_ID, { type: "checkCollision" });
+			game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
+
+			game.dispatch(PLAYER_2_ID, {
+				type: "adrenaline",
+				acceptMove: true,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_2_ID, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_2_ID, { type: "slipstream", use: false });
+			game.dispatch(PLAYER_2_ID, { type: "checkCorner" });
+
+			expect(game.state.players[PLAYER_2_ID].engine).toHaveLength(0);
+			expect(game.state.players[PLAYER_2_ID].position).toBe(10);
+		});
+
+		it("should not count slipstream toward corner speed", () => {
+			const game = new Game(
+				{ playerIds: [PLAYER_1_ID, PLAYER_2_ID], map: "USA" },
+				{ shuffle: noShuffle },
+			);
+
+			game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [6] });
+			game.dispatch(PLAYER_2_ID, { type: "plan", gear: 1, cardIndices: [6] });
+
+			game.dispatch(PLAYER_1_ID, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
+			game.dispatch(PLAYER_1_ID, { type: "checkCorner" });
+			game.dispatch(PLAYER_1_ID, { type: "checkCollision" });
+			game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
+
+			game.dispatch(PLAYER_2_ID, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_2_ID, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_2_ID, { type: "slipstream", use: true });
+			game.dispatch(PLAYER_2_ID, { type: "checkCorner" });
+
+			expect(game.state.players[PLAYER_2_ID].engine).toHaveLength(6);
+			expect(game.state.players[PLAYER_2_ID].position).toBe(6);
 		});
 	});
 });

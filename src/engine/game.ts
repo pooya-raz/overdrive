@@ -156,7 +156,7 @@ export class Game {
 			this._state.phase = "resolution";
 			this._state.turnOrder = this.getPlayersInRaceOrder().map((p) => p.id);
 			this._state.currentPlayerIndex = 0;
-			this.runPlayerTurn();
+			this.revealAndMove();
 		}
 	}
 
@@ -200,7 +200,23 @@ export class Game {
 				break;
 			}
 			case "checkCollision": {
-				// TODO: Resolve collisions
+				let targetPosition = player.state.position;
+				while (true) {
+					const others = Object.values(this._state.players).filter(
+						(p) => p.id !== playerId && p.state.position === targetPosition,
+					);
+					if (others.length === 0) {
+						player.setPosition(targetPosition);
+						player.setRaceline(true);
+						break;
+					}
+					if (others.length === 1) {
+						player.setPosition(targetPosition);
+						player.setRaceline(!others[0].state.onRaceline);
+						break;
+					}
+					targetPosition--;
+				}
 				this._state.currentState = "discard";
 				break;
 			}
@@ -223,7 +239,7 @@ export class Game {
 						Object.keys(this._state.players).map((id) => [id, true]),
 					);
 				} else {
-					this.runPlayerTurn();
+					this.revealAndMove();
 				}
 				break;
 			}
@@ -233,7 +249,7 @@ export class Game {
 	}
 
 	/** Reveals cards, moves player, then waits for adrenaline input. */
-	private runPlayerTurn(): void {
+	private revealAndMove(): void {
 		const playerId = this._state.turnOrder[this._state.currentPlayerIndex];
 		const player = this._state.players[playerId];
 		const track = getMapTrack(this._state.map);

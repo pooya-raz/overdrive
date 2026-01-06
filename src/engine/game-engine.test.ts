@@ -448,10 +448,11 @@ describe("Game", () => {
 				{ shuffle: noShuffle },
 			);
 
-			// All three players: gear 1, speed 4 = 4 movement
+			// P1, P2 at position 0: speed 4 → position 4
+			// P3 at position -1: speed 5 → targets position 4, cascades to 3
 			game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [6] });
 			game.dispatch(PLAYER_2_ID, { type: "plan", gear: 1, cardIndices: [6] });
-			game.dispatch(PLAYER_3_ID, { type: "plan", gear: 1, cardIndices: [6] });
+			game.dispatch(PLAYER_3_ID, { type: "plan", gear: 1, cardIndices: [4] }); // Upgrade5
 
 			// Complete resolution phase
 			completeResolutionPhase(game);

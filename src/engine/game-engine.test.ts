@@ -24,7 +24,6 @@ function completeResolutionPhase(game: Game): void {
 			acceptCooldown: false,
 		});
 		game.dispatch(playerId, { type: "react", action: "skip" });
-		game.dispatch(playerId, { type: "react2", action: "skip" });
 		game.dispatch(playerId, { type: "slipstream", distance: 0 });
 		game.dispatch(playerId, { type: "discard", cardIndices: [] });
 	}
@@ -256,7 +255,6 @@ describe("Game", () => {
 					acceptCooldown: false,
 				});
 				game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
-				game.dispatch(PLAYER_1_ID, { type: "react2", action: "skip" });
 				game.dispatch(PLAYER_1_ID, { type: "slipstream", distance: 0 });
 				game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
 

@@ -64,7 +64,6 @@ export type TurnState =
 	| "revealAndMove"
 	| "adrenaline"
 	| "react"
-	| "react2"
 	| "slipstream"
 	| "checkCorner"
 	| "discard"
@@ -76,7 +75,6 @@ export type Action =
 	| { type: "plan"; gear: Gear; cardIndices: number[] }
 	| { type: "adrenaline"; acceptMove: boolean; acceptCooldown: boolean }
 	| { type: "react"; action: ReactChoice; amount?: number }
-	| { type: "react2"; action: ReactChoice; amount?: number }
 	| { type: "slipstream"; distance: 0 | 1 | 2 }
 	| { type: "discard"; cardIndices: number[] };
 
@@ -91,6 +89,8 @@ export interface GameState {
 	// For resolution phase: player order and current player
 	turnOrder: string[];
 	currentPlayerIndex: number;
+	// For react state: which reactions are still available
+	availableReactions: ("cooldown" | "boost")[];
 }
 
 interface MapConfig {
@@ -169,6 +169,7 @@ interface InternalGameState {
 	pendingPlayers: Record<string, boolean>;
 	turnOrder: string[];
 	currentPlayerIndex: number;
+	availableReactions: ("cooldown" | "boost")[];
 }
 
 export class Game {
@@ -190,6 +191,7 @@ export class Game {
 			),
 			turnOrder: [],
 			currentPlayerIndex: 0,
+			availableReactions: [],
 		};
 	}
 
@@ -208,6 +210,7 @@ export class Game {
 			pendingPlayers: { ...this._state.pendingPlayers },
 			turnOrder: [...this._state.turnOrder],
 			currentPlayerIndex: this._state.currentPlayerIndex,
+			availableReactions: [...this._state.availableReactions],
 		};
 	}
 
@@ -268,9 +271,24 @@ export class Game {
 				// TODO: Apply adrenaline bonuses
 				break;
 			}
-			case "react":
-			case "react2": {
+			case "react": {
+				if (action.action === "skip") {
+					break; // Advance to next state
+				}
+
+				if (!this._state.availableReactions.includes(action.action)) {
+					throw new Error(`Reaction ${action.action} not available`);
+				}
+
 				// TODO: Apply cooldown/boost based on action.action and action.amount
+
+				this._state.availableReactions = this._state.availableReactions.filter(
+					(r) => r !== action.action,
+				);
+
+				if (this._state.availableReactions.length > 0) {
+					return; // Stay in react state for more actions
+				}
 				break;
 			}
 			case "slipstream": {
@@ -302,7 +320,6 @@ export class Game {
 			"revealAndMove",
 			"adrenaline",
 			"react",
-			"react2",
 			"slipstream",
 			"checkCorner",
 			"discard",
@@ -355,7 +372,6 @@ export class Game {
 				"revealAndMove",
 				"adrenaline",
 				"react",
-				"react2",
 				"slipstream",
 				"checkCorner",
 				"discard",
@@ -369,6 +385,11 @@ export class Game {
 				return;
 			}
 			this._state.currentState = stateOrder[nextIndex];
+		}
+
+		// Initialize available reactions when entering react state
+		if (this._state.currentState === "react") {
+			this._state.availableReactions = ["cooldown", "boost"];
 		}
 	}
 

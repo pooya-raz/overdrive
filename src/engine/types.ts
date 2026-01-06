@@ -76,6 +76,4 @@ export interface GameState {
 	pendingPlayers: Record<string, boolean>;
 	turnOrder: string[];
 	currentPlayerIndex: number;
-	availableReactions: ("cooldown" | "boost")[];
-	availableCooldowns: number;
 }

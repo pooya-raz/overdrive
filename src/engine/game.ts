@@ -1,6 +1,5 @@
 import { createStartingDeck, createStartingEngine } from "./cards";
 import { Player } from "./player";
-import { getInitialReactions } from "./state-machine";
 import { getMapTrack } from "./track";
 import type {
 	Action,
@@ -40,11 +39,7 @@ interface InternalGameState {
 	pendingPlayers: Record<string, boolean>;
 	turnOrder: string[];
 	currentPlayerIndex: number;
-	availableReactions: ("cooldown" | "boost")[];
-	availableCooldowns: number;
 	adrenalineSlots: number;
-	startPosition: number;
-	cardSpeed: number;
 }
 
 function createPlayers(
@@ -95,11 +90,7 @@ export class Game {
 			),
 			turnOrder: [],
 			currentPlayerIndex: 0,
-			availableReactions: getInitialReactions(),
-			availableCooldowns: 0,
 			adrenalineSlots,
-			startPosition: 0,
-			cardSpeed: 0,
 		};
 	}
 
@@ -118,8 +109,6 @@ export class Game {
 			pendingPlayers: { ...this._state.pendingPlayers },
 			turnOrder: [...this._state.turnOrder],
 			currentPlayerIndex: this._state.currentPlayerIndex,
-			availableReactions: [...this._state.availableReactions],
-			availableCooldowns: this._state.availableCooldowns,
 		};
 	}
 
@@ -182,36 +171,18 @@ export class Game {
 			case "adrenaline": {
 				if (player.state.hasAdrenaline) {
 					if (action.acceptMove) {
-						player.setPosition(player.state.position + 1);
-						this._state.cardSpeed++;
+						player.addAdrenalineMove();
 					}
 					if (action.acceptCooldown) {
-						this._state.availableCooldowns++;
+						player.addAdrenalineCooldown();
 					}
 				}
 				this._state.currentState = "react";
 				break;
 			}
 			case "react": {
-				if (action.action === "skip") {
-					this._state.currentState = "slipstream";
-					break;
-				}
-				if (action.action === "cooldown") {
-					if (this._state.availableCooldowns <= 0) {
-						throw new Error("No cooldowns available");
-					}
-					player.cooldown(1);
-					this._state.availableCooldowns--;
-				}
-				// TODO: Apply boost
-				if (!this._state.availableReactions.includes(action.action)) {
-					throw new Error(`Reaction ${action.action} not available`);
-				}
-				this._state.availableReactions = this._state.availableReactions.filter(
-					(r) => r !== action.action,
-				);
-				if (this._state.availableReactions.length === 0) {
+				const done = player.react(action.action);
+				if (done) {
 					this._state.currentState = "slipstream";
 				}
 				break;
@@ -228,23 +199,7 @@ export class Game {
 			}
 			case "checkCorner": {
 				const track = getMapTrack(this._state.map);
-				const currentPos = player.state.position;
-				const crossedCorners = track.corners.filter(
-					(c) =>
-						this._state.startPosition < c.position && c.position <= currentPos,
-				);
-
-				for (const corner of crossedCorners) {
-					const penalty = this._state.cardSpeed - corner.speedLimit;
-					if (penalty <= 0) continue;
-
-					const paid = player.payHeat(penalty);
-					if (paid < penalty) {
-						player.spinOut(corner.position);
-						break;
-					}
-				}
-
+				player.checkCorners(track.corners);
 				this._state.currentState = "checkCollision";
 				break;
 			}
@@ -295,14 +250,15 @@ export class Game {
 
 	/** Reveals cards, moves player, then waits for adrenaline input. */
 	private revealAndMove(): void {
-		const playerId = this._state.turnOrder[this._state.currentPlayerIndex];
-		const player = this._state.players[playerId];
-		this._state.startPosition = player.state.position;
-		const { position, speed } = player.move();
-		this._state.cardSpeed = speed;
+		const player = this.getCurrentPlayer();
+		const { position } = player.beginResolution();
 		player.setPosition(position);
-		this._state.availableCooldowns = 0;
 		this._state.currentState = "adrenaline";
+	}
+
+	private getCurrentPlayer(): Player {
+		const playerId = this._state.turnOrder[this._state.currentPlayerIndex];
+		return this._state.players[playerId];
 	}
 
 	private assignAdrenaline(): void {

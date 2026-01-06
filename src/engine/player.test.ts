@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Player, type ShuffleFn } from "./player";
-import type { Card, Gear } from "./types";
+import type { Card, Corner, Gear } from "./types";
 
 const noShuffle: ShuffleFn = <T>(items: T[]) => items;
 
@@ -215,7 +215,7 @@ describe("Player", () => {
 		});
 	});
 
-	describe("move", () => {
+	describe("beginResolution", () => {
 		it("returns target position as sum of played card values", () => {
 			const player = createPlayer({
 				position: 0,
@@ -225,7 +225,7 @@ describe("Player", () => {
 				],
 			});
 
-			const result = player.move();
+			const result = player.beginResolution();
 
 			expect(result.position).toBe(5);
 			expect(result.speed).toBe(5);
@@ -237,7 +237,7 @@ describe("Player", () => {
 				played: [{ type: "speed", value: 3 }],
 			});
 
-			const result = player.move();
+			const result = player.beginResolution();
 
 			expect(result.position).toBe(13);
 			expect(result.speed).toBe(3);
@@ -252,7 +252,7 @@ describe("Player", () => {
 				],
 			});
 
-			const result = player.move();
+			const result = player.beginResolution();
 
 			expect(result.position).toBe(7);
 			expect(result.speed).toBe(7);
@@ -264,7 +264,7 @@ describe("Player", () => {
 				played: [{ type: "speed", value: 3 }, { type: "heat" }],
 			});
 
-			const result = player.move();
+			const result = player.beginResolution();
 
 			expect(result.position).toBe(3);
 			expect(result.speed).toBe(3);
@@ -273,7 +273,7 @@ describe("Player", () => {
 		it("returns starting position when no cards played", () => {
 			const player = createPlayer({ position: 5, played: [] });
 
-			const result = player.move();
+			const result = player.beginResolution();
 
 			expect(result.position).toBe(5);
 			expect(result.speed).toBe(0);
@@ -287,7 +287,7 @@ describe("Player", () => {
 					deck: [{ type: "speed", value: 3 }],
 				});
 
-				const result = player.move();
+				const result = player.beginResolution();
 
 				expect(player.state.played).toContainEqual({
 					type: "speed",
@@ -303,7 +303,7 @@ describe("Player", () => {
 					deck: [{ type: "upgrade", value: 5 }],
 				});
 
-				const result = player.move();
+				const result = player.beginResolution();
 
 				expect(player.state.played).toContainEqual({
 					type: "upgrade",
@@ -320,7 +320,7 @@ describe("Player", () => {
 					discard: [],
 				});
 
-				const result = player.move();
+				const result = player.beginResolution();
 
 				expect(player.state.discard).toContainEqual({ type: "stress" });
 				expect(result.position).toBe(0);
@@ -336,7 +336,7 @@ describe("Player", () => {
 					],
 				});
 
-				const result = player.move();
+				const result = player.beginResolution();
 
 				expect(result.position).toBe(5);
 			});
@@ -349,7 +349,7 @@ describe("Player", () => {
 					discard: [{ type: "speed", value: 4 }],
 				});
 
-				const result = player.move();
+				const result = player.beginResolution();
 
 				expect(result.position).toBe(4);
 				expect(player.state.discard).toHaveLength(0);
@@ -363,7 +363,7 @@ describe("Player", () => {
 					discard: [],
 				});
 
-				const result = player.move();
+				const result = player.beginResolution();
 
 				expect(result.position).toBe(5);
 			});
@@ -653,6 +653,246 @@ describe("Player", () => {
 			const player = createPlayer();
 
 			expect(player.state.hasAdrenaline).toBe(false);
+		});
+	});
+
+	describe("react", () => {
+		it("skip returns true", () => {
+			const player = createPlayer({ played: [{ type: "speed", value: 4 }] });
+			player.beginResolution();
+
+			const done = player.react("skip");
+
+			expect(done).toBe(true);
+		});
+
+		it("cooldown moves heat from hand to engine", () => {
+			const player = createPlayer({
+				played: [{ type: "speed", value: 4 }],
+				hand: [{ type: "heat" }],
+				engine: [],
+			});
+			player.beginResolution();
+			player.addAdrenalineCooldown();
+
+			player.react("cooldown");
+
+			expect(player.state.hand).toEqual([]);
+			expect(player.state.engine).toEqual([{ type: "heat" }]);
+		});
+
+		it("cooldown returns true when no reactions remaining", () => {
+			const player = createPlayer({
+				played: [{ type: "speed", value: 4 }],
+				hand: [{ type: "heat" }],
+			});
+			player.beginResolution();
+			player.addAdrenalineCooldown();
+			player.react("boost");
+
+			const done = player.react("cooldown");
+
+			expect(done).toBe(true);
+		});
+
+		it("cooldown returns false when boost still available", () => {
+			const player = createPlayer({
+				played: [{ type: "speed", value: 4 }],
+				hand: [{ type: "heat" }],
+			});
+			player.beginResolution();
+			player.addAdrenalineCooldown();
+
+			const done = player.react("cooldown");
+
+			expect(done).toBe(false);
+		});
+
+		it("throws when cooldown not available", () => {
+			const player = createPlayer({
+				played: [{ type: "speed", value: 4 }],
+				hand: [{ type: "heat" }],
+			});
+			player.beginResolution();
+			player.addAdrenalineCooldown();
+			player.react("cooldown");
+
+			expect(() => player.react("cooldown")).toThrow(
+				"Reaction cooldown not available",
+			);
+		});
+
+		it("throws when no cooldowns to use", () => {
+			const player = createPlayer({ played: [{ type: "speed", value: 4 }] });
+			player.beginResolution();
+
+			expect(() => player.react("cooldown")).toThrow("No cooldowns available");
+		});
+
+		it("throws when boost not available", () => {
+			const player = createPlayer({ played: [{ type: "speed", value: 4 }] });
+			player.beginResolution();
+			player.react("boost");
+
+			expect(() => player.react("boost")).toThrow(
+				"Reaction boost not available",
+			);
+		});
+	});
+
+	describe("checkCorners", () => {
+		const corner: Corner = { position: 5, speedLimit: 4 };
+
+		it("pays heat when crossing corner over speed limit", () => {
+			const player = createPlayer({
+				position: 0,
+				played: [
+					{ type: "speed", value: 4 },
+					{ type: "speed", value: 4 },
+				],
+				engine: [
+					{ type: "heat" },
+					{ type: "heat" },
+					{ type: "heat" },
+					{ type: "heat" },
+					{ type: "heat" },
+					{ type: "heat" },
+				],
+			});
+
+			const { position } = player.beginResolution();
+			player.setPosition(position);
+			player.checkCorners([corner]);
+
+			expect(player.state.engine).toHaveLength(2);
+			expect(player.state.discard).toHaveLength(4);
+		});
+
+		it("does not pay heat when at speed limit", () => {
+			const player = createPlayer({
+				position: 0,
+				played: [{ type: "speed", value: 4 }],
+				engine: [{ type: "heat" }, { type: "heat" }],
+			});
+
+			const { position } = player.beginResolution();
+			player.setPosition(position);
+			player.checkCorners([corner]);
+
+			expect(player.state.engine).toHaveLength(2);
+		});
+
+		it("does not pay heat when under speed limit", () => {
+			const player = createPlayer({
+				position: 0,
+				played: [{ type: "speed", value: 3 }],
+				engine: [{ type: "heat" }, { type: "heat" }],
+			});
+
+			const { position } = player.beginResolution();
+			player.setPosition(position);
+			player.checkCorners([corner]);
+
+			expect(player.state.engine).toHaveLength(2);
+		});
+
+		it("spins out when not enough heat to pay penalty", () => {
+			const player = createPlayer({
+				gear: 3,
+				position: 0,
+				played: [
+					{ type: "speed", value: 3 },
+					{ type: "speed", value: 3 },
+					{ type: "speed", value: 3 },
+				],
+				engine: [{ type: "heat" }],
+				hand: [],
+			});
+
+			const { position } = player.beginResolution();
+			player.setPosition(position);
+			player.checkCorners([corner]);
+
+			expect(player.state.position).toBe(4);
+			expect(player.state.gear).toBe(1);
+			expect(player.state.hand.filter((c) => c.type === "stress")).toHaveLength(
+				2,
+			);
+		});
+
+		it("counts adrenaline move toward corner speed", () => {
+			const player = createPlayer({
+				position: 0,
+				played: [{ type: "speed", value: 4 }],
+				engine: [{ type: "heat" }, { type: "heat" }],
+			});
+
+			const { position } = player.beginResolution();
+			player.setPosition(position);
+			player.addAdrenalineMove();
+			player.checkCorners([corner]);
+
+			expect(player.state.engine).toHaveLength(1);
+		});
+
+		it("does not count position changes after beginResolution toward corner speed", () => {
+			const player = createPlayer({
+				position: 0,
+				played: [{ type: "speed", value: 4 }],
+				engine: [{ type: "heat" }, { type: "heat" }],
+			});
+
+			const { position } = player.beginResolution();
+			player.setPosition(position);
+			player.setPosition(player.state.position + 2);
+			player.checkCorners([corner]);
+
+			expect(player.state.engine).toHaveLength(2);
+		});
+
+		it("does not check corners not crossed", () => {
+			const player = createPlayer({
+				position: 0,
+				played: [{ type: "speed", value: 4 }],
+				engine: [{ type: "heat" }, { type: "heat" }],
+			});
+			const farCorner: Corner = { position: 20, speedLimit: 2 };
+
+			const { position } = player.beginResolution();
+			player.setPosition(position);
+			player.checkCorners([farCorner]);
+
+			expect(player.state.engine).toHaveLength(2);
+		});
+
+		it("checks multiple corners in order", () => {
+			const player = createPlayer({
+				position: 0,
+				played: [
+					{ type: "speed", value: 4 },
+					{ type: "speed", value: 4 },
+					{ type: "speed", value: 4 },
+				],
+				engine: [
+					{ type: "heat" },
+					{ type: "heat" },
+					{ type: "heat" },
+					{ type: "heat" },
+					{ type: "heat" },
+					{ type: "heat" },
+					{ type: "heat" },
+				],
+			});
+			const corners: Corner[] = [
+				{ position: 5, speedLimit: 10 },
+				{ position: 10, speedLimit: 8 },
+			];
+
+			const { position } = player.beginResolution();
+			player.setPosition(position);
+			player.checkCorners(corners);
+
+			expect(player.state.engine).toHaveLength(1);
 		});
 	});
 });

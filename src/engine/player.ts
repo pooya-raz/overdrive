@@ -1,4 +1,11 @@
-import type { Card, Gear, PlayerData, ShuffleFn } from "./types";
+import type {
+	Card,
+	Corner,
+	Gear,
+	PlayerData,
+	ReactChoice,
+	ShuffleFn,
+} from "./types";
 
 export type { PlayerData, ShuffleFn };
 
@@ -24,6 +31,10 @@ export class Player {
 	private _engine: Card[];
 	private _discard: Card[];
 	private _hasAdrenaline: boolean;
+	private _startPosition: number;
+	private _cardSpeed: number;
+	private _availableCooldowns: number;
+	private _availableReactions: ("cooldown" | "boost")[];
 	private declare shuffle: ShuffleFn;
 
 	constructor(options: {
@@ -49,6 +60,10 @@ export class Player {
 		this._engine = options.engine;
 		this._discard = options.discard;
 		this._hasAdrenaline = false;
+		this._startPosition = 0;
+		this._cardSpeed = 0;
+		this._availableCooldowns = 0;
+		this._availableReactions = [];
 		// Non-enumerable so structuredClone doesn't try to clone the function
 		Object.defineProperty(this, "shuffle", {
 			value: shuffle,
@@ -228,15 +243,61 @@ export class Player {
 		return paid;
 	}
 
-	/**
-	 * Resolves stress cards, calculates movement.
-	 * Returns target position and card speed. Game handles corner checks separately.
-	 */
-	move(): { position: number; speed: number } {
+	/** Initializes turn state and calculates movement. Called at start of resolution. */
+	beginResolution(): { position: number; speed: number } {
+		this._startPosition = this._position;
+		this._availableCooldowns = 0;
+		this._availableReactions = ["cooldown", "boost"];
 		this.resolveStressCards();
-		const speed = this.calculateSpeed();
-		const position = this._position + speed;
-		return { position, speed };
+		this._cardSpeed = this.calculateSpeed();
+		const position = this._position + this._cardSpeed;
+		return { position, speed: this._cardSpeed };
+	}
+
+	addAdrenalineMove(): void {
+		this._position++;
+		this._cardSpeed++;
+	}
+
+	addAdrenalineCooldown(): void {
+		this._availableCooldowns++;
+	}
+
+	react(action: ReactChoice): boolean {
+		if (action === "skip") {
+			this._availableReactions = [];
+			return true;
+		}
+		if (!this._availableReactions.includes(action)) {
+			throw new Error(`Reaction ${action} not available`);
+		}
+		if (action === "cooldown") {
+			if (this._availableCooldowns <= 0) {
+				throw new Error("No cooldowns available");
+			}
+			this.cooldown(1);
+			this._availableCooldowns--;
+		}
+		// TODO: Apply boost
+		this._availableReactions = this._availableReactions.filter(
+			(r) => r !== action,
+		);
+		return this._availableReactions.length === 0;
+	}
+
+	checkCorners(corners: Corner[]): void {
+		const crossedCorners = corners.filter(
+			(c) => this._startPosition < c.position && c.position <= this._position,
+		);
+		for (const corner of crossedCorners) {
+			const penalty = this._cardSpeed - corner.speedLimit;
+			if (penalty <= 0) continue;
+			const paid = this.payHeat(penalty);
+			if (paid < penalty) {
+				this.spinOut(corner.position);
+				break;
+			}
+		}
 	}
 
 	private calculateSpeed(): number {

@@ -340,11 +340,30 @@ export class Player {
 					);
 				}
 				break;
-			case "boost":
+			case "boost": {
+				const paid = this.payHeat(1);
+				if (paid === 0) {
+					throw new Error("No heat available to boost");
+				}
+
+				let drawn = this.drawOne();
+				while (drawn && drawn.type !== "speed") {
+					this._discard.push(drawn);
+					drawn = this.drawOne();
+				}
+
+				if (drawn) {
+					const speedBonus = drawn.value ?? 0;
+					this._position += speedBonus;
+					this._cardSpeed += speedBonus;
+					this._discard.push(drawn);
+				}
+
 				this._availableReactions = this._availableReactions.filter(
 					(r) => r !== "boost",
 				);
 				break;
+			}
 			default: {
 				const _exhaustive: never = action;
 				throw new Error(`Unknown reaction: ${_exhaustive}`);

@@ -670,6 +670,8 @@ describe("Player", () => {
 			const player = createPlayer({
 				played: [{ type: "speed", value: 4 }],
 				hand: [{ type: "heat" }],
+				engine: [{ type: "heat" }],
+				deck: [{ type: "speed", value: 1 }],
 			});
 			player.beginResolution();
 			player.addCooldown(1);
@@ -717,13 +719,86 @@ describe("Player", () => {
 		});
 
 		it("throws when boost not available", () => {
-			const player = createPlayer({ played: [{ type: "speed", value: 4 }] });
+			const player = createPlayer({
+				played: [{ type: "speed", value: 4 }],
+				engine: [{ type: "heat" }],
+				deck: [{ type: "speed", value: 1 }],
+			});
 			player.beginResolution();
 			player.react("boost");
 
 			expect(() => player.react("boost")).toThrow(
 				"Reaction boost not available",
 			);
+		});
+
+		it("boost pays heat and draws speed card", () => {
+			const player = createPlayer({
+				position: 0,
+				played: [{ type: "speed", value: 2 }],
+				deck: [{ type: "speed", value: 3 }],
+				engine: [{ type: "heat" }],
+				discard: [],
+			});
+			player.beginResolution();
+
+			player.react("boost");
+
+			expect(player.state.position).toBe(5); // 2 + 3
+			expect(player.state.engineSize).toBe(0);
+			expect(player.state.discardSize).toBe(2); // heat + speed card
+		});
+
+		it("boost discards non-speed cards until speed found", () => {
+			const player = createPlayer({
+				position: 0,
+				played: [{ type: "speed", value: 2 }],
+				deck: [
+					{ type: "speed", value: 4 },
+					{ type: "stress" },
+					{ type: "heat" },
+				],
+				engine: [{ type: "heat" }],
+				discard: [],
+			});
+			player.beginResolution();
+
+			player.react("boost");
+
+			expect(player.state.position).toBe(6); // 2 + 4
+			expect(player.state.discardSize).toBe(4); // heat from engine + stress + heat + speed
+		});
+
+		it("boost throws when no heat available", () => {
+			const player = createPlayer({
+				played: [{ type: "speed", value: 2 }],
+				engine: [],
+			});
+			player.beginResolution();
+
+			expect(() => player.react("boost")).toThrow("No heat available to boost");
+		});
+
+		it("boost increases cardSpeed for corner checks", () => {
+			const player = createPlayer({
+				position: 0,
+				played: [{ type: "speed", value: 2 }],
+				deck: [{ type: "speed", value: 3 }],
+				engine: [
+					{ type: "heat" },
+					{ type: "heat" },
+					{ type: "heat" },
+					{ type: "heat" },
+				],
+			});
+			player.beginResolution();
+			player.react("boost");
+
+			// cardSpeed is now 5 (2 + 3), crossing corner at position 3 with limit 3
+			// penalty = 5 - 3 = 2 heat
+			player.checkCorners([{ position: 3, speedLimit: 3 }]);
+
+			expect(player.state.engineSize).toBe(1); // 4 - 1 (boost) - 2 (corner)
 		});
 	});
 

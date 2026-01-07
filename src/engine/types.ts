@@ -26,8 +26,6 @@ export type TurnState =
 	| "adrenaline"
 	| "react"
 	| "slipstream"
-	| "checkCollision"
-	| "checkCorner"
 	| "discard";
 
 export type ReactChoice = "cooldown" | "boost" | "skip";
@@ -37,8 +35,6 @@ export type Action =
 	| { type: "adrenaline"; acceptMove: boolean; acceptCooldown: boolean }
 	| { type: "react"; action: ReactChoice; amount?: number }
 	| { type: "slipstream"; use: boolean }
-	| { type: "checkCorner" }
-	| { type: "checkCollision" }
 	| { type: "discard"; cardIndices: number[] };
 
 export interface CreateGameRequest {

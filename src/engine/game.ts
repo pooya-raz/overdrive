@@ -194,33 +194,8 @@ export class Game {
 					}
 					player.setPosition(player.state.position + 2);
 				}
-				this._state.currentState = "checkCorner";
-				break;
-			}
-			case "checkCorner": {
-				const track = getMapTrack(this._state.map);
-				player.checkCorners(track.corners);
-				this._state.currentState = "checkCollision";
-				break;
-			}
-			case "checkCollision": {
-				let targetPosition = player.state.position;
-				while (true) {
-					const others = Object.values(this._state.players).filter(
-						(p) => p.id !== playerId && p.state.position === targetPosition,
-					);
-					if (others.length === 0) {
-						player.setPosition(targetPosition);
-						player.setRaceline(true);
-						break;
-					}
-					if (others.length === 1) {
-						player.setPosition(targetPosition);
-						player.setRaceline(!others[0].state.onRaceline);
-						break;
-					}
-					targetPosition--;
-				}
+				this.checkCorners(player);
+				this.resolveCollision(playerId, player);
 				this._state.currentState = "discard";
 				break;
 			}
@@ -279,6 +254,31 @@ export class Game {
 				p.id !== playerId &&
 				(p.state.position === pos || p.state.position === pos + 1),
 		);
+	}
+
+	private checkCorners(player: Player): void {
+		const track = getMapTrack(this._state.map);
+		player.checkCorners(track.corners);
+	}
+
+	private resolveCollision(playerId: string, player: Player): void {
+		let targetPosition = player.state.position;
+		while (true) {
+			const others = Object.values(this._state.players).filter(
+				(p) => p.id !== playerId && p.state.position === targetPosition,
+			);
+			if (others.length === 0) {
+				player.setPosition(targetPosition);
+				player.setRaceline(true);
+				break;
+			}
+			if (others.length === 1) {
+				player.setPosition(targetPosition);
+				player.setRaceline(!others[0].state.onRaceline);
+				break;
+			}
+			targetPosition--;
+		}
 	}
 
 	private getPlayersInRaceOrder(): Player[] {

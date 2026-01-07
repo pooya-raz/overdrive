@@ -25,8 +25,6 @@ function completeResolutionPhase(game: Game): void {
 		});
 		game.dispatch(playerId, { type: "react", action: "skip" });
 		game.dispatch(playerId, { type: "slipstream", use: false });
-		game.dispatch(playerId, { type: "checkCorner" });
-		game.dispatch(playerId, { type: "checkCollision" });
 		game.dispatch(playerId, { type: "discard", cardIndices: [] });
 	}
 }
@@ -258,8 +256,6 @@ describe("Game", () => {
 				});
 				game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
 				game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
-				game.dispatch(PLAYER_1_ID, { type: "checkCorner" });
-				game.dispatch(PLAYER_1_ID, { type: "checkCollision" });
 				game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
 
 				// After all resolution states, should be back to planning phase turn 2
@@ -528,8 +524,6 @@ describe("Game", () => {
 			});
 			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
 			game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
-			game.dispatch(PLAYER_1_ID, { type: "checkCorner" });
-			game.dispatch(PLAYER_1_ID, { type: "checkCollision" });
 			game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
 
 			// P2 can slipstream because P1 is at same position (4)
@@ -540,8 +534,6 @@ describe("Game", () => {
 			});
 			game.dispatch(PLAYER_2_ID, { type: "react", action: "skip" });
 			game.dispatch(PLAYER_2_ID, { type: "slipstream", use: true });
-			game.dispatch(PLAYER_2_ID, { type: "checkCorner" });
-			game.dispatch(PLAYER_2_ID, { type: "checkCollision" });
 			game.dispatch(PLAYER_2_ID, { type: "discard", cardIndices: [] });
 
 			// P2 moved from 4 to 6 via slipstream (+2 spaces)
@@ -571,8 +563,6 @@ describe("Game", () => {
 			});
 			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
 			game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
-			game.dispatch(PLAYER_1_ID, { type: "checkCorner" });
-			game.dispatch(PLAYER_1_ID, { type: "checkCollision" });
 			game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
 
 			// P2 at position 4, P1 at position 5 (1 ahead) - can slipstream
@@ -583,8 +573,6 @@ describe("Game", () => {
 			});
 			game.dispatch(PLAYER_2_ID, { type: "react", action: "skip" });
 			game.dispatch(PLAYER_2_ID, { type: "slipstream", use: true });
-			game.dispatch(PLAYER_2_ID, { type: "checkCorner" });
-			game.dispatch(PLAYER_2_ID, { type: "checkCollision" });
 			game.dispatch(PLAYER_2_ID, { type: "discard", cardIndices: [] });
 
 			expect(game.state.players[PLAYER_1_ID].position).toBe(5);
@@ -613,8 +601,6 @@ describe("Game", () => {
 			});
 			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
 			game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
-			game.dispatch(PLAYER_1_ID, { type: "checkCorner" });
-			game.dispatch(PLAYER_1_ID, { type: "checkCollision" });
 			game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
 
 			// P2 at position 0, P1 at position 5 - too far to slipstream

@@ -322,6 +322,18 @@ export class Player {
 		}
 	}
 
+	applyAdrenaline(acceptMove: boolean, acceptCooldown: boolean): void {
+		if (!this._hasAdrenaline) {
+			return;
+		}
+		if (acceptMove) {
+			this.addAdrenalineMove();
+		}
+		if (acceptCooldown) {
+			this.addCooldown(1);
+		}
+	}
+
 	react(action: ReactChoice): Done {
 		if (action !== "skip" && !this._availableReactions.includes(action)) {
 			throw new Error(`Reaction ${action} not available`);

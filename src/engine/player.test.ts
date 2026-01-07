@@ -641,6 +641,63 @@ describe("Player", () => {
 		});
 	});
 
+	describe("applyAdrenaline", () => {
+		it("does nothing when player has no adrenaline", () => {
+			const player = createPlayer({
+				position: 0,
+				played: [{ type: "speed", value: 2 }],
+			});
+			player.beginResolution();
+
+			player.applyAdrenaline(true, true);
+
+			expect(player.state.position).toBe(2);
+		});
+
+		it("adds move when acceptMove is true", () => {
+			const player = createPlayer({
+				position: 0,
+				played: [{ type: "speed", value: 2 }],
+			});
+			player.setAdrenaline(true);
+			player.beginResolution();
+
+			player.applyAdrenaline(true, false);
+
+			expect(player.state.position).toBe(3);
+		});
+
+		it("adds cooldown when acceptCooldown is true", () => {
+			const player = createPlayer({
+				played: [{ type: "speed", value: 2 }],
+				hand: [{ type: "heat" }],
+			});
+			player.setAdrenaline(true);
+			player.beginResolution();
+
+			player.applyAdrenaline(false, true);
+			player.react("cooldown");
+
+			expect(player.state.engineSize).toBe(1);
+		});
+
+		it("handles both options together", () => {
+			const player = createPlayer({
+				position: 0,
+				played: [{ type: "speed", value: 2 }],
+				hand: [{ type: "heat" }],
+			});
+			player.setAdrenaline(true);
+			player.beginResolution();
+
+			player.applyAdrenaline(true, true);
+			player.react("cooldown");
+
+			expect(player.state.position).toBe(3);
+			expect(player.state.engineSize).toBe(1);
+		});
+	});
+
 	describe("react", () => {
 		it("skip returns true", () => {
 			const player = createPlayer({ played: [{ type: "speed", value: 4 }] });

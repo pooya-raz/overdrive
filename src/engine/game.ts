@@ -164,14 +164,7 @@ export class Game {
 
 		switch (action.type) {
 			case "adrenaline": {
-				if (player.state.hasAdrenaline) {
-					if (action.acceptMove) {
-						player.addAdrenalineMove();
-					}
-					if (action.acceptCooldown) {
-						player.addCooldown(1);
-					}
-				}
+				player.applyAdrenaline(action.acceptMove, action.acceptCooldown);
 				this._state.currentState = "react";
 				break;
 			}

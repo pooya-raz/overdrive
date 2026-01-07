@@ -1,24 +1,11 @@
 {
-	"name": "heat-backend",
-	"version": "0.2.0",
-	"type": "module",
+	"name": "heat",
+	"private": true,
 	"scripts": {
-		"dev": "wrangler dev",
-		"deploy": "wrangler deploy --minify",
-		"cf-typegen": "wrangler types --env-interface CloudflareBindings",
-		"test": "vitest",
-		    "coverage": "vitest run --coverage",
-		"lint": "biome check --write ./src",
-		"verify": "pnpm run lint && pnpm run test"
-	},
-	"dependencies": {
-		"hono": "^4.11.3"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "2.3.10",
-		"@cloudflare/workers-types": "^4.20260101.0",
-		"@vitest/coverage-v8": "^4.0.16",
-		"vitest": "^4.0.16",
-		"wrangler": "^4.4.0"
+		"dev": "pnpm -r --parallel run dev",
+		"dev:backend": "pnpm --filter backend dev",
+		"dev:frontend": "pnpm --filter frontend dev",
+		"test": "pnpm --filter backend test",
+		"verify": "pnpm --filter backend verify"
 	}
 }

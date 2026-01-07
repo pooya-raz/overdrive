@@ -4,12 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useGameSocket } from "@/hooks/useGameSocket";
 
+const WS_URL = import.meta.env.DEV
+	? "ws://localhost:8787/ws"
+	: "wss://heat-backend.pooya72.workers.dev/ws";
+
 function App() {
 	const [playerId, setPlayerId] = useState("");
 	const [joined, setJoined] = useState(false);
 
 	const { status, gameState, error, sendAction } = useGameSocket({
-		url: joined ? "ws://localhost:8787/ws" : "",
+		url: joined ? WS_URL : "",
 		playerId: joined ? playerId : "",
 	});
 

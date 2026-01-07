@@ -1,0 +1,302 @@
+import { useState } from "react";
+import type { Action, Card as CardType, Corner, Gear, TurnState } from "@/types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { GearSelector } from "./GearSelector";
+import { Hand } from "./Hand";
+
+interface ActionPanelProps {
+	currentState: TurnState;
+	hand: CardType[];
+	currentGear: Gear;
+	hasAdrenaline: boolean;
+	onAction: (action: Action) => void;
+	disabled: boolean;
+	position: number;
+	corners: Corner[];
+	trackLength: number;
+}
+
+export function ActionPanel({
+	currentState,
+	hand,
+	currentGear,
+	hasAdrenaline,
+	onAction,
+	disabled,
+	position,
+	corners,
+	trackLength,
+}: ActionPanelProps) {
+	const [selectedGear, setSelectedGear] = useState<Gear>(currentGear);
+	const [selectedCards, setSelectedCards] = useState<number[]>([]);
+
+	const getNextCorner = (): { distance: number; speedLimit: number } | null => {
+		const posInTrack = ((position % trackLength) + trackLength) % trackLength;
+		for (const corner of corners) {
+			if (corner.position > posInTrack) {
+				return { distance: corner.position - posInTrack, speedLimit: corner.speedLimit };
+			}
+		}
+		if (corners.length > 0) {
+			return { distance: corners[0].position + trackLength - posInTrack, speedLimit: corners[0].speedLimit };
+		}
+		return null;
+	};
+
+	const nextCorner = getNextCorner();
+
+	const handleGearChange = (gear: Gear) => {
+		setSelectedGear(gear);
+		setSelectedCards((prev) => prev.slice(0, gear));
+	};
+
+	const toggleCard = (index: number) => {
+		setSelectedCards((prev) => {
+			if (prev.includes(index)) {
+				return prev.filter((i) => i !== index);
+			}
+			if (prev.length >= selectedGear) {
+				return prev;
+			}
+			return [...prev, index];
+		});
+	};
+
+	const toggleDiscardCard = (index: number) => {
+		setSelectedCards((prev) =>
+			prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index],
+		);
+	};
+
+	const nonDiscardableIndices = hand
+		.map((card, index) => (card.type === "heat" || card.type === "stress" ? index : -1))
+		.filter((i) => i !== -1);
+
+	const handlePlan = () => {
+		onAction({ type: "plan", gear: selectedGear, cardIndices: selectedCards });
+		setSelectedCards([]);
+	};
+
+	const handleDiscard = () => {
+		onAction({ type: "discard", cardIndices: selectedCards });
+		setSelectedCards([]);
+	};
+
+	if (currentState === "plan") {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle>Planning Phase</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					{nextCorner && (
+						<p className="text-black">
+							Next corner in <span className="font-bold text-yellow-400">{nextCorner.distance}</span> spaces (speed limit: {nextCorner.speedLimit})
+						</p>
+					)}
+					<GearSelector
+						currentGear={currentGear}
+						selectedGear={selectedGear}
+						onSelectGear={handleGearChange}
+						disabled={disabled}
+					/>
+					<div className="space-y-2">
+						<label className="text-sm font-medium">Select cards to play:</label>
+						<Hand
+							cards={hand}
+							selectedIndices={selectedCards}
+							onToggleCard={toggleCard}
+							disabled={disabled}
+						/>
+					</div>
+					<Button
+						onClick={handlePlan}
+						disabled={disabled || selectedCards.length === 0}
+						className="w-full text-white hover:text-blue-500"
+					>
+						Confirm Plan
+					</Button>
+				</CardContent>
+			</Card>
+		);
+	}
+
+	if (currentState === "adrenaline") {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle>Adrenaline</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					{hasAdrenaline ? (
+						<>
+							<p className="text-white">
+								You have adrenaline! Choose your bonus:
+							</p>
+							<div className="grid grid-cols-3 gap-2">
+								<Button
+									variant="outline"
+									className="text-white hover:text-blue-500"
+									onClick={() =>
+										onAction({
+											type: "adrenaline",
+											acceptMove: true,
+											acceptCooldown: false,
+										})
+									}
+									disabled={disabled}
+								>
+									+1 Move
+								</Button>
+								<Button
+									variant="outline"
+									className="text-white hover:text-blue-500"
+									onClick={() =>
+										onAction({
+											type: "adrenaline",
+											acceptMove: false,
+											acceptCooldown: true,
+										})
+									}
+									disabled={disabled}
+								>
+									Cooldown
+								</Button>
+								<Button
+									variant="outline"
+									className="text-white hover:text-blue-500"
+									onClick={() =>
+										onAction({
+											type: "adrenaline",
+											acceptMove: false,
+											acceptCooldown: false,
+										})
+									}
+									disabled={disabled}
+								>
+									Skip
+								</Button>
+							</div>
+						</>
+					) : (
+						<>
+							<p className="text-white">No adrenaline available.</p>
+							<Button
+								className="text-white hover:text-blue-500"
+								onClick={() =>
+									onAction({
+										type: "adrenaline",
+										acceptMove: false,
+										acceptCooldown: false,
+									})
+								}
+								disabled={disabled}
+							>
+								Continue
+							</Button>
+						</>
+					)}
+				</CardContent>
+			</Card>
+		);
+	}
+
+	if (currentState === "react") {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle>React</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					<p className="text-white">Choose your reaction:</p>
+					<div className="grid grid-cols-3 gap-2">
+						<Button
+							variant="outline"
+							className="text-white hover:text-blue-500"
+							onClick={() => onAction({ type: "react", action: "cooldown" })}
+							disabled={disabled}
+						>
+							Cooldown
+						</Button>
+						<Button
+							variant="outline"
+							className="text-white hover:text-blue-500"
+							onClick={() => onAction({ type: "react", action: "boost" })}
+							disabled={disabled}
+						>
+							Boost
+						</Button>
+						<Button
+							variant="outline"
+							className="text-white hover:text-blue-500"
+							onClick={() => onAction({ type: "react", action: "skip" })}
+							disabled={disabled}
+						>
+							Skip
+						</Button>
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
+
+	if (currentState === "slipstream") {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle>Slipstream</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					<p className="text-white">Use slipstream to move +2?</p>
+					<div className="grid grid-cols-2 gap-2">
+						<Button
+							className="text-white hover:text-blue-500"
+							onClick={() => onAction({ type: "slipstream", use: true })}
+							disabled={disabled}
+						>
+							Use Slipstream
+						</Button>
+						<Button
+							variant="outline"
+							className="text-white hover:text-blue-500"
+							onClick={() => onAction({ type: "slipstream", use: false })}
+							disabled={disabled}
+						>
+							Skip
+						</Button>
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
+
+	if (currentState === "discard") {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle>Discard</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					<p className="text-white">
+						Select cards to discard (optional):
+					</p>
+					<Hand
+						cards={hand}
+						selectedIndices={selectedCards}
+						onToggleCard={toggleDiscardCard}
+						disabled={disabled}
+						disabledIndices={nonDiscardableIndices}
+					/>
+					<Button onClick={handleDiscard} disabled={disabled} className="w-full text-white hover:text-blue-500">
+						{selectedCards.length > 0
+							? `Discard ${selectedCards.length} card(s)`
+							: "Skip Discard"}
+					</Button>
+				</CardContent>
+			</Card>
+		);
+	}
+
+	return null;
+}

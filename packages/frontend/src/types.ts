@@ -30,27 +30,12 @@ export type TurnState =
 
 export type ReactChoice = "cooldown" | "boost" | "skip";
 
-/** True when player has no more reactions available */
-export type Done = boolean;
-
 export type Action =
 	| { type: "plan"; gear: Gear; cardIndices: number[] }
 	| { type: "adrenaline"; acceptMove: boolean; acceptCooldown: boolean }
 	| { type: "react"; action: ReactChoice; amount?: number }
 	| { type: "slipstream"; use: boolean }
 	| { type: "discard"; cardIndices: number[] };
-
-export interface CreateGameRequest {
-	playerIds: string[];
-	map: GameMap;
-	laps?: number;
-}
-
-export interface GameOptions {
-	shuffle?: ShuffleFn;
-}
-
-export type ShuffleFn = <T>(items: T[]) => T[];
 
 export interface PlayerData {
 	id: string;

@@ -98,11 +98,38 @@ export class Game {
 	get state(): GameState {
 		return {
 			map: this._state.map,
+			track: getMapTrack(this._state.map),
 			players: Object.fromEntries(
 				Object.entries(this._state.players).map(([id, player]) => [
 					id,
 					player.state,
 				]),
+			),
+			turn: this._state.turn,
+			phase: this._state.phase,
+			currentState: this._state.currentState,
+			pendingPlayers: { ...this._state.pendingPlayers },
+			turnOrder: [...this._state.turnOrder],
+			currentPlayerIndex: this._state.currentPlayerIndex,
+			laps: this._state.laps,
+			finishOrder: [...this._state.finishOrder],
+		};
+	}
+
+	getStateForPlayer(viewerId: string): GameState {
+		return {
+			map: this._state.map,
+			track: getMapTrack(this._state.map),
+			players: Object.fromEntries(
+				Object.entries(this._state.players).map(([id, player]) => {
+					const playerState = player.state;
+					if (id !== viewerId) {
+						playerState.hand = playerState.hand.map((card) => ({
+							type: card.type,
+						}));
+					}
+					return [id, playerState];
+				}),
 			),
 			turn: this._state.turn,
 			phase: this._state.phase,

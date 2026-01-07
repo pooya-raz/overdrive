@@ -87,9 +87,10 @@ export class GameRoom extends DurableObject {
 
 	private broadcastState(): void {
 		if (!this.game) return;
-		const message = JSON.stringify({ type: "state", state: this.game.state });
-		for (const websocket of this.connections.keys()) {
-			websocket.send(message);
+		for (const [websocket, playerId] of this.connections.entries()) {
+			if (!playerId) continue;
+			const state = this.game.getStateForPlayer(playerId);
+			websocket.send(JSON.stringify({ type: "state", state }));
 		}
 	}
 }

@@ -1,0 +1,111 @@
+import type { Action, GameState } from "@/types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ActionPanel } from "./ActionPanel";
+import { DeckInfo } from "./DeckInfo";
+import { PlayerList } from "./PlayerList";
+
+interface GameProps {
+	gameState: GameState;
+	playerId: string;
+	onAction: (action: Action) => void;
+	error: string | null;
+}
+
+export function Game({ gameState, playerId, onAction, error }: GameProps) {
+	const player = gameState.players[playerId];
+	const isMyTurn = (): boolean => {
+		if (gameState.phase === "planning") {
+			return gameState.pendingPlayers[playerId];
+		}
+		if (gameState.phase === "finished") {
+			return false;
+		}
+		return gameState.turnOrder[gameState.currentPlayerIndex] === playerId;
+	};
+
+	const currentTurnPlayer =
+		gameState.phase === "resolution"
+			? gameState.turnOrder[gameState.currentPlayerIndex]
+			: null;
+
+	return (
+		<div className="min-h-screen grid grid-rows-[auto_1fr] bg-gradient-to-br from-slate-900 to-slate-800">
+			<header className="bg-card border-b px-6 py-4 grid grid-cols-[1fr_auto] items-center">
+				<h1 className="text-2xl font-bold">Heat</h1>
+				<div className="grid grid-flow-col gap-4">
+					<Badge variant="outline">Turn {gameState.turn}</Badge>
+					<Badge variant="secondary">{gameState.phase}</Badge>
+					{currentTurnPlayer && (
+						<Badge>Current: {currentTurnPlayer}</Badge>
+					)}
+				</div>
+			</header>
+
+			<div className="grid justify-items-center p-6 w-full">
+				<div className="grid gap-4 w-full">
+					{error && (
+						<div className="bg-destructive/20 text-destructive px-6 py-3 rounded-lg text-center">
+							{error}
+						</div>
+					)}
+
+					<div className="grid grid-cols-[auto_1fr] gap-6 w-full max-w-4xl mx-auto">
+						<aside>
+							<PlayerList gameState={gameState} currentPlayerId={playerId} />
+						</aside>
+
+						<main>
+							{gameState.phase === "finished" ? (
+								<Card>
+									<CardHeader>
+										<CardTitle className="text-center">Race Finished!</CardTitle>
+									</CardHeader>
+									<CardContent>
+										<ol className="space-y-2">
+											{gameState.finishOrder.map((id, index) => (
+												<li
+													key={id}
+													className={`p-2 rounded ${id === playerId ? "bg-blue-500/20 font-bold" : ""}`}
+												>
+													{index + 1}. {id} {id === playerId && "(you)"}
+												</li>
+											))}
+										</ol>
+									</CardContent>
+								</Card>
+							) : (
+								<div className="grid gap-4">
+									{!isMyTurn() && (
+										<div className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-4 py-3 rounded-lg text-center">
+											Waiting for{" "}
+											{gameState.phase === "planning"
+												? "other players..."
+												: `${currentTurnPlayer}...`}
+										</div>
+									)}
+									<ActionPanel
+										currentState={gameState.currentState}
+										hand={player.hand}
+										currentGear={player.gear}
+										hasAdrenaline={player.hasAdrenaline}
+										onAction={onAction}
+										disabled={!isMyTurn()}
+										position={player.position}
+										corners={gameState.track.corners}
+										trackLength={gameState.track.length}
+									/>
+									<DeckInfo
+										deckSize={player.deckSize}
+										engineSize={player.engineSize}
+										discardSize={player.discardSize}
+									/>
+								</div>
+							)}
+						</main>
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+}

@@ -30,6 +30,9 @@ export type TurnState =
 
 export type ReactChoice = "cooldown" | "boost" | "skip";
 
+/** True when player has no more reactions available */
+export type Done = boolean;
+
 export type Action =
 	| { type: "plan"; gear: Gear; cardIndices: number[] }
 	| { type: "adrenaline"; acceptMove: boolean; acceptCooldown: boolean }

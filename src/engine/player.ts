@@ -2,6 +2,7 @@ import { createStartingDeck, createStartingEngine } from "./cards";
 import type {
 	Card,
 	Corner,
+	Done,
 	GameMap,
 	Gear,
 	PlayerData,
@@ -319,28 +320,35 @@ export class Player {
 		}
 	}
 
-	react(action: ReactChoice): boolean {
-		if (action === "skip") {
-			this._availableReactions = [];
-			return true;
-		}
-		if (!this._availableReactions.includes(action)) {
+	react(action: ReactChoice): Done {
+		if (action !== "skip" && !this._availableReactions.includes(action)) {
 			throw new Error(`Reaction ${action} not available`);
 		}
-		if (action === "cooldown") {
-			this.cooldown(1);
-			this._availableCooldowns--;
-			if (this._availableCooldowns <= 0) {
+
+		switch (action) {
+			case "skip":
+				this._availableReactions = [];
+				break;
+			case "cooldown":
+				this.cooldown(1);
+				this._availableCooldowns--;
+				if (this._availableCooldowns <= 0) {
+					this._availableReactions = this._availableReactions.filter(
+						(r) => r !== "cooldown",
+					);
+				}
+				break;
+			case "boost":
 				this._availableReactions = this._availableReactions.filter(
-					(r) => r !== "cooldown",
+					(r) => r !== "boost",
 				);
+				break;
+			default: {
+				const _exhaustive: never = action;
+				throw new Error(`Unknown reaction: ${_exhaustive}`);
 			}
-		} else {
-			// Remove non-cooldown reactions after use (boost can only be used once)
-			this._availableReactions = this._availableReactions.filter(
-				(r) => r !== action,
-			);
 		}
+
 		return this._availableReactions.length === 0;
 	}
 

@@ -3,6 +3,7 @@ import { getMapTrack } from "./track";
 import type {
 	Action,
 	CreateGameRequest,
+	Done,
 	GameMap,
 	GameOptions,
 	GameState,
@@ -175,7 +176,7 @@ export class Game {
 				break;
 			}
 			case "react": {
-				const done = player.react(action.action);
+				const done: Done = player.react(action.action);
 				if (done) {
 					this._state.currentState = "slipstream";
 				}

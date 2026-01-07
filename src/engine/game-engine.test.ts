@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-	type Card,
-	type CreateGameRequest,
-	Game,
-	type ShuffleFn,
-} from "./game";
+import { type CreateGameRequest, Game, type ShuffleFn } from "./game";
 
 const PLAYER_1_ID = "550e8400-e29b-41d4-a716-446655440001";
 const PLAYER_2_ID = "550e8400-e29b-41d4-a716-446655440002";
@@ -29,15 +24,6 @@ function completeResolutionPhase(game: Game): void {
 	}
 }
 
-const USA_STARTING_ENGINE: Card[] = [
-	{ type: "heat" },
-	{ type: "heat" },
-	{ type: "heat" },
-	{ type: "heat" },
-	{ type: "heat" },
-	{ type: "heat" },
-];
-
 describe("Game", () => {
 	describe("initialization", () => {
 		it("should create a game with players on turn 1", () => {
@@ -59,8 +45,8 @@ describe("Game", () => {
 			for (const id of request.playerIds) {
 				const player = game.state.players[id];
 				expect(player.gear).toBe(1);
-				expect(player.engine).toEqual(USA_STARTING_ENGINE);
-				expect(player.discard).toEqual([]);
+				expect(player.engineSize).toBe(6);
+				expect(player.discardSize).toBe(0);
 				// With noShuffle, hand is last 7 cards from deck (popped from end)
 				expect(player.hand).toEqual([
 					{ type: "stress" },
@@ -71,19 +57,7 @@ describe("Game", () => {
 					{ type: "upgrade", value: 0 },
 					{ type: "speed", value: 4 },
 				]);
-				expect(player.deck).toEqual([
-					{ type: "speed", value: 1 },
-					{ type: "speed", value: 1 },
-					{ type: "speed", value: 1 },
-					{ type: "speed", value: 2 },
-					{ type: "speed", value: 2 },
-					{ type: "speed", value: 2 },
-					{ type: "speed", value: 3 },
-					{ type: "speed", value: 3 },
-					{ type: "speed", value: 3 },
-					{ type: "speed", value: 4 },
-					{ type: "speed", value: 4 },
-				]);
+				expect(player.deckSize).toBe(11);
 			}
 			expect(game.state.map).toBe("USA");
 		});
@@ -229,10 +203,10 @@ describe("Game", () => {
 				for (const id of [PLAYER_1_ID, PLAYER_2_ID]) {
 					const player = game.state.players[id];
 					expect(player.gear).toBe(2);
-					expect(player.engine).toEqual(USA_STARTING_ENGINE);
-					expect(player.discard).toEqual([]);
+					expect(player.engineSize).toBe(6);
+					expect(player.discardSize).toBe(0);
 					expect(player.hand).toHaveLength(5); // 7 - 2 played
-					expect(player.deck).toHaveLength(11);
+					expect(player.deckSize).toBe(11);
 				}
 			});
 

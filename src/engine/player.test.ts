@@ -49,7 +49,8 @@ describe("defaultShuffle", () => {
 				engine: [],
 				discard: [],
 			});
-			results.push(JSON.stringify(player.state.deck));
+			player.draw();
+			results.push(JSON.stringify(player.state.hand));
 		}
 
 		const uniqueResults = new Set(results);
@@ -73,7 +74,7 @@ describe("Player", () => {
 
 			player.draw();
 
-			expect(player.state.deck).toHaveLength(0);
+			expect(player.state.deckSize).toBe(0);
 			expect(player.state.hand).toEqual([
 				{ type: "heat" },
 				{ type: "upgrade", value: 5 },
@@ -99,8 +100,8 @@ describe("Player", () => {
 
 			player.draw();
 
-			expect(player.state.deck).toHaveLength(0);
-			expect(player.state.discard).toHaveLength(0);
+			expect(player.state.deckSize).toBe(0);
+			expect(player.state.discardSize).toBe(0);
 			expect(player.state.hand).toHaveLength(7);
 		});
 
@@ -137,8 +138,9 @@ describe("Player", () => {
 			player.shiftGears(3);
 
 			expect(player.state.gear).toBe(3);
-			expect(player.state.engine).toHaveLength(0);
-			expect(player.state.discard).toEqual([{ type: "heat" }]);
+			expect(player.state.engineSize).toBe(0);
+			expect(player.state.discardSize).toBe(1);
+			expect(player.state.discardTop).toEqual({ type: "heat" });
 		});
 
 		describe("validation", () => {
@@ -171,10 +173,7 @@ describe("Player", () => {
 
 			player.playCards([0, 1]);
 
-			expect(player.state.played).toEqual([
-				{ type: "speed", value: 2 },
-				{ type: "speed", value: 1 },
-			]);
+			expect(player.state.playedCount).toBe(2);
 			expect(player.state.hand).toEqual([{ type: "speed", value: 3 }]);
 		});
 
@@ -284,10 +283,7 @@ describe("Player", () => {
 
 				player.beginResolution();
 
-				expect(player.state.played).toContainEqual({
-					type: "speed",
-					value: 3,
-				});
+				expect(player.state.playedCount).toBe(2);
 				expect(player.state.position).toBe(3);
 			});
 
@@ -300,10 +296,7 @@ describe("Player", () => {
 
 				player.beginResolution();
 
-				expect(player.state.played).toContainEqual({
-					type: "upgrade",
-					value: 5,
-				});
+				expect(player.state.playedCount).toBe(2);
 				expect(player.state.position).toBe(5);
 			});
 
@@ -317,7 +310,8 @@ describe("Player", () => {
 
 				player.beginResolution();
 
-				expect(player.state.discard).toContainEqual({ type: "stress" });
+				expect(player.state.discardSize).toBe(1);
+				expect(player.state.discardTop).toEqual({ type: "stress" });
 				expect(player.state.position).toBe(0);
 			});
 
@@ -347,7 +341,7 @@ describe("Player", () => {
 				player.beginResolution();
 
 				expect(player.state.position).toBe(4);
-				expect(player.state.discard).toHaveLength(0);
+				expect(player.state.discardSize).toBe(0);
 			});
 
 			it("keeps starting position when deck and discard empty", () => {
@@ -421,11 +415,9 @@ describe("Player", () => {
 
 			player.discard([]);
 
-			expect(player.state.played).toEqual([]);
-			expect(player.state.discard).toEqual([
-				{ type: "speed", value: 1 },
-				{ type: "speed", value: 2 },
-			]);
+			expect(player.state.playedCount).toBe(0);
+			expect(player.state.discardSize).toBe(2);
+			expect(player.state.discardTop).toEqual({ type: "speed", value: 2 });
 		});
 
 		it("allows discarding speed and upgrade cards from hand", () => {
@@ -445,10 +437,8 @@ describe("Player", () => {
 
 			player.discard([0, 1]);
 
-			expect(player.state.discard).toEqual([
-				{ type: "upgrade", value: 5 },
-				{ type: "speed", value: 1 },
-			]);
+			expect(player.state.discardSize).toBe(2);
+			expect(player.state.discardTop).toEqual({ type: "speed", value: 1 });
 			expect(player.state.hand).toHaveLength(5);
 		});
 
@@ -538,8 +528,8 @@ describe("Player", () => {
 			const paid = player.payHeat(2);
 
 			expect(paid).toBe(2);
-			expect(player.state.engine).toHaveLength(1);
-			expect(player.state.discard).toHaveLength(2);
+			expect(player.state.engineSize).toBe(1);
+			expect(player.state.discardSize).toBe(2);
 		});
 
 		it("returns actual amount paid when engine runs out", () => {
@@ -551,7 +541,7 @@ describe("Player", () => {
 			const paid = player.payHeat(5);
 
 			expect(paid).toBe(1);
-			expect(player.state.engine).toHaveLength(0);
+			expect(player.state.engineSize).toBe(0);
 		});
 
 		it("returns 0 when engine is empty", () => {
@@ -583,7 +573,7 @@ describe("Player", () => {
 				{ type: "speed", value: 1 },
 				{ type: "speed", value: 2 },
 			]);
-			expect(player.state.engine).toEqual([{ type: "heat" }]);
+			expect(player.state.engineSize).toBe(1);
 		});
 
 		it("moves multiple heat cards", () => {
@@ -595,7 +585,7 @@ describe("Player", () => {
 			player.cooldown(2);
 
 			expect(player.state.hand).toEqual([{ type: "speed", value: 1 }]);
-			expect(player.state.engine).toHaveLength(2);
+			expect(player.state.engineSize).toBe(2);
 		});
 
 		it("stops when no heat cards left in hand", () => {
@@ -607,7 +597,7 @@ describe("Player", () => {
 			player.cooldown(3);
 
 			expect(player.state.hand).toEqual([{ type: "speed", value: 1 }]);
-			expect(player.state.engine).toHaveLength(1);
+			expect(player.state.engineSize).toBe(1);
 		});
 
 		it("does nothing when no heat in hand", () => {
@@ -622,7 +612,7 @@ describe("Player", () => {
 			player.cooldown(1);
 
 			expect(player.state.hand).toHaveLength(2);
-			expect(player.state.engine).toHaveLength(0);
+			expect(player.state.engineSize).toBe(0);
 		});
 	});
 
@@ -673,7 +663,7 @@ describe("Player", () => {
 			player.react("cooldown");
 
 			expect(player.state.hand).toEqual([]);
-			expect(player.state.engine).toEqual([{ type: "heat" }]);
+			expect(player.state.engineSize).toBe(1);
 		});
 
 		it("cooldown returns true when no reactions remaining", () => {
@@ -760,8 +750,8 @@ describe("Player", () => {
 			player.beginResolution();
 			player.checkCorners([corner]);
 
-			expect(player.state.engine).toHaveLength(2);
-			expect(player.state.discard).toHaveLength(4);
+			expect(player.state.engineSize).toBe(2);
+			expect(player.state.discardSize).toBe(4);
 		});
 
 		it("does not pay heat when at speed limit", () => {
@@ -774,7 +764,7 @@ describe("Player", () => {
 			player.beginResolution();
 			player.checkCorners([corner]);
 
-			expect(player.state.engine).toHaveLength(2);
+			expect(player.state.engineSize).toBe(2);
 		});
 
 		it("does not pay heat when under speed limit", () => {
@@ -787,7 +777,7 @@ describe("Player", () => {
 			player.beginResolution();
 			player.checkCorners([corner]);
 
-			expect(player.state.engine).toHaveLength(2);
+			expect(player.state.engineSize).toBe(2);
 		});
 
 		it("spins out when not enough heat to pay penalty", () => {
@@ -824,7 +814,7 @@ describe("Player", () => {
 			player.addAdrenalineMove();
 			player.checkCorners([corner]);
 
-			expect(player.state.engine).toHaveLength(1);
+			expect(player.state.engineSize).toBe(1);
 		});
 
 		it("does not count position changes after beginResolution toward corner speed", () => {
@@ -838,7 +828,7 @@ describe("Player", () => {
 			player.setPosition(player.state.position + 2);
 			player.checkCorners([corner]);
 
-			expect(player.state.engine).toHaveLength(2);
+			expect(player.state.engineSize).toBe(2);
 		});
 
 		it("does not check corners not crossed", () => {
@@ -852,7 +842,7 @@ describe("Player", () => {
 			player.beginResolution();
 			player.checkCorners([farCorner]);
 
-			expect(player.state.engine).toHaveLength(2);
+			expect(player.state.engineSize).toBe(2);
 		});
 
 		it("checks multiple corners in order", () => {
@@ -881,7 +871,7 @@ describe("Player", () => {
 			player.beginResolution();
 			player.checkCorners(corners);
 
-			expect(player.state.engine).toHaveLength(1);
+			expect(player.state.engineSize).toBe(1);
 		});
 	});
 });

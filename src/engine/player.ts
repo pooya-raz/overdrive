@@ -131,20 +131,22 @@ export class Player {
 		});
 	}
 
-	/** Returns a deep copy of player state to prevent external mutation. */
+	/** Returns player state for external consumers. */
 	get state(): PlayerData {
-		return structuredClone({
+		const topDiscard = this._discard.at(-1);
+		return {
 			id: this.id,
 			gear: this._gear,
 			position: this._position,
 			onRaceline: this._onRaceline,
-			deck: this._deck,
-			hand: this._hand,
-			played: this._played,
-			engine: this._engine,
-			discard: this._discard,
+			hand: structuredClone(this._hand),
+			deckSize: this._deck.length,
+			playedCount: this._played.length,
+			engineSize: this._engine.length,
+			discardSize: this._discard.length,
+			discardTop: topDiscard ? structuredClone(topDiscard) : null,
 			hasAdrenaline: this._hasAdrenaline,
-		});
+		};
 	}
 
 	/**

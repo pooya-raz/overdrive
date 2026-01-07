@@ -56,11 +56,12 @@ export interface PlayerData {
 	gear: Gear;
 	position: number;
 	onRaceline: boolean;
-	deck: Card[];
 	hand: Card[];
-	played: Card[];
-	engine: Card[];
-	discard: Card[];
+	deckSize: number;
+	playedCount: number;
+	engineSize: number;
+	discardSize: number;
+	discardTop: Card | null;
 	hasAdrenaline: boolean;
 }
 

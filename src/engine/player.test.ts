@@ -668,7 +668,7 @@ describe("Player", () => {
 				engine: [],
 			});
 			player.beginResolution();
-			player.addAdrenalineCooldown();
+			player.addCooldown(1);
 
 			player.react("cooldown");
 
@@ -682,7 +682,7 @@ describe("Player", () => {
 				hand: [{ type: "heat" }],
 			});
 			player.beginResolution();
-			player.addAdrenalineCooldown();
+			player.addCooldown(1);
 			player.react("boost");
 
 			const done = player.react("cooldown");
@@ -696,7 +696,7 @@ describe("Player", () => {
 				hand: [{ type: "heat" }],
 			});
 			player.beginResolution();
-			player.addAdrenalineCooldown();
+			player.addCooldown(1);
 
 			const done = player.react("cooldown");
 
@@ -709,7 +709,7 @@ describe("Player", () => {
 				hand: [{ type: "heat" }],
 			});
 			player.beginResolution();
-			player.addAdrenalineCooldown();
+			player.addCooldown(1);
 			player.react("cooldown");
 
 			expect(() => player.react("cooldown")).toThrow(
@@ -717,11 +717,13 @@ describe("Player", () => {
 			);
 		});
 
-		it("throws when no cooldowns to use", () => {
+		it("throws when cooldown not added", () => {
 			const player = createPlayer({ played: [{ type: "speed", value: 4 }] });
 			player.beginResolution();
 
-			expect(() => player.react("cooldown")).toThrow("No cooldowns available");
+			expect(() => player.react("cooldown")).toThrow(
+				"Reaction cooldown not available",
+			);
 		});
 
 		it("throws when boost not available", () => {

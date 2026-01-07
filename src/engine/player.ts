@@ -301,7 +301,7 @@ export class Player {
 	beginResolution(): void {
 		this._startPosition = this._position;
 		this._availableCooldowns = 0;
-		this._availableReactions = ["cooldown", "boost"];
+		this._availableReactions = ["boost"];
 		this.resolveStressCards();
 		this._cardSpeed = this.calculateSpeed();
 		this._position = this._startPosition + this._cardSpeed;
@@ -312,8 +312,11 @@ export class Player {
 		this._cardSpeed++;
 	}
 
-	addAdrenalineCooldown(): void {
-		this._availableCooldowns++;
+	addCooldown(amount: number): void {
+		this._availableCooldowns += amount;
+		if (!this._availableReactions.includes("cooldown")) {
+			this._availableReactions.unshift("cooldown");
+		}
 	}
 
 	react(action: ReactChoice): boolean {
@@ -325,16 +328,19 @@ export class Player {
 			throw new Error(`Reaction ${action} not available`);
 		}
 		if (action === "cooldown") {
-			if (this._availableCooldowns <= 0) {
-				throw new Error("No cooldowns available");
-			}
 			this.cooldown(1);
 			this._availableCooldowns--;
+			if (this._availableCooldowns <= 0) {
+				this._availableReactions = this._availableReactions.filter(
+					(r) => r !== "cooldown",
+				);
+			}
+		} else {
+			// Remove non-cooldown reactions after use (boost can only be used once)
+			this._availableReactions = this._availableReactions.filter(
+				(r) => r !== action,
+			);
 		}
-		// TODO: Apply boost
-		this._availableReactions = this._availableReactions.filter(
-			(r) => r !== action,
-		);
 		return this._availableReactions.length === 0;
 	}
 

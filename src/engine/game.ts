@@ -168,7 +168,7 @@ export class Game {
 						player.addAdrenalineMove();
 					}
 					if (action.acceptCooldown) {
-						player.addAdrenalineCooldown();
+						player.addCooldown(1);
 					}
 				}
 				this._state.currentState = "react";

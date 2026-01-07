@@ -400,6 +400,29 @@ export class Player {
 		}
 	}
 
+	resolveCollision(
+		otherPlayers: { position: number; onRaceline: boolean }[],
+	): void {
+		let targetPosition = this._position;
+
+		// Find a position that isn't fully occupied (max 2 players per space)
+		while (true) {
+			const othersAtPosition = otherPlayers.filter(
+				(p) => p.position === targetPosition,
+			);
+
+			if (othersAtPosition.length < 2) {
+				this._position = targetPosition;
+				// Empty space = raceline, one player = take opposite lane
+				this._onRaceline =
+					othersAtPosition.length === 0 || !othersAtPosition[0].onRaceline;
+				return;
+			}
+
+			targetPosition--;
+		}
+	}
+
 	private calculateSpeed(): number {
 		return this._played.reduce((sum, card) => sum + (card.value ?? 0), 0);
 	}

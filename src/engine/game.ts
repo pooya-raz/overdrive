@@ -182,8 +182,8 @@ export class Game {
 					}
 					player.setPosition(player.state.position + 2);
 				}
-				this.checkCorners(player);
 				this.resolveCollision(playerId, player);
+				this.checkCorners(player);
 				this._state.currentState = "discard";
 				break;
 			}
@@ -249,23 +249,13 @@ export class Game {
 	}
 
 	private resolveCollision(playerId: string, player: Player): void {
-		let targetPosition = player.state.position;
-		while (true) {
-			const others = Object.values(this._state.players).filter(
-				(p) => p.id !== playerId && p.state.position === targetPosition,
-			);
-			if (others.length === 0) {
-				player.setPosition(targetPosition);
-				player.setRaceline(true);
-				break;
-			}
-			if (others.length === 1) {
-				player.setPosition(targetPosition);
-				player.setRaceline(!others[0].state.onRaceline);
-				break;
-			}
-			targetPosition--;
-		}
+		const otherPlayers = Object.values(this._state.players)
+			.filter((p) => p.id !== playerId)
+			.map((p) => ({
+				position: p.state.position,
+				onRaceline: p.state.onRaceline,
+			}));
+		player.resolveCollision(otherPlayers);
 	}
 
 	private getPlayersInRaceOrder(): Player[] {

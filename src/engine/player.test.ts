@@ -1006,4 +1006,60 @@ describe("Player", () => {
 			expect(player.state.engineSize).toBe(1);
 		});
 	});
+
+	describe("resolveCollision", () => {
+		it("places player on raceline when position is empty", () => {
+			const player = createPlayer({ position: 5 });
+
+			player.resolveCollision([]);
+
+			expect(player.state.position).toBe(5);
+			expect(player.state.onRaceline).toBe(true);
+		});
+
+		it("places player opposite to existing car when one occupant", () => {
+			const player = createPlayer({ position: 5 });
+
+			player.resolveCollision([{ position: 5, onRaceline: true }]);
+
+			expect(player.state.position).toBe(5);
+			expect(player.state.onRaceline).toBe(false);
+		});
+
+		it("places player on raceline when occupant is off raceline", () => {
+			const player = createPlayer({ position: 5 });
+
+			player.resolveCollision([{ position: 5, onRaceline: false }]);
+
+			expect(player.state.position).toBe(5);
+			expect(player.state.onRaceline).toBe(true);
+		});
+
+		it("moves player back when position fully occupied", () => {
+			const player = createPlayer({ position: 5 });
+
+			player.resolveCollision([
+				{ position: 5, onRaceline: true },
+				{ position: 5, onRaceline: false },
+			]);
+
+			expect(player.state.position).toBe(4);
+			expect(player.state.onRaceline).toBe(true);
+		});
+
+		it("handles multiple occupied positions in sequence", () => {
+			const player = createPlayer({ position: 5 });
+
+			player.resolveCollision([
+				{ position: 5, onRaceline: true },
+				{ position: 5, onRaceline: false },
+				{ position: 4, onRaceline: true },
+				{ position: 4, onRaceline: false },
+				{ position: 3, onRaceline: true },
+			]);
+
+			expect(player.state.position).toBe(3);
+			expect(player.state.onRaceline).toBe(false);
+		});
+	});
 });

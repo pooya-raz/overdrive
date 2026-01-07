@@ -1,4 +1,4 @@
-import type { Corner, GameMap, Track } from "./types";
+import type { GameMap, Track } from "./types";
 
 const MAP_TRACKS: Record<GameMap, Track> = {
 	USA: {
@@ -12,14 +12,4 @@ const MAP_TRACKS: Record<GameMap, Track> = {
 
 export function getMapTrack(map: GameMap): Track {
 	return MAP_TRACKS[map];
-}
-
-export function getCrossedCorners(
-	track: Track,
-	startPosition: number,
-	endPosition: number,
-): Corner[] {
-	return track.corners.filter(
-		(c) => startPosition < c.position && c.position <= endPosition,
-	);
 }

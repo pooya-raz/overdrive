@@ -23,14 +23,12 @@ export type GamePhase = "planning" | "resolution";
 
 export type TurnState =
 	| "plan"
-	| "revealAndMove"
 	| "adrenaline"
 	| "react"
 	| "slipstream"
 	| "checkCollision"
 	| "checkCorner"
-	| "discard"
-	| "replenishHand";
+	| "discard";
 
 export type ReactChoice = "cooldown" | "boost" | "skip";
 

@@ -1,4 +1,3 @@
-import { createStartingDeck, createStartingEngine } from "./cards";
 import { Player } from "./player";
 import { getMapTrack } from "./track";
 import type {
@@ -52,20 +51,15 @@ function createPlayers(
 	const players: Record<string, Player> = {};
 	for (let i = 0; i < request.playerIds.length; i++) {
 		const id = request.playerIds[i];
-		const position = -Math.floor(i / 2);
-		const onRaceline = i % 2 === 0;
-		players[id] = new Player({
-			id,
-			gear: 1,
-			position,
-			onRaceline,
-			deck: createStartingDeck(request.map),
-			hand: [],
-			played: [],
-			engine: createStartingEngine(request.map),
-			discard: [],
-			shuffle: options.shuffle,
-		});
+		const builder = Player.builder()
+			.id(id)
+			.position(-Math.floor(i / 2))
+			.onRaceline(i % 2 === 0)
+			.map(request.map);
+		if (options.shuffle) {
+			builder.shuffle(options.shuffle);
+		}
+		players[id] = builder.build();
 	}
 	return players;
 }

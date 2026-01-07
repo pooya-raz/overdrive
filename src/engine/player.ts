@@ -1,6 +1,8 @@
+import { createStartingDeck, createStartingEngine } from "./cards";
 import type {
 	Card,
 	Corner,
+	GameMap,
 	Gear,
 	PlayerData,
 	ReactChoice,
@@ -20,7 +22,64 @@ export const defaultShuffle: ShuffleFn = (items) => {
 	return shuffled;
 };
 
+export class PlayerBuilder {
+	private _id = "";
+	private _position = 0;
+	private _onRaceline = true;
+	private _deck: Card[] = [];
+	private _engine: Card[] = [];
+	private _shuffle?: ShuffleFn;
+
+	id(id: string): this {
+		this._id = id;
+		return this;
+	}
+
+	position(position: number): this {
+		this._position = position;
+		return this;
+	}
+
+	onRaceline(onRaceline: boolean): this {
+		this._onRaceline = onRaceline;
+		return this;
+	}
+
+	/** Sets starting deck and engine based on map configuration. */
+	map(map: GameMap): this {
+		this._deck = createStartingDeck(map);
+		this._engine = createStartingEngine(map);
+		return this;
+	}
+
+	shuffle(shuffle: ShuffleFn): this {
+		this._shuffle = shuffle;
+		return this;
+	}
+
+	build(): Player {
+		if (!this._id) {
+			throw new Error("Player id is required");
+		}
+		return new Player({
+			id: this._id,
+			gear: 1,
+			position: this._position,
+			onRaceline: this._onRaceline,
+			deck: this._deck,
+			hand: [],
+			played: [],
+			engine: this._engine,
+			discard: [],
+			shuffle: this._shuffle,
+		});
+	}
+}
+
 export class Player {
+	static builder(): PlayerBuilder {
+		return new PlayerBuilder();
+	}
 	readonly id: string;
 	private _gear: Gear;
 	private _position: number;

@@ -238,15 +238,14 @@ export class Player {
 		return paid;
 	}
 
-	/** Initializes turn state and calculates movement. Called at start of resolution. */
-	beginResolution(): { position: number; speed: number } {
+	/** Initializes turn state, calculates movement, and sets position. Called at start of resolution. */
+	beginResolution(): void {
 		this._startPosition = this._position;
 		this._availableCooldowns = 0;
 		this._availableReactions = ["cooldown", "boost"];
 		this.resolveStressCards();
 		this._cardSpeed = this.calculateSpeed();
-		const position = this._position + this._cardSpeed;
-		return { position, speed: this._cardSpeed };
+		this._position = this._startPosition + this._cardSpeed;
 	}
 
 	addAdrenalineMove(): void {

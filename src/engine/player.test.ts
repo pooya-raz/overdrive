@@ -216,7 +216,7 @@ describe("Player", () => {
 	});
 
 	describe("beginResolution", () => {
-		it("returns target position as sum of played card values", () => {
+		it("sets position to sum of starting position and played card values", () => {
 			const player = createPlayer({
 				position: 0,
 				played: [
@@ -225,10 +225,9 @@ describe("Player", () => {
 				],
 			});
 
-			const result = player.beginResolution();
+			player.beginResolution();
 
-			expect(result.position).toBe(5);
-			expect(result.speed).toBe(5);
+			expect(player.state.position).toBe(5);
 		});
 
 		it("accumulates position from starting position", () => {
@@ -237,10 +236,9 @@ describe("Player", () => {
 				played: [{ type: "speed", value: 3 }],
 			});
 
-			const result = player.beginResolution();
+			player.beginResolution();
 
-			expect(result.position).toBe(13);
-			expect(result.speed).toBe(3);
+			expect(player.state.position).toBe(13);
 		});
 
 		it("includes upgrade card values", () => {
@@ -252,10 +250,9 @@ describe("Player", () => {
 				],
 			});
 
-			const result = player.beginResolution();
+			player.beginResolution();
 
-			expect(result.position).toBe(7);
-			expect(result.speed).toBe(7);
+			expect(player.state.position).toBe(7);
 		});
 
 		it("treats heat cards as 0 movement", () => {
@@ -264,19 +261,17 @@ describe("Player", () => {
 				played: [{ type: "speed", value: 3 }, { type: "heat" }],
 			});
 
-			const result = player.beginResolution();
+			player.beginResolution();
 
-			expect(result.position).toBe(3);
-			expect(result.speed).toBe(3);
+			expect(player.state.position).toBe(3);
 		});
 
-		it("returns starting position when no cards played", () => {
+		it("keeps position unchanged when no cards played", () => {
 			const player = createPlayer({ position: 5, played: [] });
 
-			const result = player.beginResolution();
+			player.beginResolution();
 
-			expect(result.position).toBe(5);
-			expect(result.speed).toBe(0);
+			expect(player.state.position).toBe(5);
 		});
 
 		describe("stress card resolution", () => {
@@ -287,13 +282,13 @@ describe("Player", () => {
 					deck: [{ type: "speed", value: 3 }],
 				});
 
-				const result = player.beginResolution();
+				player.beginResolution();
 
 				expect(player.state.played).toContainEqual({
 					type: "speed",
 					value: 3,
 				});
-				expect(result.position).toBe(3);
+				expect(player.state.position).toBe(3);
 			});
 
 			it("draws upgrade card and adds to played", () => {
@@ -303,13 +298,13 @@ describe("Player", () => {
 					deck: [{ type: "upgrade", value: 5 }],
 				});
 
-				const result = player.beginResolution();
+				player.beginResolution();
 
 				expect(player.state.played).toContainEqual({
 					type: "upgrade",
 					value: 5,
 				});
-				expect(result.position).toBe(5);
+				expect(player.state.position).toBe(5);
 			});
 
 			it("discards drawn stress or heat cards", () => {
@@ -320,10 +315,10 @@ describe("Player", () => {
 					discard: [],
 				});
 
-				const result = player.beginResolution();
+				player.beginResolution();
 
 				expect(player.state.discard).toContainEqual({ type: "stress" });
-				expect(result.position).toBe(0);
+				expect(player.state.position).toBe(0);
 			});
 
 			it("resolves multiple stress cards", () => {
@@ -336,9 +331,9 @@ describe("Player", () => {
 					],
 				});
 
-				const result = player.beginResolution();
+				player.beginResolution();
 
-				expect(result.position).toBe(5);
+				expect(player.state.position).toBe(5);
 			});
 
 			it("shuffles discard into deck when deck is empty", () => {
@@ -349,13 +344,13 @@ describe("Player", () => {
 					discard: [{ type: "speed", value: 4 }],
 				});
 
-				const result = player.beginResolution();
+				player.beginResolution();
 
-				expect(result.position).toBe(4);
+				expect(player.state.position).toBe(4);
 				expect(player.state.discard).toHaveLength(0);
 			});
 
-			it("returns starting position when deck and discard empty", () => {
+			it("keeps starting position when deck and discard empty", () => {
 				const player = createPlayer({
 					position: 5,
 					played: [{ type: "stress" }],
@@ -363,9 +358,9 @@ describe("Player", () => {
 					discard: [],
 				});
 
-				const result = player.beginResolution();
+				player.beginResolution();
 
-				expect(result.position).toBe(5);
+				expect(player.state.position).toBe(5);
 			});
 		});
 	});
@@ -760,8 +755,7 @@ describe("Player", () => {
 				],
 			});
 
-			const { position } = player.beginResolution();
-			player.setPosition(position);
+			player.beginResolution();
 			player.checkCorners([corner]);
 
 			expect(player.state.engine).toHaveLength(2);
@@ -775,8 +769,7 @@ describe("Player", () => {
 				engine: [{ type: "heat" }, { type: "heat" }],
 			});
 
-			const { position } = player.beginResolution();
-			player.setPosition(position);
+			player.beginResolution();
 			player.checkCorners([corner]);
 
 			expect(player.state.engine).toHaveLength(2);
@@ -789,8 +782,7 @@ describe("Player", () => {
 				engine: [{ type: "heat" }, { type: "heat" }],
 			});
 
-			const { position } = player.beginResolution();
-			player.setPosition(position);
+			player.beginResolution();
 			player.checkCorners([corner]);
 
 			expect(player.state.engine).toHaveLength(2);
@@ -809,8 +801,7 @@ describe("Player", () => {
 				hand: [],
 			});
 
-			const { position } = player.beginResolution();
-			player.setPosition(position);
+			player.beginResolution();
 			player.checkCorners([corner]);
 
 			expect(player.state.position).toBe(4);
@@ -827,8 +818,7 @@ describe("Player", () => {
 				engine: [{ type: "heat" }, { type: "heat" }],
 			});
 
-			const { position } = player.beginResolution();
-			player.setPosition(position);
+			player.beginResolution();
 			player.addAdrenalineMove();
 			player.checkCorners([corner]);
 
@@ -842,8 +832,7 @@ describe("Player", () => {
 				engine: [{ type: "heat" }, { type: "heat" }],
 			});
 
-			const { position } = player.beginResolution();
-			player.setPosition(position);
+			player.beginResolution();
 			player.setPosition(player.state.position + 2);
 			player.checkCorners([corner]);
 
@@ -858,8 +847,7 @@ describe("Player", () => {
 			});
 			const farCorner: Corner = { position: 20, speedLimit: 2 };
 
-			const { position } = player.beginResolution();
-			player.setPosition(position);
+			player.beginResolution();
 			player.checkCorners([farCorner]);
 
 			expect(player.state.engine).toHaveLength(2);
@@ -888,8 +876,7 @@ describe("Player", () => {
 				{ position: 10, speedLimit: 8 },
 			];
 
-			const { position } = player.beginResolution();
-			player.setPosition(position);
+			player.beginResolution();
 			player.checkCorners(corners);
 
 			expect(player.state.engine).toHaveLength(1);

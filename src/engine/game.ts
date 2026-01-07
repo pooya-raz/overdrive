@@ -226,8 +226,7 @@ export class Game {
 	/** Reveals cards, moves player, then waits for adrenaline input. */
 	private revealAndMove(): void {
 		const player = this.getCurrentPlayer();
-		const { position } = player.beginResolution();
-		player.setPosition(position);
+		player.beginResolution();
 		this._state.currentState = "adrenaline";
 	}
 

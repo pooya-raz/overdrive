@@ -590,4 +590,68 @@ describe("Game", () => {
 			).toThrow("Slipstream not available");
 		});
 	});
+
+	describe("race completion", () => {
+		it("should initialize with configurable laps and empty finish state", () => {
+			const defaultGame = new Game(
+				{ playerIds: [PLAYER_1_ID], map: "USA" },
+				{ shuffle: noShuffle },
+			);
+			expect(defaultGame.state.laps).toBe(1);
+			expect(defaultGame.state.finishOrder).toEqual([]);
+			expect(defaultGame.state.players[PLAYER_1_ID].lap).toBe(1);
+			expect(defaultGame.state.players[PLAYER_1_ID].finished).toBe(false);
+
+			const customGame = new Game(
+				{ playerIds: [PLAYER_1_ID], map: "USA", laps: 3 },
+				{ shuffle: noShuffle },
+			);
+			expect(customGame.state.laps).toBe(3);
+		});
+
+		it("should update laps, finish race, and sort finishOrder by position", () => {
+			const game = new Game(
+				{ playerIds: [PLAYER_1_ID, PLAYER_2_ID], map: "USA", laps: 2 },
+				{ shuffle: noShuffle },
+			);
+
+			// Play until race finishes (track length 24, 2 laps = finish at 48)
+			let turns = 0;
+			let sawLap2 = false;
+			while (game.state.phase !== "finished" && turns < 30) {
+				turns++;
+				for (const playerId of [PLAYER_1_ID, PLAYER_2_ID]) {
+					const hand = game.state.players[playerId].hand;
+					const playableIndex = hand.findIndex(
+						(c) => c.type !== "heat" && c.type !== "stress",
+					);
+					game.dispatch(playerId, {
+						type: "plan",
+						gear: 1,
+						cardIndices: [playableIndex >= 0 ? playableIndex : 0],
+					});
+				}
+				completeResolutionPhase(game);
+
+				if (game.state.players[PLAYER_1_ID].lap >= 2) {
+					sawLap2 = true;
+				}
+			}
+
+			expect(sawLap2).toBe(true);
+			expect(game.state.phase).toBe("finished");
+			expect(game.state.players[PLAYER_1_ID].finished).toBe(true);
+			expect(game.state.players[PLAYER_1_ID].position).toBeGreaterThanOrEqual(
+				48,
+			);
+
+			// finishOrder sorted by position (highest first)
+			const p1Pos = game.state.players[PLAYER_1_ID].position;
+			const p2Pos = game.state.players[PLAYER_2_ID].position;
+			if (p1Pos !== p2Pos) {
+				const expectedFirst = p1Pos > p2Pos ? PLAYER_1_ID : PLAYER_2_ID;
+				expect(game.state.finishOrder[0]).toBe(expectedFirst);
+			}
+		});
+	});
 });

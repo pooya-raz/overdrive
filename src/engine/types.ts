@@ -19,7 +19,7 @@ export interface Track {
 	corners: Corner[];
 }
 
-export type GamePhase = "planning" | "resolution";
+export type GamePhase = "planning" | "resolution" | "finished";
 
 export type TurnState =
 	| "plan"
@@ -43,6 +43,7 @@ export type Action =
 export interface CreateGameRequest {
 	playerIds: string[];
 	map: GameMap;
+	laps?: number;
 }
 
 export interface GameOptions {
@@ -63,6 +64,8 @@ export interface PlayerData {
 	discardSize: number;
 	discardTop: Card | null;
 	hasAdrenaline: boolean;
+	lap: number;
+	finished: boolean;
 }
 
 export interface GameState {
@@ -74,4 +77,6 @@ export interface GameState {
 	pendingPlayers: Record<string, boolean>;
 	turnOrder: string[];
 	currentPlayerIndex: number;
+	laps: number;
+	finishOrder: string[];
 }

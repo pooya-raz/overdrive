@@ -34,12 +34,15 @@ interface InternalGameState {
 	map: GameMap;
 	players: Record<string, Player>;
 	turn: number;
-	phase: "planning" | "resolution";
+	phase: "planning" | "resolution" | "finished";
 	currentState: TurnState;
 	pendingPlayers: Record<string, boolean>;
 	turnOrder: string[];
 	currentPlayerIndex: number;
 	adrenalineSlots: number;
+	laps: number;
+	finishOrder: string[];
+	raceFinishing: boolean;
 }
 
 function createPlayers(
@@ -86,6 +89,9 @@ export class Game {
 			turnOrder: [],
 			currentPlayerIndex: 0,
 			adrenalineSlots,
+			laps: request.laps ?? 1,
+			finishOrder: [],
+			raceFinishing: false,
 		};
 	}
 
@@ -104,6 +110,8 @@ export class Game {
 			pendingPlayers: { ...this._state.pendingPlayers },
 			turnOrder: [...this._state.turnOrder],
 			currentPlayerIndex: this._state.currentPlayerIndex,
+			laps: this._state.laps,
+			finishOrder: [...this._state.finishOrder],
 		};
 	}
 
@@ -184,6 +192,13 @@ export class Game {
 				}
 				this.resolveCollision(playerId, player);
 				this.checkCorners(player);
+
+				const track = getMapTrack(this._state.map);
+				if (player.updateRaceProgress(track.length, this._state.laps)) {
+					this._state.finishOrder.push(playerId);
+					this._state.raceFinishing = true;
+				}
+
 				this._state.currentState = "discard";
 				break;
 			}
@@ -191,19 +206,26 @@ export class Game {
 				player.discard(action.cardIndices);
 				player.draw();
 				this._state.currentPlayerIndex++;
-				if (this._state.currentPlayerIndex >= this._state.turnOrder.length) {
-					this.assignAdrenaline();
-					this._state.phase = "planning";
-					this._state.currentState = "plan";
-					this._state.turn += 1;
-					this._state.turnOrder = [];
-					this._state.currentPlayerIndex = 0;
-					this._state.pendingPlayers = Object.fromEntries(
-						Object.keys(this._state.players).map((id) => [id, true]),
-					);
-				} else {
+
+				if (this._state.currentPlayerIndex < this._state.turnOrder.length) {
 					this.revealAndMove();
+					break;
 				}
+
+				if (this._state.raceFinishing) {
+					this.finalizeRace();
+					return;
+				}
+
+				this.assignAdrenaline();
+				this._state.phase = "planning";
+				this._state.currentState = "plan";
+				this._state.turn += 1;
+				this._state.turnOrder = [];
+				this._state.currentPlayerIndex = 0;
+				this._state.pendingPlayers = Object.fromEntries(
+					Object.keys(this._state.players).map((id) => [id, true]),
+				);
 				break;
 			}
 			default:
@@ -256,6 +278,15 @@ export class Game {
 				onRaceline: p.state.onRaceline,
 			}));
 		player.resolveCollision(otherPlayers);
+	}
+
+	private finalizeRace(): void {
+		this._state.finishOrder.sort(
+			(a, b) =>
+				this._state.players[b].state.position -
+				this._state.players[a].state.position,
+		);
+		this._state.phase = "finished";
 	}
 
 	private getPlayersInRaceOrder(): Player[] {

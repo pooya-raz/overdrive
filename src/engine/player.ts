@@ -91,6 +91,8 @@ export class Player {
 	private _engine: Card[];
 	private _discard: Card[];
 	private _hasAdrenaline: boolean;
+	private _lap: number;
+	private _finished: boolean;
 	private _startPosition: number;
 	private _cardSpeed: number;
 	private _availableCooldowns: number;
@@ -120,6 +122,8 @@ export class Player {
 		this._engine = options.engine;
 		this._discard = options.discard;
 		this._hasAdrenaline = false;
+		this._lap = 1;
+		this._finished = false;
 		this._startPosition = 0;
 		this._cardSpeed = 0;
 		this._availableCooldowns = 0;
@@ -146,6 +150,8 @@ export class Player {
 			discardSize: this._discard.length,
 			discardTop: topDiscard ? structuredClone(topDiscard) : null,
 			hasAdrenaline: this._hasAdrenaline,
+			lap: this._lap,
+			finished: this._finished,
 		};
 	}
 
@@ -421,6 +427,17 @@ export class Player {
 
 			targetPosition--;
 		}
+	}
+
+	/** Updates lap counter and returns true if player just crossed finish line. */
+	updateRaceProgress(trackLength: number, totalLaps: number): boolean {
+		this._lap = Math.floor(this._position / trackLength) + 1;
+		const finishPosition = trackLength * totalLaps;
+		if (!this._finished && this._position >= finishPosition) {
+			this._finished = true;
+			return true;
+		}
+		return false;
 	}
 
 	private calculateSpeed(): number {

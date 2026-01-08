@@ -10,6 +10,7 @@ interface ActionPanelProps {
 	hand: CardType[];
 	currentGear: Gear;
 	hasAdrenaline: boolean;
+	availableCooldowns: number;
 	onAction: (action: Action) => void;
 	disabled: boolean;
 	position: number;
@@ -22,6 +23,7 @@ export function ActionPanel({
 	hand,
 	currentGear,
 	hasAdrenaline,
+	availableCooldowns,
 	onAction,
 	disabled,
 	position,
@@ -208,13 +210,19 @@ export function ActionPanel({
 				<CardContent className="space-y-4">
 					<p className="text-white">Choose your reaction:</p>
 					<div className="grid grid-cols-3 gap-2">
-						<Button
-							className="bg-slate-700 text-white hover:bg-slate-600"
-							onClick={() => onAction({ type: "react", action: "cooldown" })}
-							disabled={disabled}
-						>
-							Cooldown
-						</Button>
+						{(() => {
+							const heatInHand = hand.filter((c) => c.type === "heat").length;
+							const applicableCooldowns = Math.min(availableCooldowns, heatInHand);
+							return applicableCooldowns > 0 ? (
+								<Button
+									className="bg-slate-700 text-white hover:bg-slate-600"
+									onClick={() => onAction({ type: "react", action: "cooldown" })}
+									disabled={disabled}
+								>
+									Cooldown ({applicableCooldowns})
+								</Button>
+							) : null;
+						})()}
 						<Button
 							className="bg-slate-700 text-white hover:bg-slate-600"
 							onClick={() => onAction({ type: "react", action: "boost" })}

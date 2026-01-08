@@ -94,6 +94,7 @@ export function Game({ gameState, playerId, playerNames, onAction, error }: Game
 										hand={player.hand}
 										currentGear={player.gear}
 										hasAdrenaline={player.hasAdrenaline}
+										availableCooldowns={player.availableCooldowns}
 										onAction={onAction}
 										disabled={!isMyTurn}
 										position={player.position}

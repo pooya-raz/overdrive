@@ -1,13 +1,13 @@
 import { Hono } from "hono";
+import { GameRoomDO } from "./game-room-do";
 import { Lobby } from "./lobby";
-import { Room } from "./room";
 
 // Re-export Durable Objects for Cloudflare
-export { Lobby, Room };
+export { Lobby, GameRoomDO };
 
 interface Env {
 	LOBBY: DurableObjectNamespace<Lobby>;
-	ROOM: DurableObjectNamespace<Room>;
+	ROOM: DurableObjectNamespace<GameRoomDO>;
 }
 
 const app = new Hono<{ Bindings: Env }>();

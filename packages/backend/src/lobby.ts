@@ -57,7 +57,7 @@ export class Lobby extends DurableObject {
 		}
 	}
 
-	// Called by Room DO to update room state
+	// Called by GameRoomDO to update room state
 	updateRoom(roomInfo: RoomInfo): void {
 		if (roomInfo.playerCount === 0 && roomInfo.status === "waiting") {
 			this.rooms.delete(roomInfo.id);

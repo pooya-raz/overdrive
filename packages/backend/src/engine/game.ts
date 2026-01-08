@@ -93,6 +93,7 @@ export class Game {
 			finishOrder: [],
 			raceFinishing: false,
 		};
+		this.assignAdrenaline();
 	}
 
 	get state(): GameState {

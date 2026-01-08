@@ -86,25 +86,33 @@ export function Game({ gameState, playerId, playerNames, onAction, onQuit, error
 								</Card>
 							) : (
 								<div className="grid gap-4">
-									{!isMyTurn && (
-										<div className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-4 py-3 rounded-lg text-center">
-											Waiting for{" "}
-											{gameState.phase === "planning"
-												? "other players..."
-												: `${currentTurnPlayerName}...`}
-										</div>
+									{isMyTurn ? (
+										<ActionPanel
+											currentState={gameState.currentState}
+											hand={player.hand}
+											currentGear={player.gear}
+											availableCooldowns={player.availableCooldowns}
+											onAction={onAction}
+											disabled={false}
+											position={player.position}
+											corners={gameState.track.corners}
+											trackLength={gameState.track.length}
+										/>
+									) : (
+										<Card>
+											<CardContent className="py-6 text-center text-muted-foreground">
+												<Badge variant="secondary" className="text-base px-4 py-1">
+													{gameState.phase}
+												</Badge>
+												<p className="mt-3">
+													Waiting for{" "}
+													{gameState.phase === "planning"
+														? "other players..."
+														: `${currentTurnPlayerName}...`}
+												</p>
+											</CardContent>
+										</Card>
 									)}
-									<ActionPanel
-										currentState={gameState.currentState}
-										hand={player.hand}
-										currentGear={player.gear}
-										availableCooldowns={player.availableCooldowns}
-										onAction={onAction}
-										disabled={!isMyTurn}
-										position={player.position}
-										corners={gameState.track.corners}
-										trackLength={gameState.track.length}
-									/>
 									<DeckInfo
 										deckSize={player.deckSize}
 										engineSize={player.engineSize}

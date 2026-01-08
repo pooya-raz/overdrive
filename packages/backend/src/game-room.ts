@@ -240,8 +240,13 @@ export class GameRoom {
 			return this.errorToVisitor(visitorId, "Not in this room");
 		}
 
-		this.game.dispatch(playerId, action);
-		return { broadcastGameState: true };
+		try {
+			this.game.dispatch(playerId, action);
+			return { broadcastGameState: true };
+		} catch (error) {
+			const message = error instanceof Error ? error.message : "Unknown error";
+			return this.errorToVisitor(visitorId, message);
+		}
 	}
 
 	/** Ends the current game and returns room to waiting state. */

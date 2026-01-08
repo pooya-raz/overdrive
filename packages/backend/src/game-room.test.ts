@@ -245,6 +245,28 @@ describe("GameRoom", () => {
 				messages: [{ type: "error", message: "Not in this room" }],
 			});
 		});
+
+		it("should return game errors via RoomResult instead of throwing", () => {
+			const room = createRoom();
+
+			joinPlayer(room, VISITOR_1, "Alice");
+			joinPlayer(room, VISITOR_2, "Bob");
+			room.handleStartGame(VISITOR_1);
+
+			// Invalid card index should return error, not throw
+			const result = room.handleAction(VISITOR_1, {
+				type: "plan",
+				gear: 1,
+				cardIndices: [99],
+			});
+
+			expect(result.toVisitor?.visitorId).toBe(VISITOR_1);
+			expect(result.toVisitor?.messages[0]).toMatchObject({
+				type: "error",
+				message: expect.stringContaining("Invalid card index"),
+			});
+			expect(result.broadcastGameState).toBeUndefined();
+		});
 	});
 
 	describe("rejoin during game", () => {

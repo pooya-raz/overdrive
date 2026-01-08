@@ -31,19 +31,45 @@ pnpm run dev
 
 ### Deployment
 
+**Deploy Backend (Cloudflare Workers):**
 ```bash
+cd packages/backend
 pnpm run deploy
+```
+
+**Deploy Frontend (Cloudflare Pages):**
+```bash
+cd packages/frontend
+pnpm run build
+npx wrangler pages deploy dist --project-name=heat-frontend
+```
+
+**Deploy Both:**
+```bash
+# From root
+pnpm --filter backend run deploy
+cd packages/frontend && pnpm run build && npx wrangler pages deploy dist --project-name=heat-frontend
 ```
 
 ## Project Structure
 
 ```
-src/
-├── index.ts              # Hono server entry point
-└── engine/
-    ├── game-engine.ts    # Core game state & turn management
-    ├── player.ts         # Player class & card mechanics
-    └── *.test.ts         # Test files
+packages/
+├── backend/              # Cloudflare Workers backend
+│   └── src/
+│       ├── index.ts      # Hono server entry point
+│       ├── game-room.ts  # Room logic (pure business logic)
+│       ├── game-room-do.ts # Durable Object wrapper
+│       ├── lobby.ts      # Lobby Durable Object
+│       └── engine/
+│           ├── game.ts   # Core game state & turn management
+│           ├── player.ts # Player class & card mechanics
+│           └── *.test.ts # Test files
+└── frontend/             # React frontend (Cloudflare Pages)
+    └── src/
+        ├── components/   # React components
+        ├── hooks/        # Custom hooks (WebSocket)
+        └── types.ts      # Shared types
 ```
 
 ## Game Mechanics
@@ -145,11 +171,12 @@ Adrenaline grants two optional bonuses during resolution:
 
 | Command | Description |
 |---------|-------------|
-| `pnpm run dev` | Start local development server |
-| `pnpm run test` | Run test suite |
-| `pnpm run lint` | Run Biome linter with auto-fix |
-| `pnpm run cf-typegen` | Generate Cloudflare Worker types |
-| `pnpm run deploy` | Deploy to Cloudflare Workers |
+| `pnpm run dev` | Start both backend and frontend dev servers |
+| `pnpm run dev:backend` | Start backend dev server only |
+| `pnpm run dev:frontend` | Start frontend dev server only |
+| `pnpm run test` | Run backend test suite |
+| `pnpm run verify` | Run linter and tests |
+| `pnpm --filter backend deploy` | Deploy backend to Cloudflare Workers |
 
 ### Cloudflare Bindings
 

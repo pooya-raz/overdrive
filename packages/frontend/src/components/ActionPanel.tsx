@@ -9,7 +9,6 @@ interface ActionPanelProps {
 	currentState: TurnState;
 	hand: CardType[];
 	currentGear: Gear;
-	hasAdrenaline: boolean;
 	availableCooldowns: number;
 	onAction: (action: Action) => void;
 	disabled: boolean;
@@ -22,7 +21,6 @@ export function ActionPanel({
 	currentState,
 	hand,
 	currentGear,
-	hasAdrenaline,
 	availableCooldowns,
 	onAction,
 	disabled,
@@ -131,71 +129,48 @@ export function ActionPanel({
 					<CardTitle>Adrenaline</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-4">
-					{hasAdrenaline ? (
-						<>
-							<p className="text-white">
-								You have adrenaline! Choose your bonus:
-							</p>
-							<div className="grid grid-cols-3 gap-2">
-								<Button
-									className="bg-slate-700 text-white hover:bg-slate-600"
-									onClick={() =>
-										onAction({
-											type: "adrenaline",
-											acceptMove: true,
-											acceptCooldown: false,
-										})
-									}
-									disabled={disabled}
-								>
-									+1 Move
-								</Button>
-								<Button
-									className="bg-slate-700 text-white hover:bg-slate-600"
-									onClick={() =>
-										onAction({
-											type: "adrenaline",
-											acceptMove: false,
-											acceptCooldown: true,
-										})
-									}
-									disabled={disabled}
-								>
-									Cooldown
-								</Button>
-								<Button
-									className="bg-slate-700 text-white hover:bg-slate-600"
-									onClick={() =>
-										onAction({
-											type: "adrenaline",
-											acceptMove: false,
-											acceptCooldown: false,
-										})
-									}
-									disabled={disabled}
-								>
-									Skip
-								</Button>
-							</div>
-						</>
-					) : (
-						<>
-							<p className="text-white">No adrenaline available.</p>
-							<Button
-								className="bg-slate-700 text-white hover:bg-slate-600"
-								onClick={() =>
-									onAction({
-										type: "adrenaline",
-										acceptMove: false,
-										acceptCooldown: false,
-									})
-								}
-								disabled={disabled}
-							>
-								Continue
-							</Button>
-						</>
-					)}
+					<p className="text-white">You have adrenaline! Choose your bonus:</p>
+					<div className="grid grid-cols-3 gap-2">
+						<Button
+							className="bg-slate-700 text-white hover:bg-slate-600"
+							onClick={() =>
+								onAction({
+									type: "adrenaline",
+									acceptMove: true,
+									acceptCooldown: false,
+								})
+							}
+							disabled={disabled}
+						>
+							+1 Move
+						</Button>
+						<Button
+							className="bg-slate-700 text-white hover:bg-slate-600"
+							onClick={() =>
+								onAction({
+									type: "adrenaline",
+									acceptMove: false,
+									acceptCooldown: true,
+								})
+							}
+							disabled={disabled}
+						>
+							Cooldown
+						</Button>
+						<Button
+							className="bg-slate-700 text-white hover:bg-slate-600"
+							onClick={() =>
+								onAction({
+									type: "adrenaline",
+									acceptMove: false,
+									acceptCooldown: false,
+								})
+							}
+							disabled={disabled}
+						>
+							Skip
+						</Button>
+					</div>
 				</CardContent>
 			</Card>
 		);

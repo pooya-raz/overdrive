@@ -13,11 +13,14 @@ const noShuffle: ShuffleFn = <T>(items: T[]) => items;
 function completeResolutionPhase(game: Game): void {
 	// Players resolve in turn order (leader first), one at a time
 	for (const playerId of game.state.turnOrder) {
-		game.dispatch(playerId, {
-			type: "adrenaline",
-			acceptMove: false,
-			acceptCooldown: false,
-		});
+		// Adrenaline is skipped when not available
+		if (game.state.currentState === "adrenaline") {
+			game.dispatch(playerId, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+		}
 		game.dispatch(playerId, { type: "react", action: "skip" });
 		// Slipstream is skipped when not available
 		if (game.state.currentState === "slipstream") {
@@ -104,14 +107,14 @@ describe("Game", () => {
 				// Submit plan to enter resolution phase
 				game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [6] });
 
-				// Now in resolution phase, plan action should be rejected
+				// Now in resolution phase (react since no adrenaline), plan action should be rejected
 				expect(() =>
 					game.dispatch(PLAYER_1_ID, {
 						type: "plan",
 						gear: 2,
 						cardIndices: [5],
 					}),
-				).toThrow("Invalid action for state adrenaline");
+				).toThrow("Invalid action for state react");
 			});
 
 			it("should reject action for unknown player", () => {
@@ -201,7 +204,8 @@ describe("Game", () => {
 
 				expect(game.state.turn).toBe(1);
 				expect(game.state.phase).toBe("resolution");
-				expect(game.state.currentState).toBe("adrenaline");
+				// No adrenaline on turn 1, so goes directly to react
+				expect(game.state.currentState).toBe("react");
 
 				for (const id of [PLAYER_1_ID, PLAYER_2_ID]) {
 					const player = game.state.players[id];
@@ -225,12 +229,8 @@ describe("Game", () => {
 				// Planning phase - gear 1 means play 1 card
 				game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [6] });
 
-				// Resolution phase - dispatch required input actions
-				game.dispatch(PLAYER_1_ID, {
-					type: "adrenaline",
-					acceptMove: false,
-					acceptCooldown: false,
-				});
+				// Resolution phase - adrenaline skipped (no adrenaline on turn 1)
+				expect(game.state.currentState).toBe("react");
 				game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
 				// Slipstream is skipped (single player has no one to slipstream)
 				expect(game.state.currentState).toBe("discard");
@@ -494,12 +494,9 @@ describe("Game", () => {
 			game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [6] });
 			game.dispatch(PLAYER_2_ID, { type: "plan", gear: 1, cardIndices: [6] });
 
-			// P1 resolves first - P2 hasn't moved yet (still at 0), so P1 can't slipstream
-			game.dispatch(PLAYER_1_ID, {
-				type: "adrenaline",
-				acceptMove: false,
-				acceptCooldown: false,
-			});
+			// P1 resolves first - no adrenaline on turn 1, goes to react
+			// P2 hasn't moved yet (still at 0), so P1 can't slipstream
+			expect(game.state.currentState).toBe("react");
 			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
 			// Slipstream skipped (P2 at original position 0)
 			expect(game.state.currentState).toBe("discard");
@@ -507,11 +504,7 @@ describe("Game", () => {
 
 			// P2 resolves - P1 is now at position 4, P2 moves to 4
 			// P2 can slipstream because P1 is at same position
-			game.dispatch(PLAYER_2_ID, {
-				type: "adrenaline",
-				acceptMove: false,
-				acceptCooldown: false,
-			});
+			expect(game.state.currentState).toBe("react");
 			game.dispatch(PLAYER_2_ID, { type: "react", action: "skip" });
 			expect(game.state.currentState).toBe("slipstream");
 			game.dispatch(PLAYER_2_ID, { type: "slipstream", use: true });
@@ -536,24 +529,16 @@ describe("Game", () => {
 			game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [4] });
 			game.dispatch(PLAYER_2_ID, { type: "plan", gear: 1, cardIndices: [6] });
 
-			// P1 resolves first (leader at position 5)
+			// P1 resolves first (leader at position 5) - no adrenaline on turn 1
 			// P2 hasn't moved yet (still at 0), so P1 can't slipstream
-			game.dispatch(PLAYER_1_ID, {
-				type: "adrenaline",
-				acceptMove: false,
-				acceptCooldown: false,
-			});
+			expect(game.state.currentState).toBe("react");
 			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
 			// Slipstream skipped (P2 at original position 0)
 			expect(game.state.currentState).toBe("discard");
 			game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
 
 			// P2 at position 4, P1 at position 5 (1 ahead) - can slipstream
-			game.dispatch(PLAYER_2_ID, {
-				type: "adrenaline",
-				acceptMove: false,
-				acceptCooldown: false,
-			});
+			expect(game.state.currentState).toBe("react");
 			game.dispatch(PLAYER_2_ID, { type: "react", action: "skip" });
 			expect(game.state.currentState).toBe("slipstream");
 			game.dispatch(PLAYER_2_ID, { type: "slipstream", use: true });
@@ -577,23 +562,15 @@ describe("Game", () => {
 			game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [4] });
 			game.dispatch(PLAYER_2_ID, { type: "plan", gear: 1, cardIndices: [5] });
 
-			// P1 resolves first (leader at position 5)
-			game.dispatch(PLAYER_1_ID, {
-				type: "adrenaline",
-				acceptMove: false,
-				acceptCooldown: false,
-			});
+			// P1 resolves first (leader at position 5) - no adrenaline on turn 1
+			expect(game.state.currentState).toBe("react");
 			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
 			// P1 is alone at position 5, slipstream skipped
 			expect(game.state.currentState).toBe("discard");
 			game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
 
 			// P2 at position 0, P1 at position 5 - too far to slipstream
-			game.dispatch(PLAYER_2_ID, {
-				type: "adrenaline",
-				acceptMove: false,
-				acceptCooldown: false,
-			});
+			expect(game.state.currentState).toBe("react");
 			game.dispatch(PLAYER_2_ID, { type: "react", action: "skip" });
 
 			// Slipstream should be skipped, going directly to discard

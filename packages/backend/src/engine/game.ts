@@ -256,11 +256,15 @@ export class Game {
 		}
 	}
 
-	/** Reveals cards, moves player, then waits for adrenaline input. */
+	/** Reveals cards, moves player, then waits for adrenaline or react input. */
 	private revealAndMove(): void {
 		const player = this.getCurrentPlayer();
 		player.beginResolution();
-		this._state.currentState = "adrenaline";
+		if (player.state.hasAdrenaline) {
+			this._state.currentState = "adrenaline";
+		} else {
+			this._state.currentState = "react";
+		}
 	}
 
 	private getCurrentPlayer(): Player {

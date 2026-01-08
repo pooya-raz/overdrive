@@ -45,18 +45,32 @@ interface InternalGameState {
 	raceFinishing: boolean;
 }
 
+function normalizePlayerList(
+	request: CreateGameRequest,
+): { id: string; username: string }[] {
+	if (request.players) {
+		return request.players;
+	}
+	if (request.playerIds) {
+		return request.playerIds.map((id) => ({ id, username: "" }));
+	}
+	throw new Error("Either players or playerIds must be provided");
+}
+
 function createPlayers(
 	request: CreateGameRequest,
 	options: GameOptions = {},
 ): Record<string, Player> {
-	if (new Set(request.playerIds).size !== request.playerIds.length) {
+	const playerList = normalizePlayerList(request);
+	if (new Set(playerList.map((p) => p.id)).size !== playerList.length) {
 		throw new Error("Player IDs must be unique");
 	}
 	const players: Record<string, Player> = {};
-	for (let i = 0; i < request.playerIds.length; i++) {
-		const id = request.playerIds[i];
+	for (let i = 0; i < playerList.length; i++) {
+		const { id, username } = playerList[i];
 		const builder = Player.builder()
 			.id(id)
+			.username(username)
 			.position(-Math.floor(i / 2))
 			.onRaceline(i % 2 === 0)
 			.map(request.map);
@@ -76,7 +90,8 @@ export class Game {
 		for (const player of Object.values(players)) {
 			player.draw();
 		}
-		const adrenalineSlots = request.playerIds.length >= 5 ? 2 : 1;
+		const playerCount = Object.keys(players).length;
+		const adrenalineSlots = playerCount >= 5 ? 2 : 1;
 		this._state = {
 			map: request.map,
 			players,

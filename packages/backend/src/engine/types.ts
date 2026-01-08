@@ -41,7 +41,8 @@ export type Action =
 	| { type: "discard"; cardIndices: number[] };
 
 export interface CreateGameRequest {
-	playerIds: string[];
+	playerIds?: string[];
+	players?: { id: string; username: string }[];
 	map: GameMap;
 	laps?: number;
 }
@@ -54,6 +55,7 @@ export type ShuffleFn = <T>(items: T[]) => T[];
 
 export interface PlayerData {
 	id: string;
+	username: string;
 	gear: Gear;
 	position: number;
 	onRaceline: boolean;

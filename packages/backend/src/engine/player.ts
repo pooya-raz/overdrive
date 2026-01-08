@@ -25,6 +25,7 @@ export const defaultShuffle: ShuffleFn = (items) => {
 
 export class PlayerBuilder {
 	private _id = "";
+	private _username = "";
 	private _position = 0;
 	private _onRaceline = true;
 	private _deck: Card[] = [];
@@ -33,6 +34,11 @@ export class PlayerBuilder {
 
 	id(id: string): this {
 		this._id = id;
+		return this;
+	}
+
+	username(username: string): this {
+		this._username = username;
 		return this;
 	}
 
@@ -64,6 +70,7 @@ export class PlayerBuilder {
 		}
 		return new Player({
 			id: this._id,
+			username: this._username,
 			gear: 1,
 			position: this._position,
 			onRaceline: this._onRaceline,
@@ -82,6 +89,7 @@ export class Player {
 		return new PlayerBuilder();
 	}
 	readonly id: string;
+	readonly username: string;
 	private _gear: Gear;
 	private _position: number;
 	private _onRaceline: boolean;
@@ -101,6 +109,7 @@ export class Player {
 
 	constructor(options: {
 		id: string;
+		username?: string;
 		gear: Gear;
 		position: number;
 		onRaceline?: boolean;
@@ -113,6 +122,7 @@ export class Player {
 	}) {
 		const shuffle = options.shuffle ?? defaultShuffle;
 		this.id = options.id;
+		this.username = options.username ?? "";
 		this._gear = options.gear;
 		this._position = options.position;
 		this._onRaceline = options.onRaceline ?? true;
@@ -140,6 +150,7 @@ export class Player {
 		const topDiscard = this._discard.at(-1);
 		return {
 			id: this.id,
+			username: this.username,
 			gear: this._gear,
 			position: this._position,
 			onRaceline: this._onRaceline,

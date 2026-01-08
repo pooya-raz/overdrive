@@ -9,7 +9,6 @@ import { PlayerList } from "./PlayerList";
 interface GameProps {
 	gameState: GameState;
 	playerId: string;
-	playerNames: Record<string, string>;
 	onAction: (action: Action) => void;
 	onQuit: () => void;
 	error: string | null;
@@ -25,7 +24,7 @@ export function isPlayersTurn(gameState: GameState, playerId: string): boolean {
 	return gameState.turnOrder[gameState.currentPlayerIndex] === playerId;
 }
 
-export function Game({ gameState, playerId, playerNames, onAction, onQuit, error }: GameProps) {
+export function Game({ gameState, playerId, onAction, onQuit, error }: GameProps) {
 	const player = gameState.players[playerId];
 	const isMyTurn = isPlayersTurn(gameState, playerId);
 	const currentTurnPlayer =
@@ -33,7 +32,7 @@ export function Game({ gameState, playerId, playerNames, onAction, onQuit, error
 			? gameState.turnOrder[gameState.currentPlayerIndex]
 			: null;
 	const currentTurnPlayerName = currentTurnPlayer
-		? playerNames[currentTurnPlayer] || currentTurnPlayer
+		? gameState.players[currentTurnPlayer]?.username || currentTurnPlayer
 		: null;
 
 	return (
@@ -62,7 +61,7 @@ export function Game({ gameState, playerId, playerNames, onAction, onQuit, error
 
 					<div className="grid grid-cols-[auto_1fr] gap-6 w-full max-w-5xl mx-auto">
 						<aside>
-							<PlayerList gameState={gameState} currentPlayerId={playerId} playerNames={playerNames} />
+							<PlayerList gameState={gameState} currentPlayerId={playerId} />
 						</aside>
 
 						<main>
@@ -78,7 +77,7 @@ export function Game({ gameState, playerId, playerNames, onAction, onQuit, error
 													key={id}
 													className={`p-2 rounded ${id === playerId ? "bg-blue-500/20 font-bold" : ""}`}
 												>
-													{index + 1}. {playerNames[id] || id} {id === playerId && "(you)"}
+													{index + 1}. {gameState.players[id]?.username || id} {id === playerId && "(you)"}
 												</li>
 											))}
 										</ol>

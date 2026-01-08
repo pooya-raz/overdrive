@@ -39,6 +39,7 @@ export type Action =
 
 export interface PlayerData {
 	id: string;
+	username: string;
 	gear: Gear;
 	position: number;
 	onRaceline: boolean;

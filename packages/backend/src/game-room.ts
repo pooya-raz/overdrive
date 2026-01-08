@@ -168,7 +168,10 @@ export class GameRoom {
 
 		this.status = "playing";
 		this.game = new Game({
-			playerIds: Array.from(this.players.keys()),
+			players: Array.from(this.players.values()).map((p) => ({
+				id: p.id,
+				username: p.nickname,
+			})),
 			map: "USA",
 		});
 

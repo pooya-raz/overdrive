@@ -1137,6 +1137,17 @@ describe("Player", () => {
 		});
 	});
 
+	describe("username", () => {
+		it("exposes username in state", () => {
+			const player = Player.builder()
+				.id("p1")
+				.username("Alice")
+				.map("USA")
+				.build();
+			expect(player.state.username).toBe("Alice");
+		});
+	});
+
 	describe("resolveCollision", () => {
 		it("places player on raceline when position is empty", () => {
 			const player = createPlayer({ position: 5 });

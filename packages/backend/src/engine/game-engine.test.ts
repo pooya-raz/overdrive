@@ -91,6 +91,19 @@ describe("Game", () => {
 			const uniqueHands = new Set(hands);
 			expect(uniqueHands.size).toBeGreaterThan(1);
 		});
+
+		it("includes player usernames in game state", () => {
+			const game = new Game({
+				players: [
+					{ id: PLAYER_1_ID, username: "Alice" },
+					{ id: PLAYER_2_ID, username: "Bob" },
+				],
+				map: "USA",
+			});
+			const state = game.getStateForPlayer(PLAYER_1_ID);
+			expect(state.players[PLAYER_1_ID].username).toBe("Alice");
+			expect(state.players[PLAYER_2_ID].username).toBe("Bob");
+		});
 	});
 
 	describe("dispatch", () => {

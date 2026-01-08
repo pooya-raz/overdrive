@@ -7,10 +7,9 @@ import { isPlayersTurn } from "./Game";
 interface PlayerListProps {
 	gameState: GameState;
 	currentPlayerId: string;
-	playerNames: Record<string, string>;
 }
 
-export function PlayerList({ gameState, currentPlayerId, playerNames }: PlayerListProps) {
+export function PlayerList({ gameState, currentPlayerId }: PlayerListProps) {
 	const players = Object.values(gameState.players).sort(
 		(a, b) => b.position - a.position,
 	);
@@ -32,7 +31,7 @@ export function PlayerList({ gameState, currentPlayerId, playerNames }: PlayerLi
 					>
 						<span className="font-bold">{index + 1}.</span>
 						<span className="font-medium">
-							{playerNames[player.id] || player.id}
+							{player.username || player.id}
 							{player.id === currentPlayerId && " (you)"}
 						</span>
 						{player.finished && <span>🏁</span>}

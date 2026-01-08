@@ -45,12 +45,12 @@ export function Game({ gameState, playerId, onAction, error }: GameProps) {
 			<div className="grid justify-items-center p-6 w-full">
 				<div className="grid gap-4 w-full">
 					{error && (
-						<div className="bg-destructive/20 text-destructive px-6 py-3 rounded-lg text-center">
+						<div className="bg-destructive text-white text-sm px-3 py-1.5 rounded">
 							{error}
 						</div>
 					)}
 
-					<div className="grid grid-cols-[auto_1fr] gap-6 w-full max-w-4xl mx-auto">
+					<div className="grid grid-cols-[auto_1fr] gap-6 w-full max-w-5xl mx-auto">
 						<aside>
 							<PlayerList gameState={gameState} currentPlayerId={playerId} />
 						</aside>

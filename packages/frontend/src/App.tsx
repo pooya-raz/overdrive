@@ -1,108 +1,91 @@
 import { useState } from "react";
-import { Game } from "@/components/Game";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useGameSocket } from "@/hooks/useGameSocket";
+import { NicknameScreen } from "@/components/NicknameScreen";
+import { LobbyScreen } from "@/components/LobbyScreen";
+import { RoomScreen } from "@/components/RoomScreen";
 
-const WS_URL = import.meta.env.DEV
-	? "ws://localhost:8787/ws"
-	: "wss://heat-backend.pooya72.workers.dev/ws";
+type AppScreen =
+	| { type: "nickname" }
+	| { type: "lobby" }
+	| { type: "room"; roomId: string; roomName: string };
+
+const ROOM_STORAGE_KEY = "heat-current-room";
+
+function getInitialScreen(): AppScreen {
+	const savedNickname = localStorage.getItem("heat-nickname");
+	if (!savedNickname) {
+		return { type: "nickname" };
+	}
+
+	// Check if we were in a room (for rejoin after refresh)
+	const savedRoom = localStorage.getItem(ROOM_STORAGE_KEY);
+	if (savedRoom) {
+		try {
+			const { roomId, roomName } = JSON.parse(savedRoom);
+			if (roomId && roomName) {
+				return { type: "room", roomId, roomName };
+			}
+		} catch {
+			localStorage.removeItem(ROOM_STORAGE_KEY);
+		}
+	}
+
+	return { type: "lobby" };
+}
 
 function App() {
-	const [playerId, setPlayerId] = useState("");
-	const [joined, setJoined] = useState(false);
+	const [screen, setScreen] = useState<AppScreen>(getInitialScreen);
+	const [nickname, setNickname] = useState(() =>
+		localStorage.getItem("heat-nickname") || "",
+	);
 
-	const { status, gameState, error, sendAction } = useGameSocket({
-		url: joined ? WS_URL : "",
-		playerId: joined ? playerId : "",
-	});
-
-	const handleJoin = (e: React.FormEvent) => {
-		e.preventDefault();
-		if (playerId.trim()) {
-			setJoined(true);
-		}
+	const handleNicknameSubmit = (name: string) => {
+		setNickname(name);
+		localStorage.setItem("heat-nickname", name);
+		setScreen({ type: "lobby" });
 	};
 
-	if (!joined) {
+	const handleJoinRoom = (roomId: string, roomName: string) => {
+		localStorage.setItem(ROOM_STORAGE_KEY, JSON.stringify({ roomId, roomName }));
+		setScreen({ type: "room", roomId, roomName });
+	};
+
+	const handleLeaveRoom = () => {
+		localStorage.removeItem(ROOM_STORAGE_KEY);
+		setScreen({ type: "lobby" });
+	};
+
+	const handleChangeNickname = () => {
+		setScreen({ type: "nickname" });
+	};
+
+	if (screen.type === "nickname" || !nickname) {
 		return (
-			<div className="min-h-screen w-full grid place-items-center p-6 bg-gradient-to-br from-slate-900 to-slate-800">
-				<Card className="w-full max-w-md">
-					<CardHeader className="text-center">
-						<CardTitle className="text-3xl">Heat</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<form onSubmit={handleJoin} className="space-y-4">
-							<input
-								type="text"
-								placeholder="Enter your player ID"
-								value={playerId}
-								onChange={(e) => setPlayerId(e.target.value)}
-								autoFocus
-								className="w-full px-4 py-3 rounded-md border bg-background text-center text-lg"
-							/>
-							<Button
-								type="submit"
-								disabled={!playerId.trim()}
-								className="w-full"
-								size="lg"
-							>
-								Join Game
-							</Button>
-						</form>
-					</CardContent>
-				</Card>
-			</div>
+			<NicknameScreen onSubmit={handleNicknameSubmit} initialValue={nickname} />
 		);
 	}
 
-	if (status === "connecting") {
+	if (screen.type === "lobby") {
 		return (
-			<div className="min-h-screen grid place-items-center bg-gradient-to-br from-slate-900 to-slate-800 text-white">
-				<div className="grid gap-4 text-center">
-					<h1 className="text-4xl font-bold">Heat</h1>
-					<p className="text-lg">Connecting...</p>
-				</div>
-			</div>
+			<LobbyScreen
+				nickname={nickname}
+				onJoinRoom={handleJoinRoom}
+				onChangeNickname={handleChangeNickname}
+			/>
 		);
 	}
 
-	if (status === "disconnected") {
+	if (screen.type === "room") {
 		return (
-			<div className="min-h-screen grid place-items-center bg-gradient-to-br from-slate-900 to-slate-800 text-white">
-				<div className="grid gap-4 text-center">
-					<h1 className="text-4xl font-bold">Heat</h1>
-					<p className="text-lg">Disconnected from server</p>
-					<Button variant="outline" onClick={() => setJoined(false)}>
-						Reconnect
-					</Button>
-				</div>
-			</div>
+			<RoomScreen
+				roomId={screen.roomId}
+				roomName={screen.roomName}
+				nickname={nickname}
+				onLeave={handleLeaveRoom}
+			/>
 		);
 	}
 
-	if (!gameState) {
-		return (
-			<div className="min-h-screen grid place-items-center bg-gradient-to-br from-slate-900 to-slate-800 text-white">
-				<div className="grid gap-4 text-center">
-					<h1 className="text-4xl font-bold">Heat</h1>
-					<p className="text-lg">Waiting for game to start...</p>
-					<p className="text-muted-foreground">
-						Need at least 2 players to start
-					</p>
-				</div>
-			</div>
-		);
-	}
-
-	return (
-		<Game
-			gameState={gameState}
-			playerId={playerId}
-			onAction={sendAction}
-			error={error}
-		/>
-	);
+	return null;
 }
 
 export default App;

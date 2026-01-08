@@ -37,8 +37,9 @@ export function PlayerList({ gameState, currentPlayerId }: PlayerListProps) {
 					>
 						<span className="font-bold">{index + 1}.</span>
 						<span className="font-medium">
-							{player.id}
 							{player.id === currentPlayerId && " (you)"}
+														{player.id !== currentPlayerId && "other"}
+
 						</span>
 						{player.finished && <span>🏁</span>}
 						<div className="grid grid-cols-3 gap-1">

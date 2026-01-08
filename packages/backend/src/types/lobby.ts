@@ -36,7 +36,8 @@ export type RoomClientMessage =
 	| { type: "join"; nickname: string }
 	| { type: "leave" }
 	| { type: "startGame" }
-	| { type: "action"; action: import("../engine/game").Action };
+	| { type: "action"; action: import("../engine/game").Action }
+	| { type: "quitGame" };
 
 export type RoomServerMessage =
 	| { type: "roomState"; state: RoomState }

@@ -33,6 +33,7 @@ export function RoomScreen({
 		playerId,
 		startGame,
 		leaveRoom,
+		quitGame,
 		sendAction,
 	} = useRoomSocket({ url: getWsUrl(roomId, roomName), nickname });
 
@@ -66,6 +67,7 @@ export function RoomScreen({
 				playerId={playerId}
 				playerNames={playerNames}
 				onAction={sendAction}
+				onQuit={quitGame}
 				error={error}
 			/>
 		);

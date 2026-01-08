@@ -1,6 +1,7 @@
 import type { Action, GameState } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ActionPanel } from "./ActionPanel";
 import { DeckInfo } from "./DeckInfo";
 import { PlayerList } from "./PlayerList";
@@ -10,6 +11,7 @@ interface GameProps {
 	playerId: string;
 	playerNames: Record<string, string>;
 	onAction: (action: Action) => void;
+	onQuit: () => void;
 	error: string | null;
 }
 
@@ -23,7 +25,7 @@ export function isPlayersTurn(gameState: GameState, playerId: string): boolean {
 	return gameState.turnOrder[gameState.currentPlayerIndex] === playerId;
 }
 
-export function Game({ gameState, playerId, playerNames, onAction, error }: GameProps) {
+export function Game({ gameState, playerId, playerNames, onAction, onQuit, error }: GameProps) {
 	const player = gameState.players[playerId];
 	const isMyTurn = isPlayersTurn(gameState, playerId);
 	const currentTurnPlayer =
@@ -38,12 +40,15 @@ export function Game({ gameState, playerId, playerNames, onAction, error }: Game
 		<div className="min-h-screen grid grid-rows-[auto_1fr] bg-gradient-to-br from-slate-900 to-slate-800">
 			<header className="bg-card border-b px-6 py-4 grid grid-cols-[1fr_auto] items-center">
 				<h1 className="text-2xl font-bold">Heat</h1>
-				<div className="grid grid-flow-col gap-4">
+				<div className="grid grid-flow-col gap-4 items-center">
 					<Badge variant="outline">Turn {gameState.turn}</Badge>
 					<Badge variant="secondary">{gameState.phase}</Badge>
 					{currentTurnPlayerName && (
 						<Badge>Current: {currentTurnPlayerName}</Badge>
 					)}
+					<Button variant="destructive" size="sm" onClick={onQuit}>
+						Quit Game
+					</Button>
 				</div>
 			</header>
 

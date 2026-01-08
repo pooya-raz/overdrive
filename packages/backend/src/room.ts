@@ -70,6 +70,9 @@ export class Room extends DurableObject<Env> {
 				case "action":
 					this.handleAction(ws, playerId, message.action);
 					break;
+				case "quitGame":
+					this.handleQuitGame();
+					break;
 			}
 		} catch (error) {
 			const errorMessage =
@@ -208,6 +211,13 @@ export class Room extends DurableObject<Env> {
 
 		this.game.dispatch(playerId, action);
 		this.broadcastGameState();
+	}
+
+	private handleQuitGame(): void {
+		this.game = null;
+		this.status = "waiting";
+		this.broadcastRoomState();
+		this.notifyLobby();
 	}
 
 	private broadcastRoomState(): void {

@@ -17,6 +17,7 @@ interface UseRoomSocketReturn {
 	playerId: string | null;
 	startGame: () => void;
 	leaveRoom: () => void;
+	quitGame: () => void;
 	sendAction: (action: Action) => void;
 }
 
@@ -57,6 +58,11 @@ export function useRoomSocket({
 				case "roomState": {
 					setError(null);
 					setRoomState(message.state);
+					// Reset game state if room is back to waiting (e.g., after quit)
+					if (message.state.status === "waiting") {
+						setGameStarted(false);
+						setGameState(null);
+					}
 					// Find our player ID from the room state
 					const player = message.state.players.find(
 						(p: { nickname: string }) => p.nickname === nickname,
@@ -106,6 +112,12 @@ export function useRoomSocket({
 		socketRef.current?.close();
 	}, []);
 
+	const quitGame = useCallback(() => {
+		if (socketRef.current?.readyState === WebSocket.OPEN) {
+			socketRef.current.send(JSON.stringify({ type: "quitGame" }));
+		}
+	}, []);
+
 	const sendAction = useCallback((action: Action) => {
 		if (socketRef.current?.readyState === WebSocket.OPEN) {
 			socketRef.current.send(JSON.stringify({ type: "action", action }));
@@ -121,6 +133,7 @@ export function useRoomSocket({
 		playerId,
 		startGame,
 		leaveRoom,
+		quitGame,
 		sendAction,
 	};
 }

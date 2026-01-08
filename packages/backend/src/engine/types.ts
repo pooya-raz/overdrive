@@ -64,6 +64,7 @@ export interface PlayerData {
 	discardSize: number;
 	discardTop: Card | null;
 	hasAdrenaline: boolean;
+	availableCooldowns: number;
 	lap: number;
 	finished: boolean;
 }

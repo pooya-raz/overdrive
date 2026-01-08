@@ -150,6 +150,7 @@ export class Player {
 			discardSize: this._discard.length,
 			discardTop: topDiscard ? structuredClone(topDiscard) : null,
 			hasAdrenaline: this._hasAdrenaline,
+			availableCooldowns: this._availableCooldowns,
 			lap: this._lap,
 			finished: this._finished,
 		};
@@ -309,8 +310,15 @@ export class Player {
 	/** Initializes turn state, calculates movement, and sets position. Called at start of resolution. */
 	beginResolution(): void {
 		this._startPosition = this._position;
-		this._availableCooldowns = 0;
 		this._availableReactions = ["boost"];
+
+		// Gear-based cooldowns: low gears grant more cooldown opportunities
+		if (this._gear === 1) {
+			this.addCooldown(3);
+		} else if (this._gear === 2) {
+			this.addCooldown(1);
+		}
+
 		this.resolveStressCards();
 		this._cardSpeed = this.calculateSpeed();
 		this._position = this._startPosition + this._cardSpeed;
@@ -326,6 +334,14 @@ export class Player {
 		if (!this._availableReactions.includes("cooldown")) {
 			this._availableReactions.unshift("cooldown");
 		}
+	}
+
+	/** Clears any remaining cooldowns at end of turn. */
+	resetCooldowns(): void {
+		this._availableCooldowns = 0;
+		this._availableReactions = this._availableReactions.filter(
+			(r) => r !== "cooldown",
+		);
 	}
 
 	applyAdrenaline(acceptMove: boolean, acceptCooldown: boolean): void {

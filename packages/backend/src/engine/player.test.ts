@@ -357,6 +357,82 @@ describe("Player", () => {
 				expect(player.state.position).toBe(5);
 			});
 		});
+
+		describe("gear-based cooldowns", () => {
+			it("adds 3 cooldowns when in gear 1", () => {
+				const player = createPlayer({
+					gear: 1,
+					played: [{ type: "speed", value: 1 }],
+				});
+
+				player.beginResolution();
+
+				expect(player.state.availableCooldowns).toBe(3);
+			});
+
+			it("adds 1 cooldown when in gear 2", () => {
+				const player = createPlayer({
+					gear: 2,
+					played: [{ type: "speed", value: 2 }],
+				});
+
+				player.beginResolution();
+
+				expect(player.state.availableCooldowns).toBe(1);
+			});
+
+			it("adds no cooldowns when in gear 3", () => {
+				const player = createPlayer({
+					gear: 3,
+					played: [{ type: "speed", value: 3 }],
+				});
+
+				player.beginResolution();
+
+				expect(player.state.availableCooldowns).toBe(0);
+			});
+
+			it("adds no cooldowns when in gear 4", () => {
+				const player = createPlayer({
+					gear: 4,
+					played: [{ type: "speed", value: 4 }],
+				});
+
+				player.beginResolution();
+
+				expect(player.state.availableCooldowns).toBe(0);
+			});
+		});
+	});
+
+	describe("resetCooldowns", () => {
+		it("sets availableCooldowns to 0", () => {
+			const player = createPlayer({
+				gear: 1,
+				played: [{ type: "speed", value: 1 }],
+			});
+			player.beginResolution();
+			expect(player.state.availableCooldowns).toBe(3);
+
+			player.resetCooldowns();
+
+			expect(player.state.availableCooldowns).toBe(0);
+		});
+
+		it("removes cooldown from available reactions", () => {
+			const player = createPlayer({
+				gear: 1,
+				played: [{ type: "speed", value: 1 }],
+				hand: [{ type: "heat" }],
+			});
+			player.beginResolution();
+
+			player.resetCooldowns();
+
+			expect(() => player.react("cooldown")).toThrow(
+				"Reaction cooldown not available",
+			);
+		});
 	});
 
 	describe("spinOut", () => {
@@ -725,6 +801,7 @@ describe("Player", () => {
 
 		it("cooldown returns true when no reactions remaining", () => {
 			const player = createPlayer({
+				gear: 3,
 				played: [{ type: "speed", value: 4 }],
 				hand: [{ type: "heat" }],
 				engine: [{ type: "heat" }],
@@ -754,6 +831,7 @@ describe("Player", () => {
 
 		it("throws when cooldown not available", () => {
 			const player = createPlayer({
+				gear: 3,
 				played: [{ type: "speed", value: 4 }],
 				hand: [{ type: "heat" }],
 			});
@@ -767,7 +845,10 @@ describe("Player", () => {
 		});
 
 		it("throws when cooldown not added", () => {
-			const player = createPlayer({ played: [{ type: "speed", value: 4 }] });
+			const player = createPlayer({
+				gear: 3,
+				played: [{ type: "speed", value: 4 }],
+			});
 			player.beginResolution();
 
 			expect(() => player.react("cooldown")).toThrow(

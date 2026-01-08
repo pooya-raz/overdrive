@@ -1,44 +1,23 @@
-export type GameMap = "USA";
+// Re-export shared types
+export type {
+	Action,
+	Card,
+	CardType,
+	Corner,
+	GameMap,
+	GamePhase,
+	GameState,
+	Gear,
+	PlayerData,
+	ReactChoice,
+	Track,
+	TurnState,
+} from "@heat/shared";
 
-export type Gear = 1 | 2 | 3 | 4;
-
-export type CardType = "speed" | "heat" | "stress" | "upgrade";
-
-export interface Card {
-	type: CardType;
-	value?: number;
-}
-
-export interface Corner {
-	position: number;
-	speedLimit: number;
-}
-
-export interface Track {
-	length: number;
-	corners: Corner[];
-}
-
-export type GamePhase = "planning" | "resolution" | "finished";
-
-export type TurnState =
-	| "plan"
-	| "adrenaline"
-	| "react"
-	| "slipstream"
-	| "discard";
-
-export type ReactChoice = "cooldown" | "boost" | "skip";
+// Backend-only types
 
 /** True when player has no more reactions available */
 export type Done = boolean;
-
-export type Action =
-	| { type: "plan"; gear: Gear; cardIndices: number[] }
-	| { type: "adrenaline"; acceptMove: boolean; acceptCooldown: boolean }
-	| { type: "react"; action: ReactChoice; amount?: number }
-	| { type: "slipstream"; use: boolean }
-	| { type: "discard"; cardIndices: number[] };
 
 export interface PlayerInput {
 	id: string;
@@ -47,7 +26,7 @@ export interface PlayerInput {
 
 export interface CreateGameRequest {
 	players: PlayerInput[];
-	map: GameMap;
+	map: "USA";
 	laps?: number;
 }
 
@@ -56,35 +35,3 @@ export interface GameOptions {
 }
 
 export type ShuffleFn = <T>(items: T[]) => T[];
-
-export interface PlayerData {
-	id: string;
-	username: string;
-	gear: Gear;
-	position: number;
-	onRaceline: boolean;
-	hand: Card[];
-	deckSize: number;
-	playedCount: number;
-	engineSize: number;
-	discardSize: number;
-	discardTop: Card | null;
-	hasAdrenaline: boolean;
-	availableCooldowns: number;
-	lap: number;
-	finished: boolean;
-}
-
-export interface GameState {
-	map: GameMap;
-	track: Track;
-	players: Record<string, PlayerData>;
-	turn: number;
-	phase: GamePhase;
-	currentState: TurnState;
-	pendingPlayers: Record<string, boolean>;
-	turnOrder: string[];
-	currentPlayerIndex: number;
-	laps: number;
-	finishOrder: string[];
-}

@@ -1,25 +1,7 @@
-export interface RoomInfo {
-	id: string;
-	name: string;
-	hostNickname: string;
-	playerCount: number;
-	maxPlayers: number;
-	status: "waiting" | "playing";
-}
+// Re-export shared lobby types
+export type { RoomInfo, RoomPlayer, RoomState } from "@heat/shared";
 
-export interface RoomPlayer {
-	id: string;
-	nickname: string;
-	isHost: boolean;
-}
-
-export interface RoomState {
-	id: string;
-	name: string;
-	status: "waiting" | "playing";
-	hostId: string;
-	players: RoomPlayer[];
-}
+// Backend-only lobby types
 
 // Lobby WebSocket messages
 export type LobbyClientMessage =
@@ -27,7 +9,7 @@ export type LobbyClientMessage =
 	| { type: "createRoom"; roomName: string; hostNickname: string };
 
 export type LobbyServerMessage =
-	| { type: "roomList"; rooms: RoomInfo[] }
+	| { type: "roomList"; rooms: import("@heat/shared").RoomInfo[] }
 	| { type: "roomCreated"; roomId: string }
 	| { type: "error"; message: string };
 
@@ -36,11 +18,11 @@ export type RoomClientMessage =
 	| { type: "join"; nickname: string }
 	| { type: "leave" }
 	| { type: "startGame" }
-	| { type: "action"; action: import("../engine/game").Action }
+	| { type: "action"; action: import("@heat/shared").Action }
 	| { type: "quitGame" };
 
 export type RoomServerMessage =
-	| { type: "roomState"; state: RoomState }
+	| { type: "roomState"; state: import("@heat/shared").RoomState }
 	| { type: "gameStarted" }
-	| { type: "state"; state: import("../engine/types").GameState }
+	| { type: "state"; state: import("@heat/shared").GameState }
 	| { type: "error"; message: string };

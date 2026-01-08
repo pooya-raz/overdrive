@@ -1,4 +1,4 @@
-import type { Gear } from "@/types";
+import type { Gear } from "@heat/shared";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 

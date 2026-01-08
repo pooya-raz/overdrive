@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Action, Card as CardType, Corner, Gear, TurnState } from "@/types";
+import type { Action, Card as CardType, Corner, Gear, TurnState } from "@heat/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

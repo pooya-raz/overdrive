@@ -1,4 +1,4 @@
-import type { Card as CardType } from "@/types";
+import type { Card as CardType } from "@heat/shared";
 import { cn } from "@/lib/utils";
 
 interface HandProps {

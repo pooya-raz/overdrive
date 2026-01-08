@@ -10,6 +10,9 @@ importers:
 
   packages/backend:
     dependencies:
+      '@heat/shared':
+        specifier: workspace:*
+        version: link:../shared
       hono:
         specifier: ^4.11.3
         version: 4.11.3
@@ -32,6 +35,9 @@ importers:
 
   packages/frontend:
     dependencies:
+      '@heat/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@radix-ui/react-slot':
         specifier: ^1.2.4
         version: 1.2.4(@types/react@19.2.7)(react@19.2.3)
@@ -99,6 +105,8 @@ importers:
       vite:
         specifier: ^7.2.4
         version: 7.3.1(@types/node@24.10.4)(jiti@2.6.1)(lightningcss@1.30.2)
+
+  packages/shared: {}
 
 packages:
 

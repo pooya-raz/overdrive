@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Action, GameState } from "@/types";
+import type { Action, GameState } from "@heat/shared";
 
 type ConnectionStatus = "connecting" | "connected" | "disconnected";
 

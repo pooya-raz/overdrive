@@ -41,6 +41,10 @@ pnpm run deploy:frontend   # Deploy frontend only (Cloudflare Pages)
 
 ```
 packages/
+├── shared/               # Shared TypeScript types (@heat/shared)
+│   └── src/
+│       ├── game.ts       # Game types (GameState, PlayerData, Action, etc.)
+│       └── lobby.ts      # Lobby types (RoomInfo, RoomState, etc.)
 ├── backend/              # Cloudflare Workers backend
 │   └── src/
 │       ├── index.ts      # Hono server entry point
@@ -54,8 +58,7 @@ packages/
 └── frontend/             # React frontend (Cloudflare Pages)
     └── src/
         ├── components/   # React components
-        ├── hooks/        # Custom hooks (WebSocket)
-        └── types.ts      # Shared types
+        └── hooks/        # Custom hooks (WebSocket)
 ```
 
 ## Game Mechanics

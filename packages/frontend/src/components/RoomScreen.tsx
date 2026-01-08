@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { useRoomSocket } from "@/hooks/useRoomSocket";
 import { Game } from "@/components/Game";
 
@@ -44,22 +45,13 @@ export function RoomScreen({
 	const isHost =
 		roomState?.players.find((p) => p.nickname === nickname)?.isHost || false;
 
-	if (status === "connecting") {
+	if (status !== "connected") {
 		return (
-			<div className="min-h-screen grid place-items-center bg-gradient-to-br from-slate-900 to-slate-800 text-white">
-				<p>Connecting to room...</p>
-			</div>
-		);
-	}
-
-	if (status === "disconnected") {
-		return (
-			<div className="min-h-screen grid place-items-center bg-gradient-to-br from-slate-900 to-slate-800 text-white">
-				<div className="text-center space-y-4">
-					<p>Disconnected from room</p>
-					<Button onClick={onLeave}>Back to Lobby</Button>
-				</div>
-			</div>
+			<ConnectionStatus
+				status={status}
+				context="room"
+				onBack={status === "disconnected" ? onLeave : undefined}
+			/>
 		);
 	}
 

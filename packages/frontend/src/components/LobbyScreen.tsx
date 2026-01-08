@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { useLobbySocket } from "@/hooks/useLobbySocket";
 
 const WS_URL = import.meta.env.DEV
@@ -41,24 +42,13 @@ export function LobbyScreen({
 		}
 	};
 
-	if (status === "connecting") {
+	if (status !== "connected") {
 		return (
-			<div className="min-h-screen grid place-items-center bg-gradient-to-br from-slate-900 to-slate-800 text-white">
-				<p>Connecting to lobby...</p>
-			</div>
-		);
-	}
-
-	if (status === "disconnected") {
-		return (
-			<div className="min-h-screen grid place-items-center bg-gradient-to-br from-slate-900 to-slate-800 text-white">
-				<div className="text-center space-y-4">
-					<p>Disconnected from lobby</p>
-					<Button onClick={() => window.location.reload()}>
-						Reconnect
-					</Button>
-				</div>
-			</div>
+			<ConnectionStatus
+				status={status}
+				context="lobby"
+				onReconnect={status === "disconnected" ? () => window.location.reload() : undefined}
+			/>
 		);
 	}
 

@@ -18,7 +18,6 @@ export function useLobbySocket(url: string): UseLobbySocketReturn {
 	const [error, setError] = useState<string | null>(null);
 	const [createdRoomId, setCreatedRoomId] = useState<string | null>(null);
 	const socketRef = useRef<WebSocket | null>(null);
-	const pendingRoomNameRef = useRef<string | null>(null);
 
 	useEffect(() => {
 		if (!url) {
@@ -64,7 +63,6 @@ export function useLobbySocket(url: string): UseLobbySocketReturn {
 
 	const createRoom = useCallback((roomName: string, hostNickname: string) => {
 		if (socketRef.current?.readyState === WebSocket.OPEN) {
-			pendingRoomNameRef.current = roomName;
 			socketRef.current.send(
 				JSON.stringify({ type: "createRoom", roomName, hostNickname }),
 			);
@@ -73,7 +71,6 @@ export function useLobbySocket(url: string): UseLobbySocketReturn {
 
 	const clearCreatedRoom = useCallback(() => {
 		setCreatedRoomId(null);
-		pendingRoomNameRef.current = null;
 	}, []);
 
 	return { status, rooms, error, createdRoomId, createRoom, clearCreatedRoom };

@@ -22,7 +22,7 @@ export class Room extends DurableObject<Env> {
 	private roomName = "";
 
 	async fetch(request: Request): Promise<Response> {
-		// Extract room info from URL params
+		// Extract room info from URL params (only on first connection)
 		const url = new URL(request.url);
 		const roomIdParam = url.searchParams.get("roomId");
 		const roomNameParam = url.searchParams.get("roomName");
@@ -30,8 +30,8 @@ export class Room extends DurableObject<Env> {
 		if (roomIdParam && !this.roomId) {
 			this.roomId = roomIdParam;
 		}
-		if (roomNameParam && !this.roomName) {
-			this.roomName = roomNameParam;
+		if (!this.roomName) {
+			this.roomName = roomNameParam || "Game Room";
 		}
 
 		const [client, server] = Object.values(new WebSocketPair());
@@ -87,7 +87,16 @@ export class Room extends DurableObject<Env> {
 			if (existingPlayer) {
 				// Rejoin: map this connection to the existing player ID
 				this.connections.set(ws, existingPlayer.id);
-				// Send current game state to the rejoining player
+				// Send room state first so frontend knows player info
+				const roomState: RoomState = {
+					id: this.roomId,
+					name: this.roomName,
+					status: this.status,
+					hostId: this.hostId || "",
+					players: Array.from(this.players.values()),
+				};
+				ws.send(JSON.stringify({ type: "roomState", state: roomState }));
+				// Then send game started and current game state
 				ws.send(JSON.stringify({ type: "gameStarted" }));
 				if (this.game) {
 					const state = this.game.getStateForPlayer(existingPlayer.id);
@@ -204,7 +213,7 @@ export class Room extends DurableObject<Env> {
 	private broadcastRoomState(): void {
 		const state: RoomState = {
 			id: this.roomId,
-			name: this.roomName || "Game Room",
+			name: this.roomName,
 			status: this.status,
 			hostId: this.hostId || "",
 			players: Array.from(this.players.values()),
@@ -232,7 +241,7 @@ export class Room extends DurableObject<Env> {
 		const hostPlayer = this.hostId ? this.players.get(this.hostId) : null;
 		const roomInfo: RoomInfo = {
 			id: this.roomId,
-			name: this.roomName || "Game Room",
+			name: this.roomName,
 			hostNickname: hostPlayer?.nickname || "Unknown",
 			playerCount: this.players.size,
 			maxPlayers: 6,

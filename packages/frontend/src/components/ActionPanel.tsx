@@ -136,8 +136,7 @@ export function ActionPanel({
 							</p>
 							<div className="grid grid-cols-3 gap-2">
 								<Button
-									variant="outline"
-									className="text-white hover:text-blue-500"
+									className="bg-slate-700 text-white hover:bg-slate-600"
 									onClick={() =>
 										onAction({
 											type: "adrenaline",
@@ -150,8 +149,7 @@ export function ActionPanel({
 									+1 Move
 								</Button>
 								<Button
-									variant="outline"
-									className="text-white hover:text-blue-500"
+									className="bg-slate-700 text-white hover:bg-slate-600"
 									onClick={() =>
 										onAction({
 											type: "adrenaline",
@@ -164,8 +162,7 @@ export function ActionPanel({
 									Cooldown
 								</Button>
 								<Button
-									variant="outline"
-									className="text-white hover:text-blue-500"
+									className="bg-slate-700 text-white hover:bg-slate-600"
 									onClick={() =>
 										onAction({
 											type: "adrenaline",
@@ -183,7 +180,7 @@ export function ActionPanel({
 						<>
 							<p className="text-white">No adrenaline available.</p>
 							<Button
-								className="text-white hover:text-blue-500"
+								className="bg-slate-700 text-white hover:bg-slate-600"
 								onClick={() =>
 									onAction({
 										type: "adrenaline",
@@ -212,24 +209,21 @@ export function ActionPanel({
 					<p className="text-white">Choose your reaction:</p>
 					<div className="grid grid-cols-3 gap-2">
 						<Button
-							variant="outline"
-							className="text-white hover:text-blue-500"
+							className="bg-slate-700 text-white hover:bg-slate-600"
 							onClick={() => onAction({ type: "react", action: "cooldown" })}
 							disabled={disabled}
 						>
 							Cooldown
 						</Button>
 						<Button
-							variant="outline"
-							className="text-white hover:text-blue-500"
+							className="bg-slate-700 text-white hover:bg-slate-600"
 							onClick={() => onAction({ type: "react", action: "boost" })}
 							disabled={disabled}
 						>
 							Boost
 						</Button>
 						<Button
-							variant="outline"
-							className="text-white hover:text-blue-500"
+							className="bg-slate-700 text-white hover:bg-slate-600"
 							onClick={() => onAction({ type: "react", action: "skip" })}
 							disabled={disabled}
 						>
@@ -251,15 +245,14 @@ export function ActionPanel({
 					<p className="text-white">Use slipstream to move +2?</p>
 					<div className="grid grid-cols-2 gap-2">
 						<Button
-							className="text-white hover:text-blue-500"
+							className="bg-slate-700 text-white hover:bg-slate-600"
 							onClick={() => onAction({ type: "slipstream", use: true })}
 							disabled={disabled}
 						>
 							Use Slipstream
 						</Button>
 						<Button
-							variant="outline"
-							className="text-white hover:text-blue-500"
+							className="bg-slate-700 text-white hover:bg-slate-600"
 							onClick={() => onAction({ type: "slipstream", use: false })}
 							disabled={disabled}
 						>

@@ -206,7 +206,11 @@ export class Game {
 			case "react": {
 				const done: Done = player.react(action.action);
 				if (done) {
-					this._state.currentState = "slipstream";
+					if (this.canSlipstream(playerId)) {
+						this._state.currentState = "slipstream";
+					} else {
+						this.finishMovement(playerId, player);
+					}
 				}
 				break;
 			}
@@ -217,16 +221,7 @@ export class Game {
 					}
 					player.setPosition(player.state.position + 2);
 				}
-				this.resolveCollision(playerId, player);
-				this.checkCorners(player);
-
-				const track = getMapTrack(this._state.map);
-				if (player.updateRaceProgress(track.length, this._state.laps)) {
-					this._state.finishOrder.push(playerId);
-					this._state.raceFinishing = true;
-				}
-
-				this._state.currentState = "discard";
+				this.finishMovement(playerId, player);
 				break;
 			}
 			case "discard": {
@@ -291,6 +286,19 @@ export class Game {
 				p.id !== playerId &&
 				(p.state.position === pos || p.state.position === pos + 1),
 		);
+	}
+
+	private finishMovement(playerId: string, player: Player): void {
+		this.resolveCollision(playerId, player);
+		this.checkCorners(player);
+
+		const track = getMapTrack(this._state.map);
+		if (player.updateRaceProgress(track.length, this._state.laps)) {
+			this._state.finishOrder.push(playerId);
+			this._state.raceFinishing = true;
+		}
+
+		this._state.currentState = "discard";
 	}
 
 	private checkCorners(player: Player): void {

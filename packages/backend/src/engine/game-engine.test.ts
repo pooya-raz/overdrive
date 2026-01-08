@@ -19,7 +19,10 @@ function completeResolutionPhase(game: Game): void {
 			acceptCooldown: false,
 		});
 		game.dispatch(playerId, { type: "react", action: "skip" });
-		game.dispatch(playerId, { type: "slipstream", use: false });
+		// Slipstream is skipped when not available
+		if (game.state.currentState === "slipstream") {
+			game.dispatch(playerId, { type: "slipstream", use: false });
+		}
 		game.dispatch(playerId, { type: "discard", cardIndices: [] });
 	}
 }
@@ -229,7 +232,8 @@ describe("Game", () => {
 					acceptCooldown: false,
 				});
 				game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
-				game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
+				// Slipstream is skipped (single player has no one to slipstream)
+				expect(game.state.currentState).toBe("discard");
 				game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
 
 				// After all resolution states, should be back to planning phase turn 2
@@ -486,27 +490,30 @@ describe("Game", () => {
 				{ shuffle: noShuffle },
 			);
 
-			// Both players move same distance, P1 leads (on raceline)
+			// Both players move same distance → end at position 4
 			game.dispatch(PLAYER_1_ID, { type: "plan", gear: 1, cardIndices: [6] });
 			game.dispatch(PLAYER_2_ID, { type: "plan", gear: 1, cardIndices: [6] });
 
-			// P1 resolves first (leader), doesn't slipstream
+			// P1 resolves first - P2 hasn't moved yet (still at 0), so P1 can't slipstream
 			game.dispatch(PLAYER_1_ID, {
 				type: "adrenaline",
 				acceptMove: false,
 				acceptCooldown: false,
 			});
 			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
-			game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
+			// Slipstream skipped (P2 at original position 0)
+			expect(game.state.currentState).toBe("discard");
 			game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
 
-			// P2 can slipstream because P1 is at same position (4)
+			// P2 resolves - P1 is now at position 4, P2 moves to 4
+			// P2 can slipstream because P1 is at same position
 			game.dispatch(PLAYER_2_ID, {
 				type: "adrenaline",
 				acceptMove: false,
 				acceptCooldown: false,
 			});
 			game.dispatch(PLAYER_2_ID, { type: "react", action: "skip" });
+			expect(game.state.currentState).toBe("slipstream");
 			game.dispatch(PLAYER_2_ID, { type: "slipstream", use: true });
 			game.dispatch(PLAYER_2_ID, { type: "discard", cardIndices: [] });
 
@@ -530,13 +537,15 @@ describe("Game", () => {
 			game.dispatch(PLAYER_2_ID, { type: "plan", gear: 1, cardIndices: [6] });
 
 			// P1 resolves first (leader at position 5)
+			// P2 hasn't moved yet (still at 0), so P1 can't slipstream
 			game.dispatch(PLAYER_1_ID, {
 				type: "adrenaline",
 				acceptMove: false,
 				acceptCooldown: false,
 			});
 			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
-			game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
+			// Slipstream skipped (P2 at original position 0)
+			expect(game.state.currentState).toBe("discard");
 			game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
 
 			// P2 at position 4, P1 at position 5 (1 ahead) - can slipstream
@@ -546,6 +555,7 @@ describe("Game", () => {
 				acceptCooldown: false,
 			});
 			game.dispatch(PLAYER_2_ID, { type: "react", action: "skip" });
+			expect(game.state.currentState).toBe("slipstream");
 			game.dispatch(PLAYER_2_ID, { type: "slipstream", use: true });
 			game.dispatch(PLAYER_2_ID, { type: "discard", cardIndices: [] });
 
@@ -553,7 +563,7 @@ describe("Game", () => {
 			expect(game.state.players[PLAYER_2_ID].position).toBe(6);
 		});
 
-		it("should throw when slipstream not available", () => {
+		it("should skip slipstream when not available", () => {
 			const game = new Game(
 				{
 					playerIds: [PLAYER_1_ID, PLAYER_2_ID],
@@ -574,7 +584,8 @@ describe("Game", () => {
 				acceptCooldown: false,
 			});
 			game.dispatch(PLAYER_1_ID, { type: "react", action: "skip" });
-			game.dispatch(PLAYER_1_ID, { type: "slipstream", use: false });
+			// P1 is alone at position 5, slipstream skipped
+			expect(game.state.currentState).toBe("discard");
 			game.dispatch(PLAYER_1_ID, { type: "discard", cardIndices: [] });
 
 			// P2 at position 0, P1 at position 5 - too far to slipstream
@@ -585,9 +596,8 @@ describe("Game", () => {
 			});
 			game.dispatch(PLAYER_2_ID, { type: "react", action: "skip" });
 
-			expect(() =>
-				game.dispatch(PLAYER_2_ID, { type: "slipstream", use: true }),
-			).toThrow("Slipstream not available");
+			// Slipstream should be skipped, going directly to discard
+			expect(game.state.currentState).toBe("discard");
 		});
 	});
 

@@ -6,6 +6,9 @@
 		"dev:backend": "pnpm --filter backend dev",
 		"dev:frontend": "pnpm --filter frontend dev",
 		"test": "pnpm --filter backend test",
-		"verify": "pnpm --filter backend verify"
+		"verify": "pnpm --filter backend verify",
+		"deploy": "pnpm run deploy:backend && pnpm run deploy:frontend",
+		"deploy:backend": "pnpm --filter backend run deploy",
+		"deploy:frontend": "pnpm --filter frontend build && npx wrangler pages deploy packages/frontend/dist --project-name=heat"
 	}
 }

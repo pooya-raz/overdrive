@@ -31,24 +31,10 @@ pnpm run dev
 
 ### Deployment
 
-**Deploy Backend (Cloudflare Workers):**
 ```bash
-cd packages/backend
-pnpm run deploy
-```
-
-**Deploy Frontend (Cloudflare Pages):**
-```bash
-cd packages/frontend
-pnpm run build
-npx wrangler pages deploy dist --project-name=heat-frontend
-```
-
-**Deploy Both:**
-```bash
-# From root
-pnpm --filter backend run deploy
-cd packages/frontend && pnpm run build && npx wrangler pages deploy dist --project-name=heat-frontend
+pnpm run deploy            # Deploy both backend and frontend
+pnpm run deploy:backend    # Deploy backend only (Cloudflare Workers)
+pnpm run deploy:frontend   # Deploy frontend only (Cloudflare Pages)
 ```
 
 ## Project Structure
@@ -176,7 +162,9 @@ Adrenaline grants two optional bonuses during resolution:
 | `pnpm run dev:frontend` | Start frontend dev server only |
 | `pnpm run test` | Run backend test suite |
 | `pnpm run verify` | Run linter and tests |
-| `pnpm --filter backend deploy` | Deploy backend to Cloudflare Workers |
+| `pnpm run deploy` | Deploy both backend and frontend |
+| `pnpm run deploy:backend` | Deploy backend to Cloudflare Workers |
+| `pnpm run deploy:frontend` | Deploy frontend to Cloudflare Pages |
 
 ### Cloudflare Bindings
 

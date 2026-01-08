@@ -14,8 +14,19 @@ function createRoom(roomId = "room-1", roomName = "Test Room"): GameRoom {
 }
 
 function joinPlayer(room: GameRoom, visitorId: string, nickname: string) {
-	room.addConnection(visitorId);
-	return room.handleJoin(visitorId, nickname);
+	room.connect(visitorId);
+	return room.handleMessage(visitorId, { type: "join", nickname });
+}
+
+function getRoomState(result: { broadcast?: object }) {
+	const broadcast = result.broadcast as { type: string; state?: object };
+	return broadcast?.type === "roomState"
+		? (broadcast.state as {
+				hostId: string;
+				players: { id: string; nickname: string; isHost: boolean }[];
+				status: string;
+			})
+		: null;
 }
 
 describe("GameRoom", () => {
@@ -23,20 +34,21 @@ describe("GameRoom", () => {
 		it("should make first player the host", () => {
 			const room = createRoom();
 
-			joinPlayer(room, VISITOR_1, "Alice");
+			const result = joinPlayer(room, VISITOR_1, "Alice");
+			const state = getRoomState(result);
 
-			expect(room.state.hostId).toBe(VISITOR_1);
-			expect(room.state.players[0].isHost).toBe(true);
+			expect(state?.hostId).toBe(VISITOR_1);
+			expect(state?.players[0].isHost).toBe(true);
 		});
 
 		it("should allow multiple players to join", () => {
 			const room = createRoom();
 
 			joinPlayer(room, VISITOR_1, "Alice");
-			joinPlayer(room, VISITOR_2, "Bob");
+			const result = joinPlayer(room, VISITOR_2, "Bob");
+			const state = getRoomState(result);
 
-			expect(room.playerCount).toBe(2);
-			expect(room.state.players).toHaveLength(2);
+			expect(state?.players).toHaveLength(2);
 		});
 
 		it("should reject join when room is full (6 players)", () => {
@@ -47,15 +59,18 @@ describe("GameRoom", () => {
 			joinPlayer(room, VISITOR_3, "P3");
 			joinPlayer(room, VISITOR_4, "P4");
 			joinPlayer(room, VISITOR_5, "P5");
-			joinPlayer(room, VISITOR_6, "P6");
+			const result6 = joinPlayer(room, VISITOR_6, "P6");
+			const state6 = getRoomState(result6);
 
-			expect(room.playerCount).toBe(6);
+			expect(state6?.players).toHaveLength(6);
 
-			room.addConnection(VISITOR_7);
-			const result = room.handleJoin(VISITOR_7, "P7");
+			room.connect(VISITOR_7);
+			const result7 = room.handleMessage(VISITOR_7, {
+				type: "join",
+				nickname: "P7",
+			});
 
-			expect(room.playerCount).toBe(6);
-			expect(result.toVisitor).toEqual({
+			expect(result7.toVisitor).toEqual({
 				visitorId: VISITOR_7,
 				messages: [{ type: "error", message: "Room is full" }],
 			});
@@ -66,10 +81,7 @@ describe("GameRoom", () => {
 
 			const result = joinPlayer(room, VISITOR_1, "Alice");
 
-			expect(result.broadcast).toEqual({
-				type: "roomState",
-				state: room.state,
-			});
+			expect(result.broadcast).toBeDefined();
 			expect(result.toLobby).toBeDefined();
 		});
 
@@ -79,9 +91,10 @@ describe("GameRoom", () => {
 			joinPlayer(room, VISITOR_1, "Alice");
 			joinPlayer(room, VISITOR_2, "Bob");
 
-			const result = room.handleLeave(VISITOR_2);
+			const result = room.handleMessage(VISITOR_2, { type: "leave" });
+			const state = getRoomState(result);
 
-			expect(room.playerCount).toBe(1);
+			expect(state?.players).toHaveLength(1);
 			expect(result.closeConnection).toBe(VISITOR_2);
 		});
 	});
@@ -93,12 +106,11 @@ describe("GameRoom", () => {
 			joinPlayer(room, VISITOR_1, "Alice");
 			joinPlayer(room, VISITOR_2, "Bob");
 
-			expect(room.state.hostId).toBe(VISITOR_1);
+			const result = room.handleMessage(VISITOR_1, { type: "leave" });
+			const state = getRoomState(result);
 
-			room.handleLeave(VISITOR_1);
-
-			expect(room.state.hostId).toBe(VISITOR_2);
-			expect(room.state.players[0].isHost).toBe(true);
+			expect(state?.hostId).toBe(VISITOR_2);
+			expect(state?.players[0].isHost).toBe(true);
 		});
 
 		it("should clear host when last player leaves", () => {
@@ -106,10 +118,11 @@ describe("GameRoom", () => {
 
 			joinPlayer(room, VISITOR_1, "Alice");
 
-			room.handleLeave(VISITOR_1);
+			const result = room.handleMessage(VISITOR_1, { type: "leave" });
+			const state = getRoomState(result);
 
-			expect(room.state.hostId).toBe("");
-			expect(room.playerCount).toBe(0);
+			expect(state?.hostId).toBe("");
+			expect(state?.players).toHaveLength(0);
 		});
 
 		it("should reassign host when host disconnects during waiting", () => {
@@ -118,9 +131,10 @@ describe("GameRoom", () => {
 			joinPlayer(room, VISITOR_1, "Alice");
 			joinPlayer(room, VISITOR_2, "Bob");
 
-			room.handleDisconnect(VISITOR_1);
+			const result = room.handleDisconnect(VISITOR_1);
+			const state = getRoomState(result);
 
-			expect(room.state.hostId).toBe(VISITOR_2);
+			expect(state?.hostId).toBe(VISITOR_2);
 		});
 	});
 
@@ -131,12 +145,11 @@ describe("GameRoom", () => {
 			joinPlayer(room, VISITOR_1, "Alice");
 			joinPlayer(room, VISITOR_2, "Bob");
 
-			const result = room.handleStartGame(VISITOR_1);
+			const result = room.handleMessage(VISITOR_1, { type: "startGame" });
 
-			expect(room.currentStatus).toBe("playing");
-			expect(room.hasGame).toBe(true);
 			expect(result.broadcast).toEqual({ type: "gameStarted" });
-			expect(result.broadcastGameState).toBe(true);
+			expect(result.gameStates).toBeDefined();
+			expect(result.gameStates?.size).toBe(2);
 		});
 
 		it("should reject non-host starting game", () => {
@@ -145,9 +158,8 @@ describe("GameRoom", () => {
 			joinPlayer(room, VISITOR_1, "Alice");
 			joinPlayer(room, VISITOR_2, "Bob");
 
-			const result = room.handleStartGame(VISITOR_2);
+			const result = room.handleMessage(VISITOR_2, { type: "startGame" });
 
-			expect(room.currentStatus).toBe("waiting");
 			expect(result.toVisitor).toEqual({
 				visitorId: VISITOR_2,
 				messages: [{ type: "error", message: "Only host can start the game" }],
@@ -159,9 +171,8 @@ describe("GameRoom", () => {
 
 			joinPlayer(room, VISITOR_1, "Alice");
 
-			const result = room.handleStartGame(VISITOR_1);
+			const result = room.handleMessage(VISITOR_1, { type: "startGame" });
 
-			expect(room.currentStatus).toBe("waiting");
 			expect(result.toVisitor).toEqual({
 				visitorId: VISITOR_1,
 				messages: [
@@ -175,18 +186,12 @@ describe("GameRoom", () => {
 
 			joinPlayer(room, VISITOR_1, "Alice");
 			joinPlayer(room, VISITOR_2, "Bob");
-			room.handleStartGame(VISITOR_1);
+			room.handleMessage(VISITOR_1, { type: "startGame" });
 
-			expect(room.currentStatus).toBe("playing");
+			const result = room.handleMessage(VISITOR_1, { type: "quitGame" });
+			const state = getRoomState(result);
 
-			const result = room.handleQuitGame();
-
-			expect(room.currentStatus).toBe("waiting");
-			expect(room.hasGame).toBe(false);
-			expect(result.broadcast).toEqual({
-				type: "roomState",
-				state: room.state,
-			});
+			expect(state?.status).toBe("waiting");
 		});
 	});
 
@@ -196,16 +201,15 @@ describe("GameRoom", () => {
 
 			joinPlayer(room, VISITOR_1, "Alice");
 			joinPlayer(room, VISITOR_2, "Bob");
-			room.handleStartGame(VISITOR_1);
+			room.handleMessage(VISITOR_1, { type: "startGame" });
 
-			const result = room.handleAction(VISITOR_1, {
-				type: "plan",
-				gear: 1,
-				cardIndices: [0],
+			const result = room.handleMessage(VISITOR_1, {
+				type: "action",
+				action: { type: "plan", gear: 1, cardIndices: [0] },
 			});
 
-			expect(room.hasGame).toBe(true);
-			expect(result.broadcastGameState).toBe(true);
+			expect(result.gameStates).toBeDefined();
+			expect(result.gameStates?.size).toBeGreaterThan(0);
 		});
 
 		it("should reject action when game not started", () => {
@@ -214,10 +218,9 @@ describe("GameRoom", () => {
 			joinPlayer(room, VISITOR_1, "Alice");
 			joinPlayer(room, VISITOR_2, "Bob");
 
-			const result = room.handleAction(VISITOR_1, {
-				type: "plan",
-				gear: 1,
-				cardIndices: [0],
+			const result = room.handleMessage(VISITOR_1, {
+				type: "action",
+				action: { type: "plan", gear: 1, cardIndices: [0] },
 			});
 
 			expect(result.toVisitor).toEqual({
@@ -231,13 +234,12 @@ describe("GameRoom", () => {
 
 			joinPlayer(room, VISITOR_1, "Alice");
 			joinPlayer(room, VISITOR_2, "Bob");
-			room.handleStartGame(VISITOR_1);
+			room.handleMessage(VISITOR_1, { type: "startGame" });
 
-			room.addConnection(VISITOR_3);
-			const result = room.handleAction(VISITOR_3, {
-				type: "plan",
-				gear: 1,
-				cardIndices: [0],
+			room.connect(VISITOR_3);
+			const result = room.handleMessage(VISITOR_3, {
+				type: "action",
+				action: { type: "plan", gear: 1, cardIndices: [0] },
 			});
 
 			expect(result.toVisitor).toEqual({
@@ -251,13 +253,12 @@ describe("GameRoom", () => {
 
 			joinPlayer(room, VISITOR_1, "Alice");
 			joinPlayer(room, VISITOR_2, "Bob");
-			room.handleStartGame(VISITOR_1);
+			room.handleMessage(VISITOR_1, { type: "startGame" });
 
 			// Invalid card index should return error, not throw
-			const result = room.handleAction(VISITOR_1, {
-				type: "plan",
-				gear: 1,
-				cardIndices: [99],
+			const result = room.handleMessage(VISITOR_1, {
+				type: "action",
+				action: { type: "plan", gear: 1, cardIndices: [99] },
 			});
 
 			expect(result.toVisitor?.visitorId).toBe(VISITOR_1);
@@ -265,7 +266,7 @@ describe("GameRoom", () => {
 				type: "error",
 				message: expect.stringContaining("Invalid card index"),
 			});
-			expect(result.broadcastGameState).toBeUndefined();
+			expect(result.gameStates).toBeUndefined();
 		});
 	});
 
@@ -275,13 +276,16 @@ describe("GameRoom", () => {
 
 			joinPlayer(room, VISITOR_1, "Alice");
 			joinPlayer(room, VISITOR_2, "Bob");
-			room.handleStartGame(VISITOR_1);
+			room.handleMessage(VISITOR_1, { type: "startGame" });
 
 			room.handleDisconnect(VISITOR_2);
 
 			const NEW_VISITOR = "new-visitor";
-			room.addConnection(NEW_VISITOR);
-			const result = room.handleJoin(NEW_VISITOR, "Bob");
+			room.connect(NEW_VISITOR);
+			const result = room.handleMessage(NEW_VISITOR, {
+				type: "join",
+				nickname: "Bob",
+			});
 
 			expect(result.toVisitor?.visitorId).toBe(NEW_VISITOR);
 			expect(result.toVisitor?.messages).toHaveLength(3);
@@ -297,10 +301,13 @@ describe("GameRoom", () => {
 
 			joinPlayer(room, VISITOR_1, "Alice");
 			joinPlayer(room, VISITOR_2, "Bob");
-			room.handleStartGame(VISITOR_1);
+			room.handleMessage(VISITOR_1, { type: "startGame" });
 
-			room.addConnection(VISITOR_3);
-			const result = room.handleJoin(VISITOR_3, "Charlie");
+			room.connect(VISITOR_3);
+			const result = room.handleMessage(VISITOR_3, {
+				type: "join",
+				nickname: "Charlie",
+			});
 
 			expect(result.toVisitor).toEqual({
 				visitorId: VISITOR_3,
@@ -313,31 +320,30 @@ describe("GameRoom", () => {
 
 			joinPlayer(room, VISITOR_1, "Alice");
 			joinPlayer(room, VISITOR_2, "Bob");
-			room.handleStartGame(VISITOR_1);
+			room.handleMessage(VISITOR_1, { type: "startGame" });
 
-			const playerCountBefore = room.playerCount;
+			// Disconnect should return empty result (no broadcast of player removal)
+			const result = room.handleDisconnect(VISITOR_2);
 
-			room.handleDisconnect(VISITOR_2);
-
-			expect(room.playerCount).toBe(playerCountBefore);
+			expect(result.broadcast).toBeUndefined();
 		});
 	});
 
 	describe("room info", () => {
-		it("should return correct room info", () => {
+		it("should return correct room info in toLobby", () => {
 			const room = createRoom("room-123", "My Room");
 
 			joinPlayer(room, VISITOR_1, "Alice");
-			joinPlayer(room, VISITOR_2, "Bob");
+			const result = joinPlayer(room, VISITOR_2, "Bob");
 
-			const info = room.getRoomInfo();
-
-			expect(info.id).toBe("room-123");
-			expect(info.name).toBe("My Room");
-			expect(info.hostNickname).toBe("Alice");
-			expect(info.playerCount).toBe(2);
-			expect(info.maxPlayers).toBe(6);
-			expect(info.status).toBe("waiting");
+			expect(result.toLobby).toEqual({
+				id: "room-123",
+				name: "My Room",
+				hostNickname: "Alice",
+				playerCount: 2,
+				maxPlayers: 6,
+				status: "waiting",
+			});
 		});
 
 		it("should update status in room info when game starts", () => {
@@ -345,10 +351,9 @@ describe("GameRoom", () => {
 
 			joinPlayer(room, VISITOR_1, "Alice");
 			joinPlayer(room, VISITOR_2, "Bob");
-			room.handleStartGame(VISITOR_1);
+			const result = room.handleMessage(VISITOR_1, { type: "startGame" });
 
-			const info = room.getRoomInfo();
-			expect(info.status).toBe("playing");
+			expect(result.toLobby?.status).toBe("playing");
 		});
 	});
 });

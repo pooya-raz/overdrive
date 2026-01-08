@@ -1,15 +1,20 @@
 import { type Action, Game } from "./engine/game";
-import type { RoomInfo, RoomPlayer, RoomState } from "./types/lobby";
+import type {
+	RoomClientMessage,
+	RoomInfo,
+	RoomPlayer,
+	RoomState,
+} from "./types/lobby";
 
 /**
  * Describes the side effects that should be executed after a room operation.
- * The Room wrapper executes these effects (WebSocket sends, lobby notifications).
+ * The GameRoomDO wrapper executes these effects (WebSocket sends, lobby notifications).
  */
 export interface RoomResult {
 	/** Message to broadcast to all connected visitors */
 	broadcast?: object;
-	/** If true, send each player their personalized game state */
-	broadcastGameState?: boolean;
+	/** Per-visitor game state to send (visitorId -> state) */
+	gameStates?: Map<string, object>;
 	/** Messages to send to a specific visitor */
 	toVisitor?: { visitorId: string; messages: object[] };
 	/** Room info to send to the lobby for the room list */
@@ -18,6 +23,10 @@ export interface RoomResult {
 	closeConnection?: string;
 }
 
+/**
+ * Pure business logic for a game room. Handles player management, game lifecycle,
+ * and action dispatch. Returns RoomResult objects describing side effects.
+ */
 export class GameRoom {
 	private connections = new Map<string, string>(); // visitorId -> playerId
 	private players = new Map<string, RoomPlayer>(); // playerId -> player info
@@ -32,90 +41,53 @@ export class GameRoom {
 		this.roomName = roomName;
 	}
 
-	// ─────────────────────────────────────────────────────────────────────────
-	// State accessors
-	// ─────────────────────────────────────────────────────────────────────────
-
-	get state(): RoomState {
-		return {
-			id: this.roomId,
-			name: this.roomName,
-			status: this.status,
-			hostId: this.hostId || "",
-			players: Array.from(this.players.values()),
-		};
-	}
-
-	getRoomInfo(): RoomInfo {
-		const hostPlayer = this.hostId ? this.players.get(this.hostId) : null;
-		return {
-			id: this.roomId,
-			name: this.roomName,
-			hostNickname: hostPlayer?.nickname || "Unknown",
-			playerCount: this.players.size,
-			maxPlayers: 6,
-			status: this.status,
-		};
-	}
-
-	get playerCount(): number {
-		return this.players.size;
-	}
-
-	get currentStatus(): "waiting" | "playing" {
-		return this.status;
-	}
-
-	get hasGame(): boolean {
-		return this.game !== null;
-	}
-
-	getPlayerId(visitorId: string): string | undefined {
-		return this.connections.get(visitorId);
-	}
-
-	hasPlayer(playerId: string): boolean {
-		return this.players.has(playerId);
-	}
-
-	getGameStateForPlayer(playerId: string): object | null {
-		return this.game?.getStateForPlayer(playerId) ?? null;
-	}
-
-	// ─────────────────────────────────────────────────────────────────────────
-	// Connection management (called by DO wrapper)
-	// ─────────────────────────────────────────────────────────────────────────
-
-	setRoomId(roomId: string): void {
-		if (!this.roomId) {
-			this.roomId = roomId;
-		}
-	}
-
-	setRoomName(roomName: string): void {
-		if (!this.roomName) {
-			this.roomName = roomName;
-		}
-	}
-
-	addConnection(visitorId: string): void {
+	/** Register a new WebSocket connection. */
+	connect(visitorId: string): void {
 		this.connections.set(visitorId, visitorId);
 	}
 
+	/** Handle any client message. */
+	handleMessage(visitorId: string, message: RoomClientMessage): RoomResult {
+		switch (message.type) {
+			case "join":
+				return this.handleJoin(visitorId, message.nickname);
+			case "leave":
+				return this.handleLeave(visitorId);
+			case "startGame":
+				return this.handleStartGame(visitorId);
+			case "action":
+				return this.handleAction(visitorId, message.action);
+			case "quitGame":
+				return this.handleQuitGame();
+			default:
+				return {};
+		}
+	}
+
+	/** Handle WebSocket disconnect. */
+	handleDisconnect(visitorId: string): RoomResult {
+		const playerId = this.connections.get(visitorId);
+		this.connections.delete(visitorId);
+
+		if (playerId && this.status === "waiting") {
+			this.removePlayer(playerId);
+			return {
+				broadcast: { type: "roomState", state: this.state },
+				toLobby: this.roomInfo,
+			};
+		}
+
+		return {};
+	}
+
 	// ─────────────────────────────────────────────────────────────────────────
-	// Message handlers
+	// Private message handlers
 	// ─────────────────────────────────────────────────────────────────────────
 
-	/**
-	 * Handles a player joining the room.
-	 * - During waiting: adds player to room, first player becomes host
-	 * - During game: allows rejoin by matching nickname to existing player
-	 */
-	handleJoin(visitorId: string, nickname: string): RoomResult {
+	private handleJoin(visitorId: string, nickname: string): RoomResult {
 		const playerId = this.connections.get(visitorId);
 		if (!playerId) return {};
 
-		// During an active game, only allow rejoining as an existing player
 		if (this.status === "playing") {
 			return this.handleRejoinDuringGame(visitorId, nickname);
 		}
@@ -137,7 +109,7 @@ export class GameRoom {
 
 		return {
 			broadcast: { type: "roomState", state: this.state },
-			toLobby: this.getRoomInfo(),
+			toLobby: this.roomInfo,
 		};
 	}
 
@@ -149,29 +121,28 @@ export class GameRoom {
 			(player) => player.nickname === nickname,
 		);
 
-		if (!existingPlayer) {
+		if (!existingPlayer || !this.game) {
 			return this.errorToVisitor(visitorId, "Game already started");
 		}
 
-		// Reconnect this visitor to their existing player
 		this.connections.set(visitorId, existingPlayer.id);
 
-		const messages: object[] = [
-			{ type: "roomState", state: this.state },
-			{ type: "gameStarted" },
-		];
-		if (this.game) {
-			messages.push({
-				type: "state",
-				state: this.game.getStateForPlayer(existingPlayer.id),
-			});
-		}
-
-		return { toVisitor: { visitorId, messages } };
+		return {
+			toVisitor: {
+				visitorId,
+				messages: [
+					{ type: "roomState", state: this.state },
+					{ type: "gameStarted" },
+					{
+						type: "state",
+						state: this.game.getStateForPlayer(existingPlayer.id),
+					},
+				],
+			},
+		};
 	}
 
-	/** Handles explicit leave request. Removes player and closes connection. */
-	handleLeave(visitorId: string): RoomResult {
+	private handleLeave(visitorId: string): RoomResult {
 		const playerId = this.connections.get(visitorId);
 		if (playerId) {
 			this.removePlayer(playerId);
@@ -179,33 +150,12 @@ export class GameRoom {
 
 		return {
 			broadcast: { type: "roomState", state: this.state },
-			toLobby: this.getRoomInfo(),
+			toLobby: this.roomInfo,
 			closeConnection: visitorId,
 		};
 	}
 
-	/**
-	 * Handles WebSocket disconnect.
-	 * - During waiting: removes player (they can rejoin as new player)
-	 * - During game: keeps player (they can rejoin by nickname)
-	 */
-	handleDisconnect(visitorId: string): RoomResult {
-		const playerId = this.connections.get(visitorId);
-		this.connections.delete(visitorId);
-
-		if (playerId && this.status === "waiting") {
-			this.removePlayer(playerId);
-			return {
-				broadcast: { type: "roomState", state: this.state },
-				toLobby: this.getRoomInfo(),
-			};
-		}
-
-		return {};
-	}
-
-	/** Starts the game. Only host can start, requires 2+ players. */
-	handleStartGame(visitorId: string): RoomResult {
+	private handleStartGame(visitorId: string): RoomResult {
 		const playerId = this.connections.get(visitorId);
 
 		if (playerId !== this.hostId) {
@@ -224,13 +174,12 @@ export class GameRoom {
 
 		return {
 			broadcast: { type: "gameStarted" },
-			broadcastGameState: true,
-			toLobby: this.getRoomInfo(),
+			gameStates: this.buildGameStates(),
+			toLobby: this.roomInfo,
 		};
 	}
 
-	/** Dispatches a game action. Validates player identity and game state. */
-	handleAction(visitorId: string, action: Action): RoomResult {
+	private handleAction(visitorId: string, action: Action): RoomResult {
 		if (!this.game) {
 			return this.errorToVisitor(visitorId, "Game not started");
 		}
@@ -242,21 +191,20 @@ export class GameRoom {
 
 		try {
 			this.game.dispatch(playerId, action);
-			return { broadcastGameState: true };
+			return { gameStates: this.buildGameStates() };
 		} catch (error) {
 			const message = error instanceof Error ? error.message : "Unknown error";
 			return this.errorToVisitor(visitorId, message);
 		}
 	}
 
-	/** Ends the current game and returns room to waiting state. */
-	handleQuitGame(): RoomResult {
+	private handleQuitGame(): RoomResult {
 		this.game = null;
 		this.status = "waiting";
 
 		return {
 			broadcast: { type: "roomState", state: this.state },
-			toLobby: this.getRoomInfo(),
+			toLobby: this.roomInfo,
 		};
 	}
 
@@ -264,23 +212,56 @@ export class GameRoom {
 	// Private helpers
 	// ─────────────────────────────────────────────────────────────────────────
 
+	private get state(): RoomState {
+		return {
+			id: this.roomId,
+			name: this.roomName,
+			status: this.status,
+			hostId: this.hostId || "",
+			players: Array.from(this.players.values()),
+		};
+	}
+
+	private get roomInfo(): RoomInfo {
+		const hostPlayer = this.hostId ? this.players.get(this.hostId) : null;
+		return {
+			id: this.roomId,
+			name: this.roomName,
+			hostNickname: hostPlayer?.nickname || "Unknown",
+			playerCount: this.players.size,
+			maxPlayers: 6,
+			status: this.status,
+		};
+	}
+
+	private buildGameStates(): Map<string, object> {
+		const states = new Map<string, object>();
+		if (!this.game) return states;
+
+		for (const [visitorId, playerId] of this.connections) {
+			if (this.players.has(playerId)) {
+				const state = this.game.getStateForPlayer(playerId);
+				if (state) states.set(visitorId, state);
+			}
+		}
+		return states;
+	}
+
 	private removePlayer(playerId: string): void {
 		const player = this.players.get(playerId);
 		if (!player) return;
 
 		this.players.delete(playerId);
 
-		// Reassign host if needed
-		if (player.isHost && this.players.size > 0) {
+		// Reassign host if necessary
+		if (player.isHost) {
 			const newHost = this.players.values().next().value;
 			if (newHost) {
 				newHost.isHost = true;
 				this.hostId = newHost.id;
+			} else {
+				this.hostId = null;
 			}
-		}
-
-		if (this.players.size === 0) {
-			this.hostId = null;
 		}
 	}
 

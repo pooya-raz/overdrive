@@ -5,7 +5,6 @@ interface HandProps {
 	cards: CardType[];
 	selectedIndices: number[];
 	onToggleCard: (index: number) => void;
-	disabled?: boolean;
 	disabledIndices?: number[];
 }
 
@@ -25,26 +24,30 @@ const cardColors: Record<string, string> = {
 	upgrade: "bg-purple-500 hover:bg-purple-600",
 };
 
+const baseCardStyles =
+	"w-15 h-20 rounded-lg border-2 border-white/20 text-2xl font-bold text-white cursor-pointer transition-transform";
+const liftedCardStyles = "-translate-y-2 shadow-lg border-white";
+const greyedOutCardStyles = "opacity-50 cursor-not-allowed";
+
 export function Hand({
 	cards,
 	selectedIndices,
 	onToggleCard,
-	disabled = false,
 	disabledIndices = [],
 }: HandProps) {
 	return (
 		<div className="grid grid-cols-7 gap-2">
 			{cards.map((card, index) => {
-				const isDisabled = disabled || disabledIndices.includes(index);
+				const isSelected = selectedIndices.includes(index);
+				const isDisabled = disabledIndices.includes(index);
 				return (
 					<button
 						key={index}
 						className={cn(
-							"w-15 h-20 rounded-lg border-2 border-white/20 text-2xl font-bold text-white cursor-pointer transition-transform",
+							baseCardStyles,
 							cardColors[card.type],
-							selectedIndices.includes(index) &&
-								"-translate-y-2 shadow-lg border-white",
-							isDisabled && "opacity-50 cursor-not-allowed",
+							isSelected && liftedCardStyles,
+							isDisabled && greyedOutCardStyles,
 						)}
 						onClick={() => onToggleCard(index)}
 						disabled={isDisabled}

@@ -25,6 +25,7 @@ export type {
 	GamePhase,
 	GameState,
 	Gear,
+	PlayerInput,
 	ReactChoice,
 	Track,
 	TurnState,
@@ -45,23 +46,11 @@ interface InternalGameState {
 	raceFinishing: boolean;
 }
 
-function normalizePlayerList(
-	request: CreateGameRequest,
-): { id: string; username: string }[] {
-	if (request.players) {
-		return request.players;
-	}
-	if (request.playerIds) {
-		return request.playerIds.map((id) => ({ id, username: "" }));
-	}
-	throw new Error("Either players or playerIds must be provided");
-}
-
 function createPlayers(
 	request: CreateGameRequest,
 	options: GameOptions = {},
 ): Record<string, Player> {
-	const playerList = normalizePlayerList(request);
+	const { players: playerList } = request;
 	if (new Set(playerList.map((p) => p.id)).size !== playerList.length) {
 		throw new Error("Player IDs must be unique");
 	}

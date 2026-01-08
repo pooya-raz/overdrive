@@ -40,9 +40,13 @@ export type Action =
 	| { type: "slipstream"; use: boolean }
 	| { type: "discard"; cardIndices: number[] };
 
+export interface PlayerInput {
+	id: string;
+	username: string;
+}
+
 export interface CreateGameRequest {
-	playerIds?: string[];
-	players?: { id: string; username: string }[];
+	players: PlayerInput[];
 	map: GameMap;
 	laps?: number;
 }

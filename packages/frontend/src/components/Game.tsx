@@ -8,26 +8,31 @@ import { PlayerList } from "./PlayerList";
 interface GameProps {
 	gameState: GameState;
 	playerId: string;
+	playerNames: Record<string, string>;
 	onAction: (action: Action) => void;
 	error: string | null;
 }
 
-export function Game({ gameState, playerId, onAction, error }: GameProps) {
-	const player = gameState.players[playerId];
-	const isMyTurn = (): boolean => {
-		if (gameState.phase === "planning") {
-			return gameState.pendingPlayers[playerId];
-		}
-		if (gameState.phase === "finished") {
-			return false;
-		}
-		return gameState.turnOrder[gameState.currentPlayerIndex] === playerId;
-	};
+export function isPlayersTurn(gameState: GameState, playerId: string): boolean {
+	if (gameState.phase === "planning") {
+		return gameState.pendingPlayers[playerId];
+	}
+	if (gameState.phase === "finished") {
+		return false;
+	}
+	return gameState.turnOrder[gameState.currentPlayerIndex] === playerId;
+}
 
+export function Game({ gameState, playerId, playerNames, onAction, error }: GameProps) {
+	const player = gameState.players[playerId];
+	const isMyTurn = isPlayersTurn(gameState, playerId);
 	const currentTurnPlayer =
 		gameState.phase === "resolution"
 			? gameState.turnOrder[gameState.currentPlayerIndex]
 			: null;
+	const currentTurnPlayerName = currentTurnPlayer
+		? playerNames[currentTurnPlayer] || currentTurnPlayer
+		: null;
 
 	return (
 		<div className="min-h-screen grid grid-rows-[auto_1fr] bg-gradient-to-br from-slate-900 to-slate-800">
@@ -36,8 +41,8 @@ export function Game({ gameState, playerId, onAction, error }: GameProps) {
 				<div className="grid grid-flow-col gap-4">
 					<Badge variant="outline">Turn {gameState.turn}</Badge>
 					<Badge variant="secondary">{gameState.phase}</Badge>
-					{currentTurnPlayer && (
-						<Badge>Current: {currentTurnPlayer}</Badge>
+					{currentTurnPlayerName && (
+						<Badge>Current: {currentTurnPlayerName}</Badge>
 					)}
 				</div>
 			</header>
@@ -52,7 +57,7 @@ export function Game({ gameState, playerId, onAction, error }: GameProps) {
 
 					<div className="grid grid-cols-[auto_1fr] gap-6 w-full max-w-5xl mx-auto">
 						<aside>
-							<PlayerList gameState={gameState} currentPlayerId={playerId} />
+							<PlayerList gameState={gameState} currentPlayerId={playerId} playerNames={playerNames} />
 						</aside>
 
 						<main>
@@ -68,7 +73,7 @@ export function Game({ gameState, playerId, onAction, error }: GameProps) {
 													key={id}
 													className={`p-2 rounded ${id === playerId ? "bg-blue-500/20 font-bold" : ""}`}
 												>
-													{index + 1}. {id} {id === playerId && "(you)"}
+													{index + 1}. {playerNames[id] || id} {id === playerId && "(you)"}
 												</li>
 											))}
 										</ol>
@@ -76,12 +81,12 @@ export function Game({ gameState, playerId, onAction, error }: GameProps) {
 								</Card>
 							) : (
 								<div className="grid gap-4">
-									{!isMyTurn() && (
+									{!isMyTurn && (
 										<div className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-4 py-3 rounded-lg text-center">
 											Waiting for{" "}
 											{gameState.phase === "planning"
 												? "other players..."
-												: `${currentTurnPlayer}...`}
+												: `${currentTurnPlayerName}...`}
 										</div>
 									)}
 									<ActionPanel
@@ -90,7 +95,7 @@ export function Game({ gameState, playerId, onAction, error }: GameProps) {
 										currentGear={player.gear}
 										hasAdrenaline={player.hasAdrenaline}
 										onAction={onAction}
-										disabled={!isMyTurn()}
+										disabled={!isMyTurn}
 										position={player.position}
 										corners={gameState.track.corners}
 										trackLength={gameState.track.length}

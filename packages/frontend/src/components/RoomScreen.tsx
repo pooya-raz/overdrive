@@ -57,10 +57,14 @@ export function RoomScreen({
 
 	// Show game if started and we have game state
 	if (gameStarted && gameState && playerId) {
+		const playerNames = Object.fromEntries(
+			(roomState?.players || []).map((p) => [p.id, p.nickname]),
+		);
 		return (
 			<Game
 				gameState={gameState}
 				playerId={playerId}
+				playerNames={playerNames}
 				onAction={sendAction}
 				error={error}
 			/>

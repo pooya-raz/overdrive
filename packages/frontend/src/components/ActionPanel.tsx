@@ -72,6 +72,10 @@ export function ActionPanel({
 		);
 	};
 
+	const heatCardIndices = hand
+		.map((card, index) => (card.type === "heat" ? index : -1))
+		.filter((i) => i !== -1);
+
 	const nonDiscardableIndices = hand
 		.map((card, index) => (card.type === "heat" || card.type === "stress" ? index : -1))
 		.filter((i) => i !== -1);
@@ -111,6 +115,7 @@ export function ActionPanel({
 							selectedIndices={selectedCards}
 							onToggleCard={toggleCard}
 							disabled={disabled}
+							disabledIndices={heatCardIndices}
 						/>
 					</div>
 					<Button

@@ -30,7 +30,7 @@ export function GearSelector({
 					variant="outline"
 					size="icon"
 					className={cn(
-						"rounded-full text-white hover:text-red-500",
+						"rounded-full bg-slate-700 text-white hover:bg-slate-600",
 						selectedGear === gear && "ring-2 ring-blue-500 bg-blue-500 border-blue-500",
 					)}
 					onClick={() => onSelectGear(gear)}

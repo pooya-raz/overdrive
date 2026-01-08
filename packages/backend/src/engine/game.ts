@@ -201,7 +201,7 @@ export class Game {
 		switch (action.type) {
 			case "adrenaline": {
 				player.applyAdrenaline(action.acceptMove, action.acceptCooldown);
-				this._state.currentState = "react";
+				this.enterReactOrSkip(playerId, player);
 				break;
 			}
 			case "react": {
@@ -259,18 +259,25 @@ export class Game {
 
 	/** Reveals cards, moves player, then waits for adrenaline or react input. */
 	private revealAndMove(): void {
-		const player = this.getCurrentPlayer();
+		const playerId = this._state.turnOrder[this._state.currentPlayerIndex];
+		const player = this._state.players[playerId];
 		player.beginResolution();
 		if (player.state.hasAdrenaline) {
 			this._state.currentState = "adrenaline";
 		} else {
-			this._state.currentState = "react";
+			this.enterReactOrSkip(playerId, player);
 		}
 	}
 
-	private getCurrentPlayer(): Player {
-		const playerId = this._state.turnOrder[this._state.currentPlayerIndex];
-		return this._state.players[playerId];
+	/** Sets state to react, or skips to next phase if no viable reactions. */
+	private enterReactOrSkip(playerId: string, player: Player): void {
+		if (player.hasViableReactions()) {
+			this._state.currentState = "react";
+		} else if (this.canSlipstream(playerId)) {
+			this._state.currentState = "slipstream";
+		} else {
+			this.finishMovement(playerId, player);
+		}
 	}
 
 	private assignAdrenaline(): void {

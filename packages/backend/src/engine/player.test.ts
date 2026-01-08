@@ -940,6 +940,55 @@ describe("Player", () => {
 		});
 	});
 
+	describe("hasViableReactions", () => {
+		it("returns false when no heat in engine and no heat in hand", () => {
+			const player = createPlayer({
+				gear: 3,
+				played: [{ type: "speed", value: 4 }],
+				hand: [{ type: "speed", value: 2 }],
+				engine: [],
+			});
+			player.beginResolution();
+
+			expect(player.hasViableReactions()).toBe(false);
+		});
+
+		it("returns true when boost available (heat in engine)", () => {
+			const player = createPlayer({
+				gear: 3,
+				played: [{ type: "speed", value: 4 }],
+				engine: [{ type: "heat" }],
+			});
+			player.beginResolution();
+
+			expect(player.hasViableReactions()).toBe(true);
+		});
+
+		it("returns true when cooldown available (heat in hand)", () => {
+			const player = createPlayer({
+				gear: 1,
+				played: [{ type: "speed", value: 4 }],
+				hand: [{ type: "heat" }],
+				engine: [],
+			});
+			player.beginResolution();
+
+			expect(player.hasViableReactions()).toBe(true);
+		});
+
+		it("returns false when cooldown available but no heat in hand", () => {
+			const player = createPlayer({
+				gear: 1,
+				played: [{ type: "speed", value: 4 }],
+				hand: [{ type: "speed", value: 2 }],
+				engine: [],
+			});
+			player.beginResolution();
+
+			expect(player.hasViableReactions()).toBe(false);
+		});
+	});
+
 	describe("checkCorners", () => {
 		const corner: Corner = { position: 5, speedLimit: 4 };
 

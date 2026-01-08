@@ -404,7 +404,20 @@ export class Player {
 			}
 		}
 
-		return this._availableReactions.length === 0;
+		return !this.hasViableReactions();
+	}
+
+	/** Returns true if any available reaction can actually be used. */
+	hasViableReactions(): boolean {
+		return this._availableReactions.some((reaction) => {
+			if (reaction === "cooldown") {
+				return this._hand.some((card) => card.type === "heat");
+			}
+			if (reaction === "boost") {
+				return this._engine.length > 0;
+			}
+			return false;
+		});
 	}
 
 	checkCorners(corners: Corner[]): void {

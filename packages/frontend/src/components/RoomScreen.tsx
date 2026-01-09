@@ -106,7 +106,7 @@ export function RoomScreen({
 												Host
 											</span>
 										)}
-										{player.nickname === nickname && (
+										{player.id === playerId && (
 											<span className="text-xs text-muted-foreground">
 												(you)
 											</span>

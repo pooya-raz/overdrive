@@ -1,14 +1,18 @@
 {
-	"name": "heat",
-	"private": true,
-	"scripts": {
-		"dev": "pnpm -r --parallel run dev",
-		"dev:backend": "pnpm --filter backend dev",
-		"dev:frontend": "pnpm --filter frontend dev",
-		"test": "pnpm --filter backend test",
-		"verify": "pnpm --filter backend verify",
-		"deploy": "pnpm run deploy:backend && pnpm run deploy:frontend",
-		"deploy:backend": "pnpm --filter backend run deploy",
-		"deploy:frontend": "pnpm --filter frontend build && npx wrangler pages deploy packages/frontend/dist --project-name=heat"
-	}
+  "name": "heat",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "dev:backend": "pnpm --filter backend dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "test": "pnpm --filter backend test",
+    "verify": "pnpm --filter backend verify",
+    "deploy": "pnpm run deploy:backend && pnpm run deploy:frontend",
+    "deploy:backend": "pnpm --filter backend run deploy",
+    "deploy:frontend": "pnpm --filter frontend build && npx wrangler pages deploy packages/frontend/dist --project-name=heat"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "@types/node": "^24.10.4"
+  }
 }

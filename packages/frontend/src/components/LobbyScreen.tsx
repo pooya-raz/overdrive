@@ -9,15 +9,15 @@ const WS_URL = import.meta.env.DEV
 	: "wss://heat-backend.pooya72.workers.dev/ws/lobby";
 
 interface LobbyScreenProps {
-	nickname: string;
+	username: string;
 	onJoinRoom: (roomId: string, roomName: string) => void;
-	onChangeNickname: () => void;
+	onChangeUsername: () => void;
 }
 
 export function LobbyScreen({
-	nickname,
+	username,
 	onJoinRoom,
-	onChangeNickname,
+	onChangeUsername,
 }: LobbyScreenProps) {
 	const [newRoomName, setNewRoomName] = useState("");
 	const pendingRoomNameRef = useRef<string | null>(null);
@@ -37,7 +37,7 @@ export function LobbyScreen({
 		e.preventDefault();
 		if (newRoomName.trim()) {
 			pendingRoomNameRef.current = newRoomName.trim();
-			createRoom(newRoomName.trim(), nickname);
+			createRoom(newRoomName.trim(), username);
 			setNewRoomName("");
 		}
 	};
@@ -58,8 +58,8 @@ export function LobbyScreen({
 				<header className="flex justify-between items-center">
 					<h1 className="text-3xl font-bold text-white">Heat - Lobby</h1>
 					<div className="flex items-center gap-4">
-						<span className="text-white">Playing as: {nickname}</span>
-						<Button variant="outline" size="sm" onClick={onChangeNickname}>
+						<span className="text-white">Playing as: {username}</span>
+						<Button variant="outline" size="sm" onClick={onChangeUsername}>
 							Change
 						</Button>
 					</div>
@@ -111,7 +111,7 @@ export function LobbyScreen({
 											<span className="font-medium">{room.name}</span>
 											<span className="text-muted-foreground ml-2">
 												({room.playerCount}/{room.maxPlayers}) - Host:{" "}
-												{room.hostNickname}
+												{room.hostUsername}
 											</span>
 										</div>
 										<Button

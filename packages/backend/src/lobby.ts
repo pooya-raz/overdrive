@@ -41,7 +41,7 @@ export class Lobby extends DurableObject {
 				const roomInfo: RoomInfo = {
 					id: roomId,
 					name: message.roomName,
-					hostNickname: message.hostNickname,
+					hostUsername: message.hostUsername,
 					playerCount: 0,
 					maxPlayers: 6,
 					status: "waiting",

@@ -5,7 +5,7 @@ type ConnectionStatus = "connecting" | "connected" | "disconnected";
 
 interface UseRoomSocketOptions {
 	url: string;
-	nickname: string;
+	username: string;
 }
 
 interface UseRoomSocketReturn {
@@ -23,7 +23,7 @@ interface UseRoomSocketReturn {
 
 export function useRoomSocket({
 	url,
-	nickname,
+	username,
 }: UseRoomSocketOptions): UseRoomSocketReturn {
 	const [status, setStatus] = useState<ConnectionStatus>("disconnected");
 	const [roomState, setRoomState] = useState<RoomState | null>(null);
@@ -34,7 +34,7 @@ export function useRoomSocket({
 	const socketRef = useRef<WebSocket | null>(null);
 
 	useEffect(() => {
-		if (!url || !nickname) {
+		if (!url || !username) {
 			return;
 		}
 
@@ -48,7 +48,7 @@ export function useRoomSocket({
 
 		socket.onopen = () => {
 			setStatus("connected");
-			socket.send(JSON.stringify({ type: "join", nickname }));
+			socket.send(JSON.stringify({ type: "join", username }));
 		};
 
 		socket.onmessage = (event) => {
@@ -91,7 +91,7 @@ export function useRoomSocket({
 		return () => {
 			socket.close();
 		};
-	}, [url, nickname]);
+	}, [url, username]);
 
 	const startGame = useCallback(() => {
 		if (socketRef.current?.readyState === WebSocket.OPEN) {

@@ -8,7 +8,7 @@ interface UseLobbySocketReturn {
 	rooms: RoomInfo[];
 	error: string | null;
 	createdRoomId: string | null;
-	createRoom: (roomName: string, hostNickname: string) => void;
+	createRoom: (roomName: string, hostUsername: string) => void;
 	clearCreatedRoom: () => void;
 }
 
@@ -61,10 +61,10 @@ export function useLobbySocket(url: string): UseLobbySocketReturn {
 		};
 	}, [url]);
 
-	const createRoom = useCallback((roomName: string, hostNickname: string) => {
+	const createRoom = useCallback((roomName: string, hostUsername: string) => {
 		if (socketRef.current?.readyState === WebSocket.OPEN) {
 			socketRef.current.send(
-				JSON.stringify({ type: "createRoom", roomName, hostNickname }),
+				JSON.stringify({ type: "createRoom", roomName, hostUsername }),
 			);
 		}
 	}, []);

@@ -1,7 +1,7 @@
 export interface RoomInfo {
 	id: string;
 	name: string;
-	hostNickname: string;
+	hostUsername: string;
 	playerCount: number;
 	maxPlayers: number;
 	status: "waiting" | "playing";
@@ -9,7 +9,7 @@ export interface RoomInfo {
 
 export interface RoomPlayer {
 	id: string;
-	nickname: string;
+	username: string;
 	isHost: boolean;
 }
 

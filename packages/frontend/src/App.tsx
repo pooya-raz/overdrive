@@ -1,19 +1,19 @@
 import { useState } from "react";
-import { NicknameScreen } from "@/components/NicknameScreen";
+import { UsernameScreen } from "@/components/UsernameScreen";
 import { LobbyScreen } from "@/components/LobbyScreen";
 import { RoomScreen } from "@/components/RoomScreen";
 
 type AppScreen =
-	| { type: "nickname" }
+	| { type: "username" }
 	| { type: "lobby" }
 	| { type: "room"; roomId: string; roomName: string };
 
 const ROOM_STORAGE_KEY = "heat-current-room";
 
 function getInitialScreen(): AppScreen {
-	const savedNickname = localStorage.getItem("heat-nickname");
-	if (!savedNickname) {
-		return { type: "nickname" };
+	const savedUsername = localStorage.getItem("heat-username");
+	if (!savedUsername) {
+		return { type: "username" };
 	}
 
 	// Check if we were in a room (for rejoin after refresh)
@@ -34,13 +34,13 @@ function getInitialScreen(): AppScreen {
 
 function App() {
 	const [screen, setScreen] = useState<AppScreen>(getInitialScreen);
-	const [nickname, setNickname] = useState(() =>
-		localStorage.getItem("heat-nickname") || "",
+	const [username, setUsername] = useState(() =>
+		localStorage.getItem("heat-username") || "",
 	);
 
-	const handleNicknameSubmit = (name: string) => {
-		setNickname(name);
-		localStorage.setItem("heat-nickname", name);
+	const handleUsernameSubmit = (name: string) => {
+		setUsername(name);
+		localStorage.setItem("heat-username", name);
 		setScreen({ type: "lobby" });
 	};
 
@@ -54,22 +54,22 @@ function App() {
 		setScreen({ type: "lobby" });
 	};
 
-	const handleChangeNickname = () => {
-		setScreen({ type: "nickname" });
+	const handleChangeUsername = () => {
+		setScreen({ type: "username" });
 	};
 
-	if (screen.type === "nickname" || !nickname) {
+	if (screen.type === "username" || !username) {
 		return (
-			<NicknameScreen onSubmit={handleNicknameSubmit} initialValue={nickname} />
+			<UsernameScreen onSubmit={handleUsernameSubmit} initialValue={username} />
 		);
 	}
 
 	if (screen.type === "lobby") {
 		return (
 			<LobbyScreen
-				nickname={nickname}
+				username={username}
 				onJoinRoom={handleJoinRoom}
-				onChangeNickname={handleChangeNickname}
+				onChangeUsername={handleChangeUsername}
 			/>
 		);
 	}
@@ -79,7 +79,7 @@ function App() {
 			<RoomScreen
 				roomId={screen.roomId}
 				roomName={screen.roomName}
-				nickname={nickname}
+				username={username}
 				onLeave={handleLeaveRoom}
 			/>
 		);

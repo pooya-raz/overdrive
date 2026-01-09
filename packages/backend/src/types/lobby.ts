@@ -6,7 +6,7 @@ export type { RoomInfo, RoomPlayer, RoomState } from "@heat/shared";
 // Lobby WebSocket messages
 export type LobbyClientMessage =
 	| { type: "subscribe" }
-	| { type: "createRoom"; roomName: string; hostNickname: string };
+	| { type: "createRoom"; roomName: string; hostUsername: string };
 
 export type LobbyServerMessage =
 	| { type: "roomList"; rooms: import("@heat/shared").RoomInfo[] }
@@ -15,7 +15,7 @@ export type LobbyServerMessage =
 
 // Room WebSocket messages
 export type RoomClientMessage =
-	| { type: "join"; nickname: string }
+	| { type: "join"; username: string }
 	| { type: "leave" }
 	| { type: "startGame" }
 	| { type: "action"; action: import("@heat/shared").Action }

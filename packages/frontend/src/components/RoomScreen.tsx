@@ -14,14 +14,14 @@ const getWsUrl = (roomId: string, roomName: string) => {
 interface RoomScreenProps {
 	roomId: string;
 	roomName: string;
-	nickname: string;
+	username: string;
 	onLeave: () => void;
 }
 
 export function RoomScreen({
 	roomId,
 	roomName,
-	nickname,
+	username,
 	onLeave,
 }: RoomScreenProps) {
 	const {
@@ -35,7 +35,7 @@ export function RoomScreen({
 		leaveRoom,
 		quitGame,
 		sendAction,
-	} = useRoomSocket({ url: getWsUrl(roomId, roomName), nickname });
+	} = useRoomSocket({ url: getWsUrl(roomId, roomName), username });
 
 	const handleLeave = () => {
 		leaveRoom();
@@ -100,7 +100,7 @@ export function RoomScreen({
 							<ul className="space-y-1">
 								{roomState?.players.map((player) => (
 									<li key={player.id} className="flex items-center gap-2">
-										<span>{player.nickname}</span>
+										<span>{player.username}</span>
 										{player.isHost && (
 											<span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded">
 												Host

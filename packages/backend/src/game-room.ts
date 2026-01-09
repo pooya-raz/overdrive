@@ -50,7 +50,7 @@ export class GameRoom {
 	handleMessage(visitorId: string, message: RoomClientMessage): RoomResult {
 		switch (message.type) {
 			case "join":
-				return this.handleJoin(visitorId, message.nickname);
+				return this.handleJoin(visitorId, message.username);
 			case "leave":
 				return this.handleLeave(visitorId);
 			case "startGame":
@@ -84,12 +84,12 @@ export class GameRoom {
 	// Private message handlers
 	// ─────────────────────────────────────────────────────────────────────────
 
-	private handleJoin(visitorId: string, nickname: string): RoomResult {
+	private handleJoin(visitorId: string, username: string): RoomResult {
 		const playerId = this.connections.get(visitorId);
 		if (!playerId) return {};
 
 		if (this.status === "playing") {
-			return this.handleRejoinDuringGame(visitorId, nickname);
+			return this.handleRejoinDuringGame(visitorId, username);
 		}
 
 		if (this.players.size >= 6) {
@@ -103,7 +103,7 @@ export class GameRoom {
 
 		this.players.set(playerId, {
 			id: playerId,
-			nickname,
+			username,
 			isHost: isFirstPlayer,
 		});
 
@@ -119,10 +119,10 @@ export class GameRoom {
 
 	private handleRejoinDuringGame(
 		visitorId: string,
-		nickname: string,
+		username: string,
 	): RoomResult {
 		const existingPlayer = Array.from(this.players.values()).find(
-			(player) => player.nickname === nickname,
+			(player) => player.username === username,
 		);
 
 		if (!existingPlayer || !this.game) {
@@ -174,7 +174,7 @@ export class GameRoom {
 		this.game = new Game({
 			players: Array.from(this.players.values()).map((p) => ({
 				id: p.id,
-				username: p.nickname,
+				username: p.username,
 			})),
 			map: "USA",
 		});
@@ -234,7 +234,7 @@ export class GameRoom {
 		return {
 			id: this.roomId,
 			name: this.roomName,
-			hostNickname: hostPlayer?.nickname || "Unknown",
+			hostUsername: hostPlayer?.username || "Unknown",
 			playerCount: this.players.size,
 			maxPlayers: 6,
 			status: this.status,

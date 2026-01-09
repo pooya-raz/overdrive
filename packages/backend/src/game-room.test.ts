@@ -13,9 +13,9 @@ function createRoom(roomId = "room-1", roomName = "Test Room"): GameRoom {
 	return new GameRoom(roomId, roomName);
 }
 
-function joinPlayer(room: GameRoom, visitorId: string, nickname: string) {
+function joinPlayer(room: GameRoom, visitorId: string, username: string) {
 	room.connect(visitorId);
-	return room.handleMessage(visitorId, { type: "join", nickname });
+	return room.handleMessage(visitorId, { type: "join", username });
 }
 
 function getRoomState(result: { broadcast?: object }) {
@@ -23,7 +23,7 @@ function getRoomState(result: { broadcast?: object }) {
 	return broadcast?.type === "roomState"
 		? (broadcast.state as {
 				hostId: string;
-				players: { id: string; nickname: string; isHost: boolean }[];
+				players: { id: string; username: string; isHost: boolean }[];
 				status: string;
 			})
 		: null;
@@ -78,7 +78,7 @@ describe("GameRoom", () => {
 			room.connect(VISITOR_7);
 			const result7 = room.handleMessage(VISITOR_7, {
 				type: "join",
-				nickname: "P7",
+				username: "P7",
 			});
 
 			expect(result7.toVisitor).toEqual({
@@ -282,7 +282,7 @@ describe("GameRoom", () => {
 	});
 
 	describe("rejoin during game", () => {
-		it("should allow rejoin by nickname during game", () => {
+		it("should allow rejoin by username during game", () => {
 			const room = createRoom();
 
 			joinPlayer(room, VISITOR_1, "Alice");
@@ -295,7 +295,7 @@ describe("GameRoom", () => {
 			room.connect(NEW_VISITOR);
 			const result = room.handleMessage(NEW_VISITOR, {
 				type: "join",
-				nickname: "Bob",
+				username: "Bob",
 			});
 
 			expect(result.toVisitor?.visitorId).toBe(NEW_VISITOR);
@@ -317,7 +317,7 @@ describe("GameRoom", () => {
 			room.connect(VISITOR_3);
 			const result = room.handleMessage(VISITOR_3, {
 				type: "join",
-				nickname: "Charlie",
+				username: "Charlie",
 			});
 
 			expect(result.toVisitor).toEqual({
@@ -350,7 +350,7 @@ describe("GameRoom", () => {
 			expect(result.toLobby).toEqual({
 				id: "room-123",
 				name: "My Room",
-				hostNickname: "Alice",
+				hostUsername: "Alice",
 				playerCount: 2,
 				maxPlayers: 6,
 				status: "waiting",

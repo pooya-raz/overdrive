@@ -2,18 +2,18 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface NicknameScreenProps {
-	onSubmit: (nickname: string) => void;
+interface UsernameScreenProps {
+	onSubmit: (username: string) => void;
 	initialValue: string;
 }
 
-export function NicknameScreen({ onSubmit, initialValue }: NicknameScreenProps) {
-	const [nickname, setNickname] = useState(initialValue);
+export function UsernameScreen({ onSubmit, initialValue }: UsernameScreenProps) {
+	const [username, setUsername] = useState(initialValue);
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-		if (nickname.trim()) {
-			onSubmit(nickname.trim());
+		if (username.trim()) {
+			onSubmit(username.trim());
 		}
 	};
 
@@ -27,16 +27,16 @@ export function NicknameScreen({ onSubmit, initialValue }: NicknameScreenProps) 
 					<form onSubmit={handleSubmit} className="space-y-4">
 						<input
 							type="text"
-							placeholder="Enter your nickname"
-							value={nickname}
-							onChange={(e) => setNickname(e.target.value)}
+							placeholder="Enter your username"
+							value={username}
+							onChange={(e) => setUsername(e.target.value)}
 							autoFocus
 							maxLength={20}
 							className="w-full px-4 py-3 rounded-md border bg-background text-center text-lg"
 						/>
 						<Button
 							type="submit"
-							disabled={!nickname.trim()}
+							disabled={!username.trim()}
 							className="w-full"
 							size="lg"
 						>

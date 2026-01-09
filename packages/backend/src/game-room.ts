@@ -109,6 +109,10 @@ export class GameRoom {
 
 		return {
 			broadcast: { type: "roomState", state: this.state },
+			toVisitor: {
+				visitorId,
+				messages: [{ type: "joined", playerId }],
+			},
 			toLobby: this.roomInfo,
 		};
 	}

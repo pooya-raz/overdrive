@@ -55,23 +55,17 @@ export function useRoomSocket({
 			const message = JSON.parse(event.data);
 
 			switch (message.type) {
-				case "roomState": {
+				case "joined":
+					setPlayerId(message.playerId);
+					break;
+				case "roomState":
 					setError(null);
 					setRoomState(message.state);
-					// Reset game state if room is back to waiting (e.g., after quit)
 					if (message.state.status === "waiting") {
 						setGameStarted(false);
 						setGameState(null);
 					}
-					// Find our player ID from the room state
-					const player = message.state.players.find(
-						(p: { nickname: string }) => p.nickname === nickname,
-					);
-					if (player) {
-						setPlayerId(player.id);
-					}
 					break;
-				}
 				case "gameStarted":
 					setError(null);
 					setGameStarted(true);

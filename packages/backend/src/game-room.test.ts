@@ -41,6 +41,17 @@ describe("GameRoom", () => {
 			expect(state?.players[0].isHost).toBe(true);
 		});
 
+		it("should send joined message with playerId to joining player", () => {
+			const room = createRoom();
+
+			const result = joinPlayer(room, VISITOR_1, "Alice");
+
+			expect(result.toVisitor).toEqual({
+				visitorId: VISITOR_1,
+				messages: [{ type: "joined", playerId: VISITOR_1 }],
+			});
+		});
+
 		it("should allow multiple players to join", () => {
 			const room = createRoom();
 

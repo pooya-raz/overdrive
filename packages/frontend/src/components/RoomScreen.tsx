@@ -42,9 +42,7 @@ export function RoomScreen({
 		onLeave();
 	};
 
-	// Find if current user is host
-	const isHost =
-		roomState?.players.find((p) => p.nickname === nickname)?.isHost || false;
+	const isHost = roomState?.hostId === playerId;
 
 	if (status !== "connected") {
 		return (

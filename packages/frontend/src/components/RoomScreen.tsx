@@ -5,9 +5,7 @@ import { useRoomSocket } from "@/hooks/useRoomSocket";
 import { Game } from "@/components/Game";
 
 const getWsUrl = (roomId: string, roomName: string) => {
-	const base = import.meta.env.DEV
-		? "ws://localhost:8787"
-		: "wss://overdrive-backend.pooya72.workers.dev";
+	const base = import.meta.env.VITE_WS_URL;
 	return `${base}/ws/room/${roomId}?roomName=${encodeURIComponent(roomName)}`;
 };
 

@@ -11,7 +11,7 @@ A digital implementation of the **Overdrive** racing board game. This monorepo c
 - **Linting:** Biome
 - **Frontend:** React + Vite
 - **Styling:** Tailwind CSS
-- **UI Components:** Radix UI
+- **UI Components:** Shadcn
 
 ## Getting Started
 
@@ -136,18 +136,6 @@ Configuration is in `packages/backend/wrangler.jsonc`.
 ### Frontend (Pages)
 
 The frontend builds to static assets and deploys to Cloudflare Pages. The deploy command builds the frontend and uploads to the `overdrive` Pages project.
-
-## Contributing
-
-### Workflow
-1. Run `pnpm run verify` before committing (runs linter + tests)
-2. Follow the development approach: structure first, tests second, implementation last
-
-### Code Style
-- Strict TypeScript (no `any`, explicit return types on public APIs)
-- Biome for linting and formatting
-- Descriptive variable names
-- Avoid nested if statements (use early returns)
 
 ## License
 

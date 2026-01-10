@@ -25,9 +25,9 @@ async function planTurn(page: Page, playerName: string) {
   });
 }
 
-async function resolvePlayerPhases(page: Page, playerName: string): Promise<void> {
+async function resolvePlayerPhases(page: Page, playerName: string): Promise<'done' | 'finished'> {
   // Complete all resolution phases for this player in order
-  await test.step(`${playerName}: Resolve`, async () => {
+  return await test.step(`${playerName}: Resolve`, async () => {
     // Adrenaline phase (only if in last place)
     if (await page.getByText('Adrenaline').first().isVisible({ timeout: 500 }).catch(() => false)) {
       await page.getByRole('button', { name: 'Skip' }).click();
@@ -43,22 +43,34 @@ async function resolvePlayerPhases(page: Page, playerName: string): Promise<void
       await page.getByRole('button', { name: 'Skip' }).click();
     }
 
-    // Discard phase - always happens, ends resolution
-    await expect(page.getByRole('button', { name: 'Skip Discard' })).toBeVisible();
-    await page.getByRole('button', { name: 'Skip Discard' }).click();
+    // Discard phase - may not happen if game finished
+    try {
+      await page.getByRole('button', { name: 'Skip Discard' }).click({ timeout: 500 });
+      return 'done';
+    } catch {
+      // Button not available, continue to check if game finished
+    }
+
+    // Check if game finished (no discard because race ended)
+    if (await page.getByText('Race Finished!').isVisible({ timeout: 500 }).catch(() => false)) {
+      return 'finished';
+    }
+
+    return 'done';
   });
 }
 
 async function isPlayersTurn(page: Page): Promise<boolean> {
   // Check if this player has an action (any resolution phase visible)
+  // Use short timeouts for quick polling
   const phases = ['Adrenaline', 'React', 'Slipstream'];
   for (const phase of phases) {
-    if (await page.getByText(phase).first().isVisible({ timeout: 100 }).catch(() => false)) {
+    if (await page.getByText(phase).first().isVisible({ timeout: 50 }).catch(() => false)) {
       return true;
     }
   }
   // Check for discard phase via button (not text, since "Discard" appears in deck info)
-  if (await page.getByRole('button', { name: 'Skip Discard' }).isVisible({ timeout: 100 }).catch(() => false)) {
+  if (await page.getByRole('button', { name: 'Skip Discard' }).isVisible({ timeout: 50 }).catch(() => false)) {
     return true;
   }
   return false;
@@ -81,9 +93,11 @@ async function resolveAllPhases(playerA: Page, playerB: Page): Promise<'finished
 
     // Find which player's turn it is and resolve all their phases
     if (await isPlayersTurn(playerA)) {
-      await resolvePlayerPhases(playerA, 'Alice');
+      const result = await resolvePlayerPhases(playerA, 'Alice');
+      if (result === 'finished') return 'finished';
     } else if (await isPlayersTurn(playerB)) {
-      await resolvePlayerPhases(playerB, 'Bob');
+      const result = await resolvePlayerPhases(playerB, 'Bob');
+      if (result === 'finished') return 'finished';
     } else {
       // Neither player has an action yet, wait a bit
       await playerA.waitForTimeout(100);
@@ -114,25 +128,24 @@ test('two players can play a complete game', async ({ browser }) => {
   await expect(playerB.getByText('Planning Phase')).toBeVisible();
 
   // Play until game finishes
-  let gameFinished = false;
   let turnCount = 0;
   const maxTurns = 100; // Track has finite length, should finish
 
-  while (!gameFinished && turnCount < maxTurns) {
+  gameLoop: while (turnCount < maxTurns) {
     turnCount++;
 
-    await test.step(`Turn ${turnCount}`, async () => {
+    const result = await test.step(`Turn ${turnCount}`, async () => {
       // Both players plan their turn
       await planTurn(playerA, 'Alice');
       await planTurn(playerB, 'Bob');
 
       // Resolve phases for both players (order determined by game)
-      const result = await resolveAllPhases(playerA, playerB);
-
-      if (result === 'finished') {
-        gameFinished = true;
-      }
+      return await resolveAllPhases(playerA, playerB);
     });
+
+    if (result === 'finished') {
+      break gameLoop;
+    }
   }
 
   // Verify game finished

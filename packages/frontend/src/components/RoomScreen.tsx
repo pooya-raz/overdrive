@@ -7,7 +7,7 @@ import { Game } from "@/components/Game";
 const getWsUrl = (roomId: string, roomName: string) => {
 	const base = import.meta.env.DEV
 		? "ws://localhost:8787"
-		: "wss://heat-backend.pooya72.workers.dev";
+		: "wss://overdrive-backend.pooya72.workers.dev";
 	return `${base}/ws/room/${roomId}?roomName=${encodeURIComponent(roomName)}`;
 };
 

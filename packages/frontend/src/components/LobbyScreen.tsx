@@ -6,7 +6,7 @@ import { useLobbySocket } from "@/hooks/useLobbySocket";
 
 const WS_URL = import.meta.env.DEV
 	? "ws://localhost:8787/ws/lobby"
-	: "wss://heat-backend.pooya72.workers.dev/ws/lobby";
+	: "wss://overdrive-backend.pooya72.workers.dev/ws/lobby";
 
 interface LobbyScreenProps {
 	username: string;

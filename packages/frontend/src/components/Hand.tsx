@@ -5,6 +5,7 @@ interface HandProps {
 	cards: CardType[];
 	selectedIndices: number[];
 	onToggleCard: (index: number) => void;
+	disabled?: boolean;
 	disabledIndices?: number[];
 }
 
@@ -33,13 +34,14 @@ export function Hand({
 	cards,
 	selectedIndices,
 	onToggleCard,
+	disabled = false,
 	disabledIndices = [],
 }: HandProps) {
 	return (
 		<div className="grid grid-cols-7 gap-2">
 			{cards.map((card, index) => {
 				const isSelected = selectedIndices.includes(index);
-				const isDisabled = disabledIndices.includes(index);
+				const isDisabled = disabled || disabledIndices.includes(index);
 				return (
 					<button
 						key={index}

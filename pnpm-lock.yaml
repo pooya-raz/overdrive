@@ -17,7 +17,7 @@ importers:
 
   packages/backend:
     dependencies:
-      '@heat/shared':
+      '@overdrive/shared':
         specifier: workspace:*
         version: link:../shared
       hono:
@@ -42,7 +42,7 @@ importers:
 
   packages/frontend:
     dependencies:
-      '@heat/shared':
+      '@overdrive/shared':
         specifier: workspace:*
         version: link:../shared
       '@radix-ui/react-slot':

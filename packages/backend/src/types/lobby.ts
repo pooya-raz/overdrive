@@ -1,5 +1,5 @@
 // Re-export shared lobby types
-export type { RoomInfo, RoomPlayer, RoomState } from "@heat/shared";
+export type { RoomInfo, RoomPlayer, RoomState } from "@overdrive/shared";
 
 // Backend-only lobby types
 
@@ -9,7 +9,7 @@ export type LobbyClientMessage =
 	| { type: "createRoom"; roomName: string; hostUsername: string };
 
 export type LobbyServerMessage =
-	| { type: "roomList"; rooms: import("@heat/shared").RoomInfo[] }
+	| { type: "roomList"; rooms: import("@overdrive/shared").RoomInfo[] }
 	| { type: "roomCreated"; roomId: string }
 	| { type: "error"; message: string };
 
@@ -18,11 +18,11 @@ export type RoomClientMessage =
 	| { type: "join"; username: string }
 	| { type: "leave" }
 	| { type: "startGame" }
-	| { type: "action"; action: import("@heat/shared").Action }
+	| { type: "action"; action: import("@overdrive/shared").Action }
 	| { type: "quitGame" };
 
 export type RoomServerMessage =
-	| { type: "roomState"; state: import("@heat/shared").RoomState }
+	| { type: "roomState"; state: import("@overdrive/shared").RoomState }
 	| { type: "gameStarted" }
-	| { type: "state"; state: import("@heat/shared").GameState }
+	| { type: "state"; state: import("@overdrive/shared").GameState }
 	| { type: "error"; message: string };

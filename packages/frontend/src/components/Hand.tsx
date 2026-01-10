@@ -1,4 +1,4 @@
-import type { Card as CardType } from "@heat/shared";
+import type { Card as CardType } from "@overdrive/shared";
 import { cn } from "@/lib/utils";
 
 interface HandProps {

@@ -1,4 +1,4 @@
-import type { Action, GameState } from "@heat/shared";
+import type { Action, GameState } from "@overdrive/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

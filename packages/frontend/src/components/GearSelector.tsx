@@ -1,4 +1,4 @@
-import type { Gear } from "@heat/shared";
+import type { Gear } from "@overdrive/shared";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 

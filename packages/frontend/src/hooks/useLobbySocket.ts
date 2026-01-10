@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { RoomInfo } from "@heat/shared";
+import type { RoomInfo } from "@overdrive/shared";
 
 type ConnectionStatus = "connecting" | "connected" | "disconnected";
 

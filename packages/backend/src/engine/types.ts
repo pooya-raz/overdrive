@@ -12,7 +12,7 @@ export type {
 	ReactChoice,
 	Track,
 	TurnState,
-} from "@heat/shared";
+} from "@overdrive/shared";
 
 // Backend-only types
 

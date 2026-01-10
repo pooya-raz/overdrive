@@ -1,12 +1,12 @@
-# CLAUDE.md - Heat Backend
+# CLAUDE.md - Overdrive
 
 ## Project Overview
 
-Digital implementation of the "Heat: Pedal to the Metal" racing board game. Turn-based game engine running on Cloudflare Workers with Hono framework.
+Monorepo for the digital implementation of the "Overdrive" racing board game. Contains backend (Cloudflare Workers with Hono), frontend (React), and shared types.
 
 ## Tech Stack
 
-- **Runtime:** Cloudflare Workers
+- **Runtime:** Cloudflare Workers + Durable Objects
 - **Framework:** Hono (TypeScript)
 - **Testing:** Vitest
 - **Linting:** Biome
@@ -16,7 +16,8 @@ Digital implementation of the "Heat: Pedal to the Metal" racing board game. Turn
 
 ```bash
 pnpm run dev      # Start local dev server
-pnpm run test     # Run tests (use during development)
+pnpm run test     # Run unit tests (use during development)
+pnpm run e2e      # Run E2E tests (Playwright)
 pnpm run verify   # Lint + test (use before committing)
 pnpm run deploy   # Deploy to Cloudflare
 ```
@@ -74,10 +75,16 @@ Central `dispatch(playerId, action)` method validates actions and advances phase
 
 ## Testing Conventions
 
+### Unit Tests (Vitest)
 - Tests colocated with source (`*.test.ts`)
 - Use deterministic shuffle injection for predictable tests
 - Non-null assertions (`!`) allowed in test files (Biome override)
 - Engine tests (`game-engine.test.ts`) should only test through the `Game` class interface, never instantiate encapsulated classes like `Player` directly
+
+### E2E Tests (Playwright)
+- E2E tests in `e2e/` directory (`*.spec.ts`)
+- Test full user flows through the frontend
+- Run with `pnpm run e2e` or `pnpm run e2e:ui` for debugging
 
 ## Code Style
 
@@ -86,3 +93,7 @@ Central `dispatch(playerId, action)` method validates actions and advances phase
 - Explicit error messages
 - No unnecessary comments (only for non-obvious logic)
 - Avoid nested if statements (use early returns, continue, or extract methods)
+
+## Commits
+
+Do not add co-author line to commits.

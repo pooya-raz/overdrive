@@ -115,6 +115,15 @@ importers:
 
   packages/shared: {}
 
+  packages/tools/waypoint-picker:
+    devDependencies:
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^7.2.4
+        version: 7.3.1(@types/node@24.10.4)(jiti@2.6.1)(lightningcss@1.30.2)
+
 packages:
 
   '@babel/code-frame@7.27.1':

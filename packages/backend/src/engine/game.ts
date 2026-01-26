@@ -44,6 +44,7 @@ interface InternalGameState {
 	laps: number;
 	finishOrder: string[];
 	raceFinishing: boolean;
+	playerOrder: string[];
 }
 
 function createPlayers(
@@ -96,6 +97,7 @@ export class Game {
 			laps: request.laps ?? 1,
 			finishOrder: [],
 			raceFinishing: false,
+			playerOrder: request.players.map((p) => p.id),
 		};
 		this.assignAdrenaline();
 	}
@@ -118,6 +120,7 @@ export class Game {
 			currentPlayerIndex: this._state.currentPlayerIndex,
 			laps: this._state.laps,
 			finishOrder: [...this._state.finishOrder],
+			playerOrder: [...this._state.playerOrder],
 		};
 	}
 
@@ -144,6 +147,7 @@ export class Game {
 			currentPlayerIndex: this._state.currentPlayerIndex,
 			laps: this._state.laps,
 			finishOrder: [...this._state.finishOrder],
+			playerOrder: [...this._state.playerOrder],
 		};
 	}
 

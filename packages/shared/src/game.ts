@@ -1,4 +1,4 @@
-export type GameMap = "USA";
+export type GameMap = "USA" | "Test";
 
 export type Gear = 1 | 2 | 3 | 4;
 
@@ -67,4 +67,5 @@ export interface GameState {
 	currentPlayerIndex: number;
 	laps: number;
 	finishOrder: string[];
+	playerOrder: string[];
 }

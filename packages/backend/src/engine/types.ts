@@ -26,7 +26,7 @@ export interface PlayerInput {
 
 export interface CreateGameRequest {
 	players: PlayerInput[];
-	map: "USA";
+	map: GameMap;
 	laps?: number;
 }
 

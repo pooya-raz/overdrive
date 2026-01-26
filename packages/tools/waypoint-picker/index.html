@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Waypoint Picker</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; }
+      .container { display: grid; grid-template-columns: 1fr 400px; gap: 20px; padding: 20px; height: 100vh; }
+      .map-container { position: relative; background: #16213e; border-radius: 8px; overflow: hidden; }
+      #map-wrapper { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+      #map-wrapper img { max-width: 100%; max-height: 100%; object-fit: contain; }
+      #map-wrapper svg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+      #click-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: crosshair; }
+      .marker { position: absolute; width: 20px; height: 20px; background: #ef4444; border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; pointer-events: none; }
+      .sidebar { display: flex; flex-direction: column; gap: 16px; }
+      .info { background: #16213e; padding: 16px; border-radius: 8px; }
+      .info h2 { margin-bottom: 8px; }
+      .controls { display: flex; gap: 8px; }
+      button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+      .btn-undo { background: #f59e0b; color: black; }
+      .btn-clear { background: #ef4444; color: white; }
+      .btn-copy { background: #22c55e; color: white; }
+      button:hover { opacity: 0.9; }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      textarea { width: 100%; flex: 1; background: #0f0f23; color: #22c55e; border: 1px solid #333; border-radius: 4px; padding: 12px; font-family: monospace; font-size: 12px; resize: none; }
+      .count { font-size: 24px; font-weight: bold; color: #22c55e; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="map-container">
+        <div id="map-wrapper">
+          <img id="map-bg" src="/map/usa-map.webp" alt="USA Map Background" />
+          <div id="click-layer"></div>
+          <div id="markers"></div>
+        </div>
+      </div>
+      <div class="sidebar">
+        <div class="info">
+          <h2>Waypoint Picker</h2>
+          <p>Click on the map to add waypoints in order (0-68).</p>
+          <p class="count" id="count">0 / 69</p>
+        </div>
+        <div class="controls">
+          <button class="btn-undo" id="undo-btn">Undo</button>
+          <button class="btn-clear" id="clear-btn">Clear All</button>
+          <button class="btn-copy" id="copy-btn">Copy Output</button>
+        </div>
+        <textarea id="output" readonly placeholder="Waypoint coordinates will appear here..."></textarea>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

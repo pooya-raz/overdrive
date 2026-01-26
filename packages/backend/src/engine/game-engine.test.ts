@@ -628,7 +628,7 @@ describe("Game", () => {
 
 		it("should update laps, finish race, and sort finishOrder by position", () => {
 			const game = new Game(
-				{ players: [PLAYER_1, PLAYER_2], map: "USA", laps: 2 },
+				{ players: [PLAYER_1, PLAYER_2], map: "Test", laps: 2 },
 				{ shuffle: noShuffle },
 			);
 

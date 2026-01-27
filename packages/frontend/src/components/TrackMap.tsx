@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import type { PlayerData } from "@overdrive/shared";
 import { playerColors } from "@/data/player-colors";
-import { usaMapWaypoints } from "@/data/usa-map-waypoints";
+import type { MapConfig } from "@/data/maps";
 
 interface TrackMapProps {
   players: Record<string, PlayerData>;
   playerOrder: string[];
   trackLength: number;
+  mapConfig: MapConfig;
 }
 
 interface TooltipState {
@@ -15,14 +16,11 @@ interface TooltipState {
   y: number;
 }
 
-const MAP_WIDTH = 600;
-const MAP_HEIGHT = 399;
 const MARKER_RADIUS = 8;
 const RACELINE_OFFSET_Y = 8;
-const START_OFFSET = 68;
 const STEP_DURATION_MS = 100;
 
-export function TrackMap({ players, playerOrder, trackLength }: TrackMapProps) {
+export function TrackMap({ players, playerOrder, trackLength, mapConfig }: TrackMapProps) {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [displayPositions, setDisplayPositions] = useState<Record<string, number>>({});
   const animationRefs = useRef<Record<string, number>>({});
@@ -81,8 +79,8 @@ export function TrackMap({ players, playerOrder, trackLength }: TrackMapProps) {
     allDisplayPositions: Record<string, number>,
     allPlayers: PlayerData[]
   ): { x: number; y: number } | null => {
-    const positionOnTrack = (((displayPosition + START_OFFSET) % trackLength) + trackLength) % trackLength;
-    const waypoint = usaMapWaypoints[positionOnTrack];
+    const positionOnTrack = (((displayPosition + mapConfig.startOffset) % trackLength) + trackLength) % trackLength;
+    const waypoint = mapConfig.waypoints[positionOnTrack];
     if (!waypoint) {
       return null;
     }
@@ -117,14 +115,14 @@ export function TrackMap({ players, playerOrder, trackLength }: TrackMapProps) {
   return (
     <div className="relative w-full max-w-3xl mx-auto bg-slate-800 rounded-lg overflow-hidden">
       <svg
-        viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+        viewBox={`0 0 ${mapConfig.width} ${mapConfig.height}`}
         className="w-full h-auto"
       >
         {/* Background map image */}
         <image
-          href="/map/usa-map.webp"
-          width={MAP_WIDTH}
-          height={MAP_HEIGHT}
+          href={mapConfig.image}
+          width={mapConfig.width}
+          height={mapConfig.height}
         />
 
         {/* Player markers */}
@@ -173,8 +171,8 @@ export function TrackMap({ players, playerOrder, trackLength }: TrackMapProps) {
         <div
           className="absolute bg-slate-900 text-white px-3 py-2 rounded shadow-lg text-sm pointer-events-none z-10 border border-slate-600"
           style={{
-            left: `${(tooltip.x / MAP_WIDTH) * 100}%`,
-            top: `${(tooltip.y / MAP_HEIGHT) * 100}%`,
+            left: `${(tooltip.x / mapConfig.width) * 100}%`,
+            top: `${(tooltip.y / mapConfig.height) * 100}%`,
             transform: "translate(-50%, -120%)",
           }}
         >

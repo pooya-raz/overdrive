@@ -20,6 +20,7 @@ const MARKER_RADIUS = 8;
 const RACELINE_OFFSET_Y = 8;
 const STEP_DURATION_MS = 100;
 
+/** Displays the race in progress: where each player is on the track and how they move between positions. */
 export function TrackMap({ players, playerOrder, trackLength, mapConfig }: TrackMapProps) {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [displayPositions, setDisplayPositions] = useState<Record<string, number>>({});

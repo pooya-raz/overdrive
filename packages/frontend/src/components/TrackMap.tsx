@@ -20,6 +20,15 @@ const MARKER_RADIUS = 8;
 const RACELINE_OFFSET_Y = 8;
 const STEP_DURATION_MS = 100;
 
+/**
+ * Render an interactive SVG race track with animated player markers and hover tooltips.
+ *
+ * @param props.players - Mapping of player IDs to player state objects used to position and render markers.
+ * @param props.playerOrder - Ordered list of player IDs used to assign marker colors.
+ * @param props.trackLength - Total number of discrete positions (waypoints) around the track.
+ * @param props.mapConfig - Map configuration including image, dimensions, start offset, and waypoint coordinates.
+ * @returns A React element containing the map SVG, player markers, and tooltip UI; when map data is missing, renders an informational message.
+ */
 export function TrackMap({ players, playerOrder, trackLength, mapConfig }: TrackMapProps) {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [displayPositions, setDisplayPositions] = useState<Record<string, number>>({});

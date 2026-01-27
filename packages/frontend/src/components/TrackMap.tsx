@@ -21,6 +21,10 @@ const RACELINE_OFFSET_Y = 8;
 const STEP_DURATION_MS = 100;
 
 export function TrackMap({ players, playerOrder, trackLength, mapConfig }: TrackMapProps) {
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [displayPositions, setDisplayPositions] = useState<Record<string, number>>({});
+  const animationRefs = useRef<Record<string, number>>({});
+
   if (mapConfig.width === 0 || mapConfig.height === 0 || mapConfig.waypoints.length === 0) {
     return (
       <div className="w-full max-w-3xl mx-auto bg-slate-800 rounded-lg p-6 text-center text-red-400">
@@ -28,10 +32,6 @@ export function TrackMap({ players, playerOrder, trackLength, mapConfig }: Track
       </div>
     );
   }
-
-  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
-  const [displayPositions, setDisplayPositions] = useState<Record<string, number>>({});
-  const animationRefs = useRef<Record<string, number>>({});
 
   // Animate display positions toward actual positions
   useEffect(() => {

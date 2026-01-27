@@ -2,7 +2,7 @@
   "name": "overdrive",
   "private": true,
   "scripts": {
-    "dev": "pnpm -r --parallel run dev",
+    "dev": "pnpm --filter backend --filter frontend --parallel run dev",
     "dev:backend": "pnpm --filter backend dev",
     "dev:frontend": "pnpm --filter frontend dev",
     "test": "pnpm --filter backend test",

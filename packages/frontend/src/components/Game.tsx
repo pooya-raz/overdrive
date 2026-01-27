@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ActionPanel } from "./ActionPanel";
 import { DeckInfo } from "./DeckInfo";
 import { PlayerList } from "./PlayerList";
+import { TrackMap } from "./TrackMap";
 
 interface GameProps {
 	gameState: GameState;
@@ -59,6 +60,12 @@ export function Game({ gameState, playerId, onAction, onQuit, error }: GameProps
 						</div>
 					)}
 
+					<TrackMap
+						players={gameState.players}
+						playerOrder={gameState.playerOrder}
+						trackLength={gameState.track.length}
+					/>
+
 					<div className="grid grid-cols-[auto_1fr] gap-6 w-full max-w-5xl mx-auto">
 						<aside>
 							<PlayerList gameState={gameState} currentPlayerId={playerId} />
@@ -96,6 +103,8 @@ export function Game({ gameState, playerId, onAction, onQuit, error }: GameProps
 											position={player.position}
 											corners={gameState.track.corners}
 											trackLength={gameState.track.length}
+											speed={player.speed}
+											played={player.played}
 										/>
 									) : (
 										<Card>

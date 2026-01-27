@@ -44,6 +44,7 @@ interface InternalGameState {
 	laps: number;
 	finishOrder: string[];
 	raceFinishing: boolean;
+	playerOrder: string[];
 }
 
 function createPlayers(
@@ -96,6 +97,7 @@ export class Game {
 			laps: request.laps ?? 1,
 			finishOrder: [],
 			raceFinishing: false,
+			playerOrder: request.players.map((p) => p.id),
 		};
 		this.assignAdrenaline();
 	}
@@ -118,6 +120,7 @@ export class Game {
 			currentPlayerIndex: this._state.currentPlayerIndex,
 			laps: this._state.laps,
 			finishOrder: [...this._state.finishOrder],
+			playerOrder: [...this._state.playerOrder],
 		};
 	}
 
@@ -144,6 +147,7 @@ export class Game {
 			currentPlayerIndex: this._state.currentPlayerIndex,
 			laps: this._state.laps,
 			finishOrder: [...this._state.finishOrder],
+			playerOrder: [...this._state.playerOrder],
 		};
 	}
 
@@ -203,6 +207,14 @@ export class Game {
 		}
 
 		switch (action.type) {
+			case "move": {
+				if (player.state.hasAdrenaline) {
+					this._state.currentState = "adrenaline";
+				} else {
+					this.enterReactOrSkip(playerId, player);
+				}
+				break;
+			}
 			case "adrenaline": {
 				player.applyAdrenaline(action.acceptMove, action.acceptCooldown);
 				this.enterReactOrSkip(playerId, player);
@@ -261,16 +273,12 @@ export class Game {
 		}
 	}
 
-	/** Reveals cards, moves player, then waits for adrenaline or react input. */
+	/** Reveals cards and moves player, then waits for acknowledgment. */
 	private revealAndMove(): void {
 		const playerId = this._state.turnOrder[this._state.currentPlayerIndex];
 		const player = this._state.players[playerId];
 		player.beginResolution();
-		if (player.state.hasAdrenaline) {
-			this._state.currentState = "adrenaline";
-		} else {
-			this.enterReactOrSkip(playerId, player);
-		}
+		this._state.currentState = "move";
 	}
 
 	/** Sets state to react, or skips to next phase if no viable reactions. */

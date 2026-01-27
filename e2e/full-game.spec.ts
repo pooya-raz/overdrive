@@ -28,6 +28,11 @@ async function planTurn(page: Page, playerName: string) {
 async function resolvePlayerPhases(page: Page, playerName: string): Promise<'done' | 'finished'> {
   // Complete all resolution phases for this player in order
   return await test.step(`${playerName}: Resolve`, async () => {
+    // Move acknowledgment phase
+    if (await page.getByRole('button', { name: 'Move', exact: true }).isVisible({ timeout: 500 }).catch(() => false)) {
+      await page.getByRole('button', { name: 'Move', exact: true }).click();
+    }
+
     // Adrenaline phase (only if in last place)
     if (await page.getByText('Adrenaline').first().isVisible({ timeout: 500 }).catch(() => false)) {
       await page.getByRole('button', { name: 'Skip' }).click();
@@ -63,6 +68,10 @@ async function resolvePlayerPhases(page: Page, playerName: string): Promise<'don
 async function isPlayersTurn(page: Page): Promise<boolean> {
   // Check if this player has an action (any resolution phase visible)
   // Use short timeouts for quick polling
+  // Check for move acknowledgment
+  if (await page.getByRole('button', { name: 'Move', exact: true }).isVisible({ timeout: 50 }).catch(() => false)) {
+    return true;
+  }
   const phases = ['Adrenaline', 'React', 'Slipstream'];
   for (const phase of phases) {
     if (await page.getByText(phase).first().isVisible({ timeout: 50 }).catch(() => false)) {

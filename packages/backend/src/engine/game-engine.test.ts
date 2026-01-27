@@ -18,6 +18,7 @@ const noShuffle: ShuffleFn = <T>(items: T[]) => items;
 function completeResolutionPhase(game: Game): void {
 	// Players resolve in turn order (leader first), one at a time
 	for (const playerId of game.state.turnOrder) {
+		game.dispatch(playerId, { type: "move" });
 		// Adrenaline is skipped when not available
 		if (game.state.currentState === "adrenaline") {
 			game.dispatch(playerId, {
@@ -125,14 +126,14 @@ describe("Game", () => {
 				// Submit plan to enter resolution phase
 				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
 
-				// Now in resolution phase (adrenaline since single player is in last place), plan action should be rejected
+				// Now in resolution phase (move acknowledgment), plan action should be rejected
 				expect(() =>
 					game.dispatch(PLAYER_1.id, {
 						type: "plan",
 						gear: 2,
 						cardIndices: [5],
 					}),
-				).toThrow("Invalid action for state adrenaline");
+				).toThrow("Invalid action for state move");
 			});
 
 			it("should reject action for unknown player", () => {
@@ -222,8 +223,8 @@ describe("Game", () => {
 
 				expect(game.state.turn).toBe(1);
 				expect(game.state.phase).toBe("resolution");
-				// No adrenaline on turn 1, so goes directly to react
-				expect(game.state.currentState).toBe("react");
+				// First player must acknowledge move
+				expect(game.state.currentState).toBe("move");
 
 				for (const id of [PLAYER_1.id, PLAYER_2.id]) {
 					const player = game.state.players[id];
@@ -247,7 +248,11 @@ describe("Game", () => {
 				// Planning phase - gear 1 means play 1 card
 				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
 
-				// Resolution phase - single player has adrenaline (they're in last place)
+				// Resolution phase - player must acknowledge move first
+				expect(game.state.currentState).toBe("move");
+				game.dispatch(PLAYER_1.id, { type: "move" });
+
+				// Single player has adrenaline (they're in last place)
 				expect(game.state.currentState).toBe("adrenaline");
 				game.dispatch(PLAYER_1.id, {
 					type: "adrenaline",
@@ -506,7 +511,10 @@ describe("Game", () => {
 			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
 			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] });
 
-			// P1 resolves first - P1 is leader, no adrenaline, goes to react
+			// P1 resolves first - must acknowledge move
+			expect(game.state.currentState).toBe("move");
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			// P1 is leader, no adrenaline, goes to react
 			// P2 hasn't moved yet (still at 0), so P1 can't slipstream
 			expect(game.state.currentState).toBe("react");
 			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
@@ -514,7 +522,9 @@ describe("Game", () => {
 			expect(game.state.currentState).toBe("discard");
 			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
 
-			// P2 resolves - P1 is now at position 4, P2 moves to 4
+			// P2 resolves - must acknowledge move first
+			expect(game.state.currentState).toBe("move");
+			game.dispatch(PLAYER_2.id, { type: "move" });
 			// P2 has adrenaline (trailing player at game start)
 			expect(game.state.currentState).toBe("adrenaline");
 			game.dispatch(PLAYER_2.id, {
@@ -547,7 +557,10 @@ describe("Game", () => {
 			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [4] });
 			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] });
 
-			// P1 resolves first (leader) - no adrenaline, goes to react
+			// P1 resolves first - acknowledge move
+			expect(game.state.currentState).toBe("move");
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			// P1 is leader, no adrenaline, goes to react
 			// P2 hasn't moved yet (still at 0), so P1 can't slipstream
 			expect(game.state.currentState).toBe("react");
 			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
@@ -555,6 +568,9 @@ describe("Game", () => {
 			expect(game.state.currentState).toBe("discard");
 			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
 
+			// P2 resolves - acknowledge move
+			expect(game.state.currentState).toBe("move");
+			game.dispatch(PLAYER_2.id, { type: "move" });
 			// P2 at position 4, P1 at position 5 (1 ahead) - can slipstream
 			// P2 has adrenaline (trailing player at game start)
 			expect(game.state.currentState).toBe("adrenaline");
@@ -586,13 +602,19 @@ describe("Game", () => {
 			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [4] });
 			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [5] });
 
-			// P1 resolves first (leader) - no adrenaline, goes to react
+			// P1 resolves first - acknowledge move
+			expect(game.state.currentState).toBe("move");
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			// P1 is leader, no adrenaline, goes to react
 			expect(game.state.currentState).toBe("react");
 			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
 			// P1 is alone at position 5, slipstream skipped
 			expect(game.state.currentState).toBe("discard");
 			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
 
+			// P2 resolves - acknowledge move
+			expect(game.state.currentState).toBe("move");
+			game.dispatch(PLAYER_2.id, { type: "move" });
 			// P2 at position 0, P1 at position 5 - too far to slipstream
 			// P2 has adrenaline (trailing player at game start)
 			expect(game.state.currentState).toBe("adrenaline");
@@ -628,7 +650,7 @@ describe("Game", () => {
 
 		it("should update laps, finish race, and sort finishOrder by position", () => {
 			const game = new Game(
-				{ players: [PLAYER_1, PLAYER_2], map: "USA", laps: 2 },
+				{ players: [PLAYER_1, PLAYER_2], map: "Test", laps: 2 },
 				{ shuffle: noShuffle },
 			);
 

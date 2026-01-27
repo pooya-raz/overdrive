@@ -4,9 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { useLobbySocket } from "@/hooks/useLobbySocket";
 
-const WS_URL = import.meta.env.DEV
-	? "ws://localhost:8787/ws/lobby"
-	: "wss://overdrive-backend.pooya72.workers.dev/ws/lobby";
+const WS_URL = `${import.meta.env.VITE_WS_URL}/ws/lobby`;
 
 interface LobbyScreenProps {
 	username: string;

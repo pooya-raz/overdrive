@@ -1,4 +1,4 @@
-export type GameMap = "USA";
+export type GameMap = "USA" | "Test";
 
 export type Gear = 1 | 2 | 3 | 4;
 
@@ -23,6 +23,7 @@ export type GamePhase = "planning" | "resolution" | "finished";
 
 export type TurnState =
 	| "plan"
+	| "move"
 	| "adrenaline"
 	| "react"
 	| "slipstream"
@@ -32,6 +33,7 @@ export type ReactChoice = "cooldown" | "boost" | "skip";
 
 export type Action =
 	| { type: "plan"; gear: Gear; cardIndices: number[] }
+	| { type: "move" }
 	| { type: "adrenaline"; acceptMove: boolean; acceptCooldown: boolean }
 	| { type: "react"; action: ReactChoice; amount?: number }
 	| { type: "slipstream"; use: boolean }
@@ -45,7 +47,8 @@ export interface PlayerData {
 	onRaceline: boolean;
 	hand: Card[];
 	deckSize: number;
-	playedCount: number;
+	played: Card[];
+	speed: number;
 	engineSize: number;
 	discardSize: number;
 	discardTop: Card | null;
@@ -67,4 +70,5 @@ export interface GameState {
 	currentPlayerIndex: number;
 	laps: number;
 	finishOrder: string[];
+	playerOrder: string[];
 }

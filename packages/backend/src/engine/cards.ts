@@ -35,6 +35,10 @@ interface MapCardConfig {
 }
 
 const MAP_CARD_CONFIG: Record<GameMap, MapCardConfig> = {
+	Test: {
+		stressCards: 3,
+		heatCards: 6,
+	},
 	USA: {
 		stressCards: 3,
 		heatCards: 6,

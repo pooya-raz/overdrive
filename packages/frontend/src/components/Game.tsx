@@ -6,6 +6,7 @@ import { ActionPanel } from "./ActionPanel";
 import { DeckInfo } from "./DeckInfo";
 import { PlayerList } from "./PlayerList";
 import { TrackMap } from "./TrackMap";
+import { getMapConfig } from "@/data/maps";
 
 interface GameProps {
 	gameState: GameState;
@@ -64,6 +65,7 @@ export function Game({ gameState, playerId, onAction, onQuit, error }: GameProps
 						players={gameState.players}
 						playerOrder={gameState.playerOrder}
 						trackLength={gameState.track.length}
+						mapConfig={getMapConfig(gameState.map)}
 					/>
 
 					<div className="grid grid-cols-[auto_1fr] gap-6 w-full max-w-5xl mx-auto">

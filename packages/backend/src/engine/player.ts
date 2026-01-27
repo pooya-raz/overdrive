@@ -157,6 +157,7 @@ export class Player {
 			hand: structuredClone(this._hand),
 			deckSize: this._deck.length,
 			playedCount: this._played.length,
+			speed: this._cardSpeed,
 			engineSize: this._engine.length,
 			discardSize: this._discard.length,
 			discardTop: topDiscard ? structuredClone(topDiscard) : null,

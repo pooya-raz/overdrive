@@ -23,6 +23,7 @@ export type GamePhase = "planning" | "resolution" | "finished";
 
 export type TurnState =
 	| "plan"
+	| "move"
 	| "adrenaline"
 	| "react"
 	| "slipstream"
@@ -32,6 +33,7 @@ export type ReactChoice = "cooldown" | "boost" | "skip";
 
 export type Action =
 	| { type: "plan"; gear: Gear; cardIndices: number[] }
+	| { type: "move" }
 	| { type: "adrenaline"; acceptMove: boolean; acceptCooldown: boolean }
 	| { type: "react"; action: ReactChoice; amount?: number }
 	| { type: "slipstream"; use: boolean }
@@ -46,6 +48,7 @@ export interface PlayerData {
 	hand: Card[];
 	deckSize: number;
 	playedCount: number;
+	speed: number;
 	engineSize: number;
 	discardSize: number;
 	discardTop: Card | null;

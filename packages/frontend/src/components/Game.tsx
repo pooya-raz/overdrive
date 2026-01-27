@@ -103,6 +103,7 @@ export function Game({ gameState, playerId, onAction, onQuit, error }: GameProps
 											position={player.position}
 											corners={gameState.track.corners}
 											trackLength={gameState.track.length}
+											speed={player.speed}
 										/>
 									) : (
 										<Card>

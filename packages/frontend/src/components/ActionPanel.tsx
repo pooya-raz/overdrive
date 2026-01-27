@@ -16,6 +16,7 @@ interface ActionPanelProps {
 	position: number;
 	corners: Corner[];
 	trackLength: number;
+	speed: number;
 }
 
 export function ActionPanel({
@@ -28,6 +29,7 @@ export function ActionPanel({
 	position,
 	corners,
 	trackLength,
+	speed,
 }: ActionPanelProps) {
 	const [selectedGear, setSelectedGear] = useState<Gear>(currentGear);
 	const [selectedCards, setSelectedCards] = useState<number[]>([]);
@@ -124,6 +126,26 @@ export function ActionPanel({
 						className="w-full text-white hover:text-blue-500"
 					>
 						Confirm Plan
+					</Button>
+				</CardContent>
+			</Card>
+		);
+	}
+
+	if (currentState === "move") {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle>Move</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					<p className="text-black">You move <span className="font-bold text-blue-400">{speed}</span> {speed === 1 ? "space" : "spaces"}.</p>
+					<Button
+						onClick={() => onAction({ type: "move" })}
+						disabled={disabled}
+						className="w-full text-white hover:text-blue-500"
+					>
+						Move
 					</Button>
 				</CardContent>
 			</Card>

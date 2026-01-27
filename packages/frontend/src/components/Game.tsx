@@ -104,6 +104,7 @@ export function Game({ gameState, playerId, onAction, onQuit, error }: GameProps
 											corners={gameState.track.corners}
 											trackLength={gameState.track.length}
 											speed={player.speed}
+											played={player.played}
 										/>
 									) : (
 										<Card>

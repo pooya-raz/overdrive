@@ -173,7 +173,7 @@ describe("Player", () => {
 
 			player.playCards([0, 1]);
 
-			expect(player.state.playedCount).toBe(2);
+			expect(player.state.played.length).toBe(2);
 			expect(player.state.hand).toEqual([{ type: "speed", value: 3 }]);
 		});
 
@@ -283,7 +283,7 @@ describe("Player", () => {
 
 				player.beginResolution();
 
-				expect(player.state.playedCount).toBe(2);
+				expect(player.state.played.length).toBe(2);
 				expect(player.state.position).toBe(3);
 			});
 
@@ -296,7 +296,7 @@ describe("Player", () => {
 
 				player.beginResolution();
 
-				expect(player.state.playedCount).toBe(2);
+				expect(player.state.played.length).toBe(2);
 				expect(player.state.position).toBe(5);
 			});
 
@@ -491,7 +491,7 @@ describe("Player", () => {
 
 			player.discard([]);
 
-			expect(player.state.playedCount).toBe(0);
+			expect(player.state.played.length).toBe(0);
 			expect(player.state.discardSize).toBe(2);
 			expect(player.state.discardTop).toEqual({ type: "speed", value: 2 });
 		});

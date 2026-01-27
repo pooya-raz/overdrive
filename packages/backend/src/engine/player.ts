@@ -156,7 +156,7 @@ export class Player {
 			onRaceline: this._onRaceline,
 			hand: structuredClone(this._hand),
 			deckSize: this._deck.length,
-			playedCount: this._played.length,
+			played: structuredClone(this._played),
 			speed: this._cardSpeed,
 			engineSize: this._engine.length,
 			discardSize: this._discard.length,

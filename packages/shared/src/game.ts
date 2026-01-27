@@ -47,7 +47,7 @@ export interface PlayerData {
 	onRaceline: boolean;
 	hand: Card[];
 	deckSize: number;
-	playedCount: number;
+	played: Card[];
 	speed: number;
 	engineSize: number;
 	discardSize: number;

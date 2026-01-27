@@ -17,6 +17,7 @@ interface ActionPanelProps {
 	corners: Corner[];
 	trackLength: number;
 	speed: number;
+	played: CardType[];
 }
 
 export function ActionPanel({
@@ -30,6 +31,7 @@ export function ActionPanel({
 	corners,
 	trackLength,
 	speed,
+	played,
 }: ActionPanelProps) {
 	const [selectedGear, setSelectedGear] = useState<Gear>(currentGear);
 	const [selectedCards, setSelectedCards] = useState<number[]>([]);
@@ -139,6 +141,7 @@ export function ActionPanel({
 					<CardTitle>Move</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-4">
+					<Hand cards={played} selectedIndices={[]} onToggleCard={() => {}} disabled />
 					<p className="text-black">You move <span className="font-bold text-blue-400">{speed}</span> {speed === 1 ? "space" : "spaces"}.</p>
 					<Button
 						onClick={() => onAction({ type: "move" })}

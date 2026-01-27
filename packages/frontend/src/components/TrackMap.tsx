@@ -25,39 +25,30 @@ export function TrackMap({ players, playerOrder, trackLength, mapConfig }: Track
   const [displayPositions, setDisplayPositions] = useState<Record<string, number>>({});
   const animationRefs = useRef<Record<string, number>>({});
 
-  if (mapConfig.width === 0 || mapConfig.height === 0 || mapConfig.waypoints.length === 0) {
-    return (
-      <div className="w-full max-w-3xl mx-auto bg-slate-800 rounded-lg p-6 text-center text-red-400">
-        Map data is not available for this track.
-      </div>
-    );
-  }
-
-  // Animate display positions toward actual positions
   useEffect(() => {
+    if (mapConfig.width === 0 || mapConfig.height === 0 || mapConfig.waypoints.length === 0) {
+      return;
+    }
+
     const playerList = Object.values(players);
 
     for (const player of playerList) {
       const currentDisplay = displayPositions[player.id];
       const target = player.position;
 
-      // Initialize display position if not set
       if (currentDisplay === undefined) {
         setDisplayPositions((prev) => ({ ...prev, [player.id]: target }));
         continue;
       }
 
-      // Already at target
       if (currentDisplay === target) {
         continue;
       }
 
-      // Clear any existing animation for this player
       if (animationRefs.current[player.id]) {
         clearTimeout(animationRefs.current[player.id]);
       }
 
-      // Animate one step toward target
       const step = currentDisplay < target ? 1 : -1;
       animationRefs.current[player.id] = window.setTimeout(() => {
         setDisplayPositions((prev) => ({
@@ -68,12 +59,19 @@ export function TrackMap({ players, playerOrder, trackLength, mapConfig }: Track
     }
 
     return () => {
-      // Cleanup timeouts on unmount
       for (const timeoutId of Object.values(animationRefs.current)) {
         clearTimeout(timeoutId);
       }
     };
-  }, [players, displayPositions]);
+  }, [players, displayPositions, mapConfig]);
+
+  if (mapConfig.width === 0 || mapConfig.height === 0 || mapConfig.waypoints.length === 0) {
+    return (
+      <div className="w-full max-w-3xl mx-auto bg-slate-800 rounded-lg p-6 text-center text-red-400">
+        Map data is not available for this track.
+      </div>
+    );
+  }
 
   const getPlayerColor = (playerId: string): string => {
     const index = playerOrder.indexOf(playerId);

@@ -261,17 +261,17 @@ export function ActionPanel({
 		if (penaltyInfo?.spinout) {
 			return (
 				<Card className="border-red-500">
-					<CardHeader className="bg-red-900/30">
-						<CardTitle className="text-red-400">Spinout!</CardTitle>
+					<CardHeader className="bg-red-900/30 py-4">
+						<CardTitle className="text-gray-900">Spinout!</CardTitle>
 					</CardHeader>
 					<CardContent className="space-y-4">
-						<p className="text-white">
+						<p className="text-gray-900">
 							You exceeded the speed limit at corner position {penaltyInfo.spinout.cornerPosition} and couldn't pay the heat penalty.
 						</p>
 						<div className="space-y-2 text-sm">
-							<p className="text-red-300">Position rolled back to: {penaltyInfo.spinout.newPosition}</p>
-							<p className="text-red-300">Gear reset to: {penaltyInfo.spinout.newGear}</p>
-							<p className="text-red-300">Stress cards received: {penaltyInfo.spinout.stressCardsReceived}</p>
+							<p className="text-gray-900">Position rolled back to: {penaltyInfo.spinout.newPosition}</p>
+							<p className="text-gray-900">Gear reset to: {penaltyInfo.spinout.newGear}</p>
+							<p className="text-gray-900">Stress cards received: {penaltyInfo.spinout.stressCardsReceived}</p>
 						</div>
 						<Button
 							onClick={() => onAction({ type: "cornerPenalty" })}

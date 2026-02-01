@@ -471,6 +471,45 @@ describe("Game", () => {
 			});
 		});
 
+		it("should auto-apply cooldown when declining adrenaline move", () => {
+			const game = new Game(
+				{ players: [PLAYER_1, PLAYER_2], map: "USA" },
+				{ shuffle: noShuffle },
+			);
+
+			// P1 moves 0, P2 moves more to give P1 adrenaline next turn
+			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [5] });
+			game.dispatch(PLAYER_2.id, {
+				type: "plan",
+				gear: 2,
+				cardIndices: [6, 4],
+			});
+			completeResolutionPhase(game);
+
+			// Turn 2: P1 has adrenaline
+			expect(game.state.players[PLAYER_1.id].hasAdrenaline).toBe(true);
+			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [4] });
+			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [3] });
+
+			// P2 resolves first (leader)
+			game.dispatch(PLAYER_2.id, { type: "move" });
+			game.dispatch(PLAYER_2.id, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_2.id, { type: "discard", cardIndices: [] });
+
+			// P1 resolves - decline +1 move but should still get cooldown
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			// P1 in gear 1 gets 3 cooldowns from beginResolution
+			expect(game.state.players[PLAYER_1.id].availableCooldowns).toBe(3);
+
+			game.dispatch(PLAYER_1.id, {
+				type: "adrenaline",
+				acceptMove: false,
+			});
+
+			// Cooldown should be auto-applied even when declining move (+1 from adrenaline)
+			expect(game.state.players[PLAYER_1.id].availableCooldowns).toBe(4);
+		});
+
 		it("should record react choice in turnActions", () => {
 			const game = new Game(
 				{ players: [PLAYER_1], map: "USA" },

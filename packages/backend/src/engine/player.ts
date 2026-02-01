@@ -395,6 +395,10 @@ export class Player {
 		this._turnActions.slipstream = { used };
 	}
 
+	clearTurnActions(): void {
+		this._turnActions = {};
+	}
+
 	react(action: ReactChoice): Done {
 		this._turnActions.react = { action };
 		if (action !== "skip" && !this._availableReactions.includes(action)) {

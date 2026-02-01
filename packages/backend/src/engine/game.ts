@@ -260,6 +260,9 @@ export class Game {
 				}
 
 				this.assignAdrenaline();
+				for (const p of Object.values(this._state.players)) {
+					p.clearTurnActions();
+				}
 				this._state.phase = "planning";
 				this._state.currentState = "plan";
 				this._state.turn += 1;

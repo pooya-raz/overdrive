@@ -570,6 +570,28 @@ describe("Game", () => {
 				count: 2,
 			});
 		});
+
+		it("should clear turnActions when new turn begins", () => {
+			const game = new Game(
+				{ players: [PLAYER_1], map: "USA" },
+				{ shuffle: noShuffle },
+			);
+
+			// Complete turn 1
+			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			game.dispatch(PLAYER_1.id, {
+				type: "adrenaline",
+				acceptMove: true,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
+
+			// Now in turn 2 planning phase
+			expect(game.state.turn).toBe(2);
+			expect(game.state.players[PLAYER_1.id].turnActions).toEqual({});
+		});
 	});
 
 	describe("position collision", () => {

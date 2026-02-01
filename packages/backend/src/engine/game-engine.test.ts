@@ -474,6 +474,51 @@ describe("Game", () => {
 				acceptCooldown: false,
 			});
 		});
+
+		it("should record react choice in turnActions", () => {
+			const game = new Game(
+				{ players: [PLAYER_1], map: "USA" },
+				{ shuffle: noShuffle },
+			);
+
+			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			game.dispatch(PLAYER_1.id, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+
+			expect(game.state.players[PLAYER_1.id].turnActions.react).toEqual({
+				action: "skip",
+			});
+		});
+
+		it("should record boost amount in turnActions", () => {
+			const game = new Game(
+				{ players: [PLAYER_1], map: "USA" },
+				{ shuffle: noShuffle },
+			);
+
+			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			game.dispatch(PLAYER_1.id, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_1.id, { type: "react", action: "boost" });
+
+			// With noShuffle, boost draws from top of deck
+			// Amount varies based on what's drawn, but should be recorded
+			expect(game.state.players[PLAYER_1.id].turnActions.react?.action).toBe(
+				"boost",
+			);
+			expect(
+				typeof game.state.players[PLAYER_1.id].turnActions.react?.amount,
+			).toBe("number");
+		});
 	});
 
 	describe("position collision", () => {

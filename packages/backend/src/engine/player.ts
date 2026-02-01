@@ -391,6 +391,7 @@ export class Player {
 	}
 
 	react(action: ReactChoice): Done {
+		this._turnActions.react = { action };
 		if (action !== "skip" && !this._availableReactions.includes(action)) {
 			throw new Error(`Reaction ${action} not available`);
 		}
@@ -422,6 +423,7 @@ export class Player {
 
 				if (drawn) {
 					const speedBonus = drawn.value ?? 0;
+					this._turnActions.react = { action: "boost", amount: speedBonus };
 					this._position += speedBonus;
 					this._cardSpeed += speedBonus;
 					this._discard.push(drawn);

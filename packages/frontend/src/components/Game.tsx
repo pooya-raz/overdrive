@@ -8,6 +8,7 @@ import { PlayerList } from "./PlayerList";
 import { TrackMap } from "./TrackMap";
 import { TurnSummary } from "./TurnSummary";
 import { getMapConfig } from "@/data/maps";
+import { playerColors } from "@/data/player-colors";
 
 interface GameProps {
 	gameState: GameState;
@@ -113,6 +114,7 @@ export function Game({ gameState, playerId, onAction, onQuit, error }: GameProps
 										<TurnSummary
 											player={gameState.players[currentTurnPlayer]}
 											currentState={gameState.currentState}
+											playerColor={playerColors[gameState.playerOrder.indexOf(currentTurnPlayer) % playerColors.length]}
 										/>
 									) : (
 										<Card>

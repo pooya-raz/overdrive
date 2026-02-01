@@ -6,6 +6,7 @@ import { PlayedCards } from "./PlayedCards";
 interface TurnSummaryProps {
 	player: PlayerData;
 	currentState: TurnState;
+	playerColor: string;
 }
 
 const phases: TurnState[] = ["move", "adrenaline", "react", "slipstream", "discard"];
@@ -76,9 +77,9 @@ function getPhaseDisplay(
 	}
 }
 
-export function TurnSummary({ player, currentState }: TurnSummaryProps) {
+export function TurnSummary({ player, currentState, playerColor }: TurnSummaryProps) {
 	return (
-		<Card>
+		<Card style={{ backgroundColor: `${playerColor}08` }}>
 			<CardHeader>
 				<CardTitle>{player.username || player.id}'s Turn</CardTitle>
 			</CardHeader>

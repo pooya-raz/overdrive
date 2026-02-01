@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { GearSelector } from "./GearSelector";
 import { Hand } from "./Hand";
+import { PlayedCards } from "./PlayedCards";
 
 interface ActionPanelProps {
 	currentState: TurnState;
@@ -141,7 +142,7 @@ export function ActionPanel({
 					<CardTitle>Move</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-4">
-					<Hand cards={played} selectedIndices={[]} onToggleCard={() => {}} disabled />
+					<PlayedCards cards={played} />
 					<p className="text-black">You move <span className="font-bold text-blue-400">{speed}</span> {speed === 1 ? "space" : "spaces"}.</p>
 					<Button
 						onClick={() => onAction({ type: "move" })}

@@ -237,6 +237,7 @@ export class Player {
 
 	/** Heat and stress cards cannot be discarded from hand. Moves played to discard. */
 	discard(discardIndices: number[]): void {
+		this._turnActions.discard = { count: discardIndices.length };
 		const sortedIndices = [...discardIndices].sort((a, b) => b - a);
 		for (const index of sortedIndices) {
 			if (index < 0 || index >= this._hand.length) {

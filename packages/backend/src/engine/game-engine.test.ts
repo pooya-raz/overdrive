@@ -549,6 +549,27 @@ describe("Game", () => {
 				used: true,
 			});
 		});
+
+		it("should record discard count in turnActions", () => {
+			const game = new Game(
+				{ players: [PLAYER_1, PLAYER_2], map: "USA" },
+				{ shuffle: noShuffle },
+			);
+
+			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
+			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] });
+
+			// P1 resolves first
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			// Discard 2 cards (upgrade cards at indices 4 and 5 after playing card 6)
+			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [4, 5] });
+
+			// P1's turn is done, P2's turn starts - but P1's turnActions should persist until new planning phase
+			expect(game.state.players[PLAYER_1.id].turnActions.discard).toEqual({
+				count: 2,
+			});
+		});
 	});
 
 	describe("position collision", () => {

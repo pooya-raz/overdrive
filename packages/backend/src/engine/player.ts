@@ -286,20 +286,33 @@ export class Player {
 
 	/**
 	 * Resolves stress cards in played array by drawing replacements.
-	 * Speed/upgrade cards go to played; stress/heat cards go to discard.
+	 * Keeps drawing until a speed card is found.
+	 * Tracks all drawn cards in the stress card's resolution for UI display.
 	 */
 	private resolveStressCards(): void {
-		const stressCount = this._played.filter((c) => c.type === "stress").length;
+		for (const card of this._played) {
+			if (card.type !== "stress") continue;
 
-		for (let i = 0; i < stressCount; i++) {
-			const drawn = this.drawOne();
-			if (!drawn) continue;
+			const drawnCards: Card[] = [];
+			const toDiscard: Card[] = [];
+			let drawn = this.drawOne();
 
-			const destination =
-				drawn.type === "stress" || drawn.type === "heat"
-					? this._discard
-					: this._played;
-			destination.push(drawn);
+			while (drawn && drawn.type !== "speed") {
+				drawnCards.push(drawn);
+				toDiscard.push(drawn);
+				drawn = this.drawOne();
+			}
+
+			// Add discarded cards after drawing to prevent re-shuffling them
+			for (const c of toDiscard) {
+				this._discard.push(c);
+			}
+
+			if (drawn) {
+				drawnCards.push(drawn);
+			}
+
+			card.resolution = { drawnCards };
 		}
 	}
 
@@ -319,7 +332,7 @@ export class Player {
 		return paid;
 	}
 
-	/** Initializes turn state, calculates movement, and sets position. Called at start of resolution. */
+	/** Initializes turn state and calculates movement. Called at start of resolution. */
 	beginResolution(): void {
 		this._startPosition = this._position;
 		this._availableReactions = ["boost"];
@@ -333,6 +346,10 @@ export class Player {
 
 		this.resolveStressCards();
 		this._cardSpeed = this.calculateSpeed();
+	}
+
+	/** Updates position based on calculated speed. Called when player confirms move. */
+	confirmMove(): void {
 		this._position = this._startPosition + this._cardSpeed;
 	}
 
@@ -482,7 +499,12 @@ export class Player {
 	}
 
 	private calculateSpeed(): number {
-		return this._played.reduce((sum, card) => sum + (card.value ?? 0), 0);
+		return this._played.reduce((sum, card) => {
+			if (card.type === "stress" && card.resolution?.drawnCards.length) {
+				return sum + (card.resolution.drawnCards.at(-1)?.value ?? 0);
+			}
+			return sum + (card.value ?? 0);
+		}, 0);
 	}
 
 	/** Handles spinout: adds stress cards, resets gear, sets position before corner. */

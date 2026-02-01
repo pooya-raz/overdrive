@@ -4,9 +4,14 @@ export type Gear = 1 | 2 | 3 | 4;
 
 export type CardType = "speed" | "heat" | "stress" | "upgrade";
 
+export interface StressResolution {
+	drawnCards: Card[];
+}
+
 export interface Card {
 	type: CardType;
 	value?: number;
+	resolution?: StressResolution;
 }
 
 export interface Corner {

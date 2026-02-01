@@ -236,6 +236,31 @@ describe("Game", () => {
 				}
 			});
 
+			it("should not update position until move is confirmed", () => {
+				const game = new Game(
+					{
+						players: [PLAYER_1],
+						map: "USA",
+					},
+					{ shuffle: noShuffle },
+				);
+
+				// Player starts at position 0, plays speed 4 card
+				const startPosition = game.state.players[PLAYER_1.id].position;
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
+
+				// After planning, in "move" state, position should NOT have changed yet
+				expect(game.state.currentState).toBe("move");
+				expect(game.state.players[PLAYER_1.id].position).toBe(startPosition);
+				expect(game.state.players[PLAYER_1.id].speed).toBe(4);
+
+				// After confirming move, position should update
+				game.dispatch(PLAYER_1.id, { type: "move" });
+				expect(game.state.players[PLAYER_1.id].position).toBe(
+					startPosition + 4,
+				);
+			});
+
 			it("should advance to next turn after resolution phase completes", () => {
 				const game = new Game(
 					{

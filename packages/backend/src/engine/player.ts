@@ -286,7 +286,7 @@ export class Player {
 
 	/**
 	 * Resolves stress cards in played array by drawing replacements.
-	 * Keeps drawing until a speed/upgrade card is found.
+	 * Keeps drawing until a speed card is found.
 	 * Tracks all drawn cards in the stress card's resolution for UI display.
 	 */
 	private resolveStressCards(): void {
@@ -297,7 +297,7 @@ export class Player {
 			const toDiscard: Card[] = [];
 			let drawn = this.drawOne();
 
-			while (drawn && drawn.type !== "speed" && drawn.type !== "upgrade") {
+			while (drawn && drawn.type !== "speed") {
 				drawnCards.push(drawn);
 				toDiscard.push(drawn);
 				drawn = this.drawOne();

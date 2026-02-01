@@ -16,7 +16,7 @@ export function PlayedCards({ cards }: PlayedCardsProps) {
 	for (const card of cards) {
 		if (card.type === "stress" && card.resolution) {
 			for (const drawn of card.resolution.drawnCards) {
-				if (drawn.type === "speed" || drawn.type === "upgrade") {
+				if (drawn.type === "speed") {
 					const sig = cardSignature(drawn);
 					resolvedCounts.set(sig, (resolvedCounts.get(sig) ?? 0) + 1);
 				}
@@ -27,7 +27,7 @@ export function PlayedCards({ cards }: PlayedCardsProps) {
 	// Filter out cards already shown in stress cascades
 	const skipped = new Map<string, number>();
 	const visibleCards = cards.filter((card) => {
-		if (card.type !== "speed" && card.type !== "upgrade") return true;
+		if (card.type !== "speed") return true;
 		const sig = cardSignature(card);
 		const resolvedCount = resolvedCounts.get(sig) ?? 0;
 		const skippedCount = skipped.get(sig) ?? 0;
@@ -55,8 +55,7 @@ export function PlayedCards({ cards }: PlayedCardsProps) {
 					{/* Cascading resolution cards for stress */}
 					{card.type === "stress" &&
 						card.resolution?.drawnCards.map((drawnCard, i) => {
-							const isDiscarded =
-								drawnCard.type === "heat" || drawnCard.type === "stress";
+							const isDiscarded = drawnCard.type !== "speed";
 							return (
 								<div
 									key={i}

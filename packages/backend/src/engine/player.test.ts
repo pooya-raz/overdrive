@@ -290,17 +290,22 @@ describe("Player", () => {
 				expect(player.state.speed).toBe(3);
 			});
 
-			it("draws upgrade card and adds to played", () => {
+			it("discards upgrade card and keeps drawing until speed found", () => {
 				const player = createPlayer({
 					position: 0,
 					played: [{ type: "stress" }],
-					deck: [{ type: "upgrade", value: 5 }],
+					deck: [
+						{ type: "speed", value: 3 },
+						{ type: "upgrade", value: 5 },
+					],
+					discard: [],
 				});
 
 				player.beginResolution();
 
 				expect(player.state.played.length).toBe(2);
-				expect(player.state.speed).toBe(5);
+				expect(player.state.speed).toBe(3);
+				expect(player.state.discardSize).toBe(1);
 			});
 
 			it("discards drawn stress or heat cards until speed found", () => {

@@ -1,5 +1,6 @@
 import type { Card as CardType } from "@overdrive/shared";
 import { cn } from "@/lib/utils";
+import { cardLabel, cardBaseColors } from "./card-utils";
 
 interface HandProps {
 	cards: CardType[];
@@ -9,20 +10,11 @@ interface HandProps {
 	disabledIndices?: number[];
 }
 
-function cardLabel(card: CardType): string {
-	if (card.value !== undefined) {
-		return String(card.value);
-	}
-	if (card.type === "heat") return "H";
-	if (card.type === "stress") return "?";
-	return "★";
-}
-
 const cardColors: Record<string, string> = {
-	speed: "bg-blue-500 hover:bg-blue-600",
-	heat: "bg-red-500 hover:bg-red-600",
-	stress: "bg-yellow-500 hover:bg-yellow-600",
-	upgrade: "bg-purple-500 hover:bg-purple-600",
+	speed: `${cardBaseColors.speed} hover:bg-blue-600`,
+	heat: `${cardBaseColors.heat} hover:bg-red-600`,
+	stress: `${cardBaseColors.stress} hover:bg-yellow-600`,
+	upgrade: `${cardBaseColors.upgrade} hover:bg-purple-600`,
 };
 
 const baseCardStyles =

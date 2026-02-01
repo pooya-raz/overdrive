@@ -1,25 +1,10 @@
 import type { Card as CardType } from "@overdrive/shared";
 import { cn } from "@/lib/utils";
+import { cardLabel, cardBaseColors } from "./card-utils";
 
 interface PlayedCardsProps {
 	cards: CardType[];
 }
-
-function cardLabel(card: CardType): string {
-	if (card.value !== undefined) {
-		return String(card.value);
-	}
-	if (card.type === "heat") return "H";
-	if (card.type === "stress") return "?";
-	return "★";
-}
-
-const cardColors: Record<string, string> = {
-	speed: "bg-blue-500",
-	heat: "bg-red-500",
-	stress: "bg-yellow-500",
-	upgrade: "bg-purple-500",
-};
 
 function cardSignature(card: CardType): string {
 	return `${card.type}:${card.value ?? ""}`;
@@ -61,7 +46,7 @@ export function PlayedCards({ cards }: PlayedCardsProps) {
 					<div
 						className={cn(
 							"w-15 h-20 rounded-lg border-2 border-white/20 text-2xl font-bold text-white flex items-center justify-center",
-							cardColors[card.type],
+							cardBaseColors[card.type],
 						)}
 					>
 						{cardLabel(card)}
@@ -77,7 +62,7 @@ export function PlayedCards({ cards }: PlayedCardsProps) {
 									key={i}
 									className={cn(
 										"absolute w-15 h-20 rounded-lg border-2 border-white/20 text-2xl font-bold text-white flex items-center justify-center",
-										cardColors[drawnCard.type],
+										cardBaseColors[drawnCard.type],
 										isDiscarded && "opacity-50",
 									)}
 									style={{

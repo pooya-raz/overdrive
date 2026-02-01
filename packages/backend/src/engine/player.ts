@@ -8,6 +8,7 @@ import type {
 	PlayerData,
 	ReactChoice,
 	ShuffleFn,
+	TurnActions,
 } from "./types";
 
 export type { PlayerData, ShuffleFn };
@@ -105,6 +106,7 @@ export class Player {
 	private _cardSpeed: number;
 	private _availableCooldowns: number;
 	private _availableReactions: ("cooldown" | "boost")[];
+	private _turnActions: TurnActions;
 	private declare shuffle: ShuffleFn;
 
 	constructor(options: {
@@ -138,6 +140,7 @@ export class Player {
 		this._cardSpeed = 0;
 		this._availableCooldowns = 0;
 		this._availableReactions = [];
+		this._turnActions = {};
 		// Non-enumerable so structuredClone doesn't try to clone the function
 		Object.defineProperty(this, "shuffle", {
 			value: shuffle,
@@ -165,6 +168,7 @@ export class Player {
 			availableCooldowns: this._availableCooldowns,
 			lap: this._lap,
 			finished: this._finished,
+			turnActions: structuredClone(this._turnActions),
 		};
 	}
 

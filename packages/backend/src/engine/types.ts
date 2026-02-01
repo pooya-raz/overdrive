@@ -11,6 +11,7 @@ export type {
 	PlayerData,
 	ReactChoice,
 	Track,
+	TurnActions,
 	TurnState,
 } from "@overdrive/shared";
 

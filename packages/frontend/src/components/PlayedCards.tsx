@@ -14,12 +14,10 @@ export function PlayedCards({ cards }: PlayedCardsProps) {
 	// Count resolved speed cards by signature (to filter duplicates)
 	const resolvedCounts = new Map<string, number>();
 	for (const card of cards) {
-		if (card.type === "stress" && card.resolution) {
-			const lastDrawn = card.resolution.drawnCards.at(-1);
-			if (lastDrawn?.type === "speed") {
-				const sig = cardSignature(lastDrawn);
-				resolvedCounts.set(sig, (resolvedCounts.get(sig) ?? 0) + 1);
-			}
+		if (card.type === "stress" && card.resolution?.drawnCards.length) {
+			const lastDrawn = card.resolution.drawnCards.at(-1)!;
+			const sig = cardSignature(lastDrawn);
+			resolvedCounts.set(sig, (resolvedCounts.get(sig) ?? 0) + 1);
 		}
 	}
 

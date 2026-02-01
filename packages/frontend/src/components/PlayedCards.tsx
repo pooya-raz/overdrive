@@ -6,40 +6,11 @@ interface PlayedCardsProps {
 	cards: CardType[];
 }
 
-function cardSignature(card: CardType): string {
-	return `${card.type}:${card.value ?? ""}`;
-}
-
 export function PlayedCards({ cards }: PlayedCardsProps) {
-	// Count resolved speed cards by signature (to filter duplicates)
-	const resolvedCounts = new Map<string, number>();
-	for (const card of cards) {
-		if (card.type === "stress" && card.resolution?.drawnCards.length) {
-			const lastDrawn = card.resolution.drawnCards.at(-1)!;
-			const sig = cardSignature(lastDrawn);
-			resolvedCounts.set(sig, (resolvedCounts.get(sig) ?? 0) + 1);
-		}
-	}
-
-	// Filter out cards already shown in stress cascades
-	const skipped = new Map<string, number>();
-	const visibleCards = cards.filter((card) => {
-		if (card.type !== "speed") return true;
-		const sig = cardSignature(card);
-		const resolvedCount = resolvedCounts.get(sig) ?? 0;
-		const skippedCount = skipped.get(sig) ?? 0;
-		if (skippedCount < resolvedCount) {
-			skipped.set(sig, skippedCount + 1);
-			return false;
-		}
-		return true;
-	});
-
 	return (
 		<div className="flex gap-4">
-			{visibleCards.map((card, index) => (
+			{cards.map((card, index) => (
 				<div key={index} className="relative">
-					{/* Base card */}
 					<div
 						className={cn(
 							"w-15 h-20 rounded-lg border-2 border-white/20 text-2xl font-bold text-white flex items-center justify-center",
@@ -49,7 +20,6 @@ export function PlayedCards({ cards }: PlayedCardsProps) {
 						{cardLabel(card)}
 					</div>
 
-					{/* Cascading resolution cards for stress */}
 					{card.type === "stress" &&
 						card.resolution?.drawnCards.map((drawnCard, i) => {
 							const isDiscarded = drawnCard.type !== "speed";

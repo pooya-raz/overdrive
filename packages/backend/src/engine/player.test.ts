@@ -277,7 +277,7 @@ describe("Player", () => {
 		});
 
 		describe("stress card resolution", () => {
-			it("draws speed card and adds to played", () => {
+			it("draws speed card and tracks in resolution", () => {
 				const player = createPlayer({
 					position: 0,
 					played: [{ type: "stress" }],
@@ -286,7 +286,7 @@ describe("Player", () => {
 
 				player.beginResolution();
 
-				expect(player.state.played.length).toBe(2);
+				expect(player.state.played.length).toBe(1);
 				expect(player.state.speed).toBe(3);
 			});
 
@@ -303,7 +303,7 @@ describe("Player", () => {
 
 				player.beginResolution();
 
-				expect(player.state.played.length).toBe(2);
+				expect(player.state.played.length).toBe(1);
 				expect(player.state.speed).toBe(3);
 				expect(player.state.discardSize).toBe(1);
 			});

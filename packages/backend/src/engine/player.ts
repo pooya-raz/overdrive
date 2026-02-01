@@ -310,7 +310,6 @@ export class Player {
 
 			if (drawn) {
 				drawnCards.push(drawn);
-				this._played.push(drawn);
 			}
 
 			card.resolution = { drawnCards };
@@ -500,7 +499,12 @@ export class Player {
 	}
 
 	private calculateSpeed(): number {
-		return this._played.reduce((sum, card) => sum + (card.value ?? 0), 0);
+		return this._played.reduce((sum, card) => {
+			if (card.type === "stress" && card.resolution?.drawnCards.length) {
+				return sum + (card.resolution.drawnCards.at(-1)?.value ?? 0);
+			}
+			return sum + (card.value ?? 0);
+		}, 0);
 	}
 
 	/** Handles spinout: adds stress cards, resets gear, sets position before corner. */

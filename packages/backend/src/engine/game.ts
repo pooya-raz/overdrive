@@ -217,7 +217,7 @@ export class Game {
 				break;
 			}
 			case "adrenaline": {
-				player.applyAdrenaline(action.acceptMove, action.acceptCooldown);
+				player.applyAdrenaline(action.acceptMove);
 				this.enterReactOrSkip(playerId, player);
 				break;
 			}

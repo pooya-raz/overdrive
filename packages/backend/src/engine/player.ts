@@ -378,17 +378,15 @@ export class Player {
 		);
 	}
 
-	applyAdrenaline(acceptMove: boolean, acceptCooldown: boolean): void {
-		this._turnActions.adrenaline = { acceptMove, acceptCooldown };
+	applyAdrenaline(acceptMove: boolean): void {
+		this._turnActions.adrenaline = { acceptMove };
 		if (!this._hasAdrenaline) {
 			return;
 		}
 		if (acceptMove) {
 			this.addAdrenalineMove();
 		}
-		if (acceptCooldown) {
-			this.addCooldown(1);
-		}
+		this.addCooldown(1);
 	}
 
 	recordSlipstream(used: boolean): void {

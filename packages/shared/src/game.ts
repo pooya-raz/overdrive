@@ -37,7 +37,7 @@ export type TurnState =
 export type ReactChoice = "cooldown" | "boost" | "skip";
 
 export interface TurnActions {
-	adrenaline?: { acceptMove: boolean; acceptCooldown: boolean };
+	adrenaline?: { acceptMove: boolean };
 	react?: { action: ReactChoice; amount?: number };
 	slipstream?: { used: boolean };
 	discard?: { count: number };
@@ -46,7 +46,7 @@ export interface TurnActions {
 export type Action =
 	| { type: "plan"; gear: Gear; cardIndices: number[] }
 	| { type: "move" }
-	| { type: "adrenaline"; acceptMove: boolean; acceptCooldown: boolean }
+	| { type: "adrenaline"; acceptMove: boolean }
 	| { type: "react"; action: ReactChoice; amount?: number }
 	| { type: "slipstream"; use: boolean }
 	| { type: "discard"; cardIndices: number[] };

@@ -392,6 +392,23 @@ describe("Player", () => {
 					drawnCards: [{ type: "heat" }, { type: "speed", value: 4 }],
 				});
 			});
+
+			it("stops drawing when deck and discard empty", () => {
+				const player = createPlayer({
+					position: 0,
+					played: [{ type: "stress" }],
+					deck: [{ type: "heat" }],
+					discard: [],
+				});
+
+				player.beginResolution();
+
+				const stressCard = player.state.played.find((c) => c.type === "stress");
+				expect(stressCard?.resolution).toEqual({
+					drawnCards: [{ type: "heat" }],
+				});
+				expect(player.state.speed).toBe(0);
+			});
 		});
 
 		describe("gear-based cooldowns", () => {

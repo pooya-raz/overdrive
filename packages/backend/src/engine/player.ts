@@ -319,7 +319,7 @@ export class Player {
 		return paid;
 	}
 
-	/** Initializes turn state, calculates movement, and sets position. Called at start of resolution. */
+	/** Initializes turn state and calculates movement. Called at start of resolution. */
 	beginResolution(): void {
 		this._startPosition = this._position;
 		this._availableReactions = ["boost"];
@@ -333,6 +333,10 @@ export class Player {
 
 		this.resolveStressCards();
 		this._cardSpeed = this.calculateSpeed();
+	}
+
+	/** Updates position based on calculated speed. Called when player confirms move. */
+	confirmMove(): void {
 		this._position = this._startPosition + this._cardSpeed;
 	}
 

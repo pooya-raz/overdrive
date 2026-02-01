@@ -215,7 +215,7 @@ describe("Player", () => {
 	});
 
 	describe("beginResolution", () => {
-		it("sets position to sum of starting position and played card values", () => {
+		it("calculates speed from played card values", () => {
 			const player = createPlayer({
 				position: 0,
 				played: [
@@ -226,10 +226,11 @@ describe("Player", () => {
 
 			player.beginResolution();
 
-			expect(player.state.position).toBe(5);
+			expect(player.state.speed).toBe(5);
+			expect(player.state.position).toBe(0); // Position not updated yet
 		});
 
-		it("accumulates position from starting position", () => {
+		it("includes starting position in speed calculation", () => {
 			const player = createPlayer({
 				position: 10,
 				played: [{ type: "speed", value: 3 }],
@@ -237,10 +238,11 @@ describe("Player", () => {
 
 			player.beginResolution();
 
-			expect(player.state.position).toBe(13);
+			expect(player.state.speed).toBe(3);
+			expect(player.state.position).toBe(10); // Position not updated yet
 		});
 
-		it("includes upgrade card values", () => {
+		it("includes upgrade card values in speed", () => {
 			const player = createPlayer({
 				position: 0,
 				played: [
@@ -251,7 +253,7 @@ describe("Player", () => {
 
 			player.beginResolution();
 
-			expect(player.state.position).toBe(7);
+			expect(player.state.speed).toBe(7);
 		});
 
 		it("treats heat cards as 0 movement", () => {
@@ -262,7 +264,7 @@ describe("Player", () => {
 
 			player.beginResolution();
 
-			expect(player.state.position).toBe(3);
+			expect(player.state.speed).toBe(3);
 		});
 
 		it("keeps position unchanged when no cards played", () => {
@@ -271,6 +273,7 @@ describe("Player", () => {
 			player.beginResolution();
 
 			expect(player.state.position).toBe(5);
+			expect(player.state.speed).toBe(0);
 		});
 
 		describe("stress card resolution", () => {
@@ -284,7 +287,7 @@ describe("Player", () => {
 				player.beginResolution();
 
 				expect(player.state.played.length).toBe(2);
-				expect(player.state.position).toBe(3);
+				expect(player.state.speed).toBe(3);
 			});
 
 			it("draws upgrade card and adds to played", () => {
@@ -297,7 +300,7 @@ describe("Player", () => {
 				player.beginResolution();
 
 				expect(player.state.played.length).toBe(2);
-				expect(player.state.position).toBe(5);
+				expect(player.state.speed).toBe(5);
 			});
 
 			it("discards drawn stress or heat cards", () => {
@@ -312,7 +315,7 @@ describe("Player", () => {
 
 				expect(player.state.discardSize).toBe(1);
 				expect(player.state.discardTop).toEqual({ type: "stress" });
-				expect(player.state.position).toBe(0);
+				expect(player.state.speed).toBe(0);
 			});
 
 			it("resolves multiple stress cards", () => {
@@ -327,7 +330,7 @@ describe("Player", () => {
 
 				player.beginResolution();
 
-				expect(player.state.position).toBe(5);
+				expect(player.state.speed).toBe(5);
 			});
 
 			it("shuffles discard into deck when deck is empty", () => {
@@ -340,7 +343,7 @@ describe("Player", () => {
 
 				player.beginResolution();
 
-				expect(player.state.position).toBe(4);
+				expect(player.state.speed).toBe(4);
 				expect(player.state.discardSize).toBe(0);
 			});
 
@@ -355,6 +358,7 @@ describe("Player", () => {
 				player.beginResolution();
 
 				expect(player.state.position).toBe(5);
+				expect(player.state.speed).toBe(0);
 			});
 		});
 
@@ -402,6 +406,36 @@ describe("Player", () => {
 
 				expect(player.state.availableCooldowns).toBe(0);
 			});
+		});
+	});
+
+	describe("confirmMove", () => {
+		it("updates position based on calculated speed", () => {
+			const player = createPlayer({
+				position: 0,
+				played: [
+					{ type: "speed", value: 3 },
+					{ type: "speed", value: 2 },
+				],
+			});
+
+			player.beginResolution();
+			expect(player.state.position).toBe(0); // Not updated yet
+
+			player.confirmMove();
+			expect(player.state.position).toBe(5); // Now updated
+		});
+
+		it("accumulates position from starting position", () => {
+			const player = createPlayer({
+				position: 10,
+				played: [{ type: "speed", value: 3 }],
+			});
+
+			player.beginResolution();
+			player.confirmMove();
+
+			expect(player.state.position).toBe(13);
 		});
 	});
 
@@ -724,6 +758,7 @@ describe("Player", () => {
 				played: [{ type: "speed", value: 2 }],
 			});
 			player.beginResolution();
+			player.confirmMove();
 
 			player.applyAdrenaline(true, true);
 
@@ -737,6 +772,7 @@ describe("Player", () => {
 			});
 			player.setAdrenaline(true);
 			player.beginResolution();
+			player.confirmMove();
 
 			player.applyAdrenaline(true, false);
 
@@ -765,6 +801,7 @@ describe("Player", () => {
 			});
 			player.setAdrenaline(true);
 			player.beginResolution();
+			player.confirmMove();
 
 			player.applyAdrenaline(true, true);
 			player.react("cooldown");
@@ -879,6 +916,7 @@ describe("Player", () => {
 				discard: [],
 			});
 			player.beginResolution();
+			player.confirmMove();
 
 			player.react("boost");
 
@@ -900,6 +938,7 @@ describe("Player", () => {
 				discard: [],
 			});
 			player.beginResolution();
+			player.confirmMove();
 
 			player.react("boost");
 
@@ -1010,6 +1049,7 @@ describe("Player", () => {
 			});
 
 			player.beginResolution();
+			player.confirmMove();
 			player.checkCorners([corner]);
 
 			expect(player.state.engineSize).toBe(2);
@@ -1024,6 +1064,7 @@ describe("Player", () => {
 			});
 
 			player.beginResolution();
+			player.confirmMove();
 			player.checkCorners([corner]);
 
 			expect(player.state.engineSize).toBe(2);
@@ -1037,6 +1078,7 @@ describe("Player", () => {
 			});
 
 			player.beginResolution();
+			player.confirmMove();
 			player.checkCorners([corner]);
 
 			expect(player.state.engineSize).toBe(2);
@@ -1056,6 +1098,7 @@ describe("Player", () => {
 			});
 
 			player.beginResolution();
+			player.confirmMove();
 			player.checkCorners([corner]);
 
 			expect(player.state.position).toBe(4);
@@ -1073,6 +1116,7 @@ describe("Player", () => {
 			});
 
 			player.beginResolution();
+			player.confirmMove();
 			player.addAdrenalineMove();
 			player.checkCorners([corner]);
 
@@ -1087,6 +1131,7 @@ describe("Player", () => {
 			});
 
 			player.beginResolution();
+			player.confirmMove();
 			player.setPosition(player.state.position + 2);
 			player.checkCorners([corner]);
 
@@ -1102,6 +1147,7 @@ describe("Player", () => {
 			const farCorner: Corner = { position: 20, speedLimit: 2 };
 
 			player.beginResolution();
+			player.confirmMove();
 			player.checkCorners([farCorner]);
 
 			expect(player.state.engineSize).toBe(2);
@@ -1131,6 +1177,7 @@ describe("Player", () => {
 			];
 
 			player.beginResolution();
+			player.confirmMove();
 			player.checkCorners(corners);
 
 			expect(player.state.engineSize).toBe(1);

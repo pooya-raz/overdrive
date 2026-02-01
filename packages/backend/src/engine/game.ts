@@ -208,6 +208,7 @@ export class Game {
 
 		switch (action.type) {
 			case "move": {
+				player.confirmMove();
 				if (player.state.hasAdrenaline) {
 					this._state.currentState = "adrenaline";
 				} else {

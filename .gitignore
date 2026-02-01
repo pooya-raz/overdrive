@@ -33,6 +33,9 @@ lerna-debug.log*
 # misc
 .DS_Store
 
+# docs
+docs/
+
 # test coverage
 coverage
 

@@ -32,14 +32,36 @@ export type TurnState =
 	| "adrenaline"
 	| "react"
 	| "slipstream"
+	| "cornerPenalty"
 	| "discard";
 
 export type ReactChoice = "cooldown" | "boost" | "skip";
+
+export interface CornerPenaltyResult {
+	cornerPosition: number;
+	speedLimit: number;
+	playerSpeed: number;
+	penaltyAmount: number;
+	heatPaid: number;
+}
+
+export interface SpinoutResult {
+	cornerPosition: number;
+	newPosition: number;
+	newGear: 1;
+	stressCardsReceived: number;
+}
+
+export interface CornerPenaltyInfo {
+	corners: CornerPenaltyResult[];
+	spinout?: SpinoutResult;
+}
 
 export interface TurnActions {
 	adrenaline?: { acceptMove: boolean };
 	react?: { action: ReactChoice; amount?: number };
 	slipstream?: { used: boolean };
+	cornerPenalty?: CornerPenaltyInfo;
 	discard?: { count: number };
 }
 
@@ -49,6 +71,7 @@ export type Action =
 	| { type: "adrenaline"; acceptMove: boolean }
 	| { type: "react"; action: ReactChoice; amount?: number }
 	| { type: "slipstream"; use: boolean }
+	| { type: "cornerPenalty" }
 	| { type: "discard"; cardIndices: number[] };
 
 export interface PlayerData {

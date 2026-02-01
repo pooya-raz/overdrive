@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Action, Card as CardType, Corner, Gear, TurnState } from "@overdrive/shared";
+import type { Action, Card as CardType, Corner, Gear, TurnActions, TurnState } from "@overdrive/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GearSelector } from "./GearSelector";
@@ -18,6 +18,7 @@ interface ActionPanelProps {
 	trackLength: number;
 	speed: number;
 	played: CardType[];
+	turnActions?: TurnActions;
 }
 
 export function ActionPanel({
@@ -32,6 +33,7 @@ export function ActionPanel({
 	trackLength,
 	speed,
 	played,
+	turnActions,
 }: ActionPanelProps) {
 	const [selectedGear, setSelectedGear] = useState<Gear>(currentGear);
 	const [selectedCards, setSelectedCards] = useState<number[]>([]);
@@ -248,6 +250,69 @@ export function ActionPanel({
 							Skip
 						</Button>
 					</div>
+				</CardContent>
+			</Card>
+		);
+	}
+
+	if (currentState === "cornerPenalty") {
+		const penaltyInfo = turnActions?.cornerPenalty;
+
+		if (penaltyInfo?.spinout) {
+			return (
+				<Card className="border-red-500">
+					<CardHeader className="bg-red-900/30">
+						<CardTitle className="text-red-400">Spinout!</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<p className="text-white">
+							You exceeded the speed limit at corner position {penaltyInfo.spinout.cornerPosition} and couldn't pay the heat penalty.
+						</p>
+						<div className="space-y-2 text-sm">
+							<p className="text-red-300">Position rolled back to: {penaltyInfo.spinout.newPosition}</p>
+							<p className="text-red-300">Gear reset to: {penaltyInfo.spinout.newGear}</p>
+							<p className="text-red-300">Stress cards received: {penaltyInfo.spinout.stressCardsReceived}</p>
+						</div>
+						<Button
+							onClick={() => onAction({ type: "cornerPenalty" })}
+							disabled={disabled}
+							className="w-full bg-red-600 text-white hover:bg-red-500"
+						>
+							Acknowledge
+						</Button>
+					</CardContent>
+				</Card>
+			);
+		}
+
+		return (
+			<Card className="border-yellow-500">
+				<CardHeader className="bg-yellow-900/30">
+					<CardTitle className="text-yellow-400">Corner Penalty</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					<p className="text-white">
+						You paid heat to cross {penaltyInfo?.corners.length === 1 ? "a corner" : "corners"} over the speed limit:
+					</p>
+					<div className="space-y-2">
+						{penaltyInfo?.corners.map((corner, i) => (
+							<div key={i} className="bg-black/20 rounded p-2 text-sm">
+								<p className="text-yellow-300">
+									Corner at position {corner.cornerPosition} (limit: {corner.speedLimit})
+								</p>
+								<p className="text-white">
+									Your speed: {corner.playerSpeed} | Heat paid: {corner.heatPaid}
+								</p>
+							</div>
+						))}
+					</div>
+					<Button
+						onClick={() => onAction({ type: "cornerPenalty" })}
+						disabled={disabled}
+						className="w-full bg-yellow-600 text-white hover:bg-yellow-500"
+					>
+						Acknowledge
+					</Button>
 				</CardContent>
 			</Card>
 		);

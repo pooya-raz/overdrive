@@ -109,6 +109,7 @@ export function Game({ gameState, playerId, onAction, onQuit, error }: GameProps
 											trackLength={gameState.track.length}
 											speed={player.speed}
 											played={player.played}
+											turnActions={player.turnActions}
 										/>
 									) : gameState.phase === "resolution" && currentTurnPlayer ? (
 										<TurnSummary

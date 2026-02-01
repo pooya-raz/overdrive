@@ -2,6 +2,8 @@ import { createStartingDeck, createStartingEngine } from "./cards";
 import type {
 	Card,
 	Corner,
+	CornerPenaltyInfo,
+	CornerPenaltyResult,
 	Done,
 	GameMap,
 	Gear,
@@ -393,6 +395,11 @@ export class Player {
 		this._turnActions.slipstream = { used };
 	}
 
+	/** Stores corner penalty info for UI display. Separate from checkCorners() because penalties are applied during that call, but the info must persist for the acknowledgment phase. */
+	recordCornerPenalty(info: CornerPenaltyInfo): void {
+		this._turnActions.cornerPenalty = info;
+	}
+
 	clearTurnActions(): void {
 		this._turnActions = {};
 	}
@@ -463,19 +470,47 @@ export class Player {
 		});
 	}
 
-	checkCorners(corners: Corner[]): void {
+	checkCorners(corners: Corner[]): CornerPenaltyInfo | null {
 		const crossedCorners = corners.filter(
 			(c) => this._startPosition < c.position && c.position <= this._position,
 		);
+
+		const penaltyResults: CornerPenaltyResult[] = [];
+
 		for (const corner of crossedCorners) {
 			const penalty = this._cardSpeed - corner.speedLimit;
 			if (penalty <= 0) continue;
+
 			const paid = this.payHeat(penalty);
+			penaltyResults.push({
+				cornerPosition: corner.position,
+				speedLimit: corner.speedLimit,
+				playerSpeed: this._cardSpeed,
+				penaltyAmount: penalty,
+				heatPaid: paid,
+			});
+
 			if (paid < penalty) {
+				const stressCount = this._gear <= 2 ? 1 : 2;
+				const newPosition = corner.position - 1;
 				this.spinOut(corner.position);
-				break;
+				return {
+					corners: penaltyResults,
+					spinout: {
+						cornerPosition: corner.position,
+						newPosition,
+						newGear: 1,
+						stressCardsReceived: stressCount,
+					},
+				};
 			}
 		}
+
+		if (penaltyResults.length === 0) {
+			return null;
+		}
+
+		return { corners: penaltyResults };
 	}
 
 	resolveCollision(

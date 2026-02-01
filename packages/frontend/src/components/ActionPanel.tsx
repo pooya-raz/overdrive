@@ -2,7 +2,6 @@ import { useState } from "react";
 import type { Action, Card as CardType, Corner, Gear, TurnState } from "@overdrive/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { GearSelector } from "./GearSelector";
 import { Hand } from "./Hand";
 import { PlayedCards } from "./PlayedCards";
@@ -36,8 +35,6 @@ export function ActionPanel({
 }: ActionPanelProps) {
 	const [selectedGear, setSelectedGear] = useState<Gear>(currentGear);
 	const [selectedCards, setSelectedCards] = useState<number[]>([]);
-	const [adrenalineMove, setAdrenalineMove] = useState(false);
-	const [adrenalineCooldown, setAdrenalineCooldown] = useState(false);
 
 	const getNextCorner = (): { distance: number; speedLimit: number } | null => {
 		const posInTrack = ((position % trackLength) + trackLength) % trackLength;
@@ -157,52 +154,29 @@ export function ActionPanel({
 	}
 
 	if (currentState === "adrenaline") {
-		const handleAdrenalineConfirm = () => {
-			onAction({
-				type: "adrenaline",
-				acceptMove: adrenalineMove,
-				acceptCooldown: adrenalineCooldown,
-			});
-			setAdrenalineMove(false);
-			setAdrenalineCooldown(false);
-		};
-
 		return (
 			<Card>
 				<CardHeader>
 					<CardTitle>Adrenaline</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-4">
-					<p className="text-white">You have adrenaline! Select your bonus(es):</p>
+					<p className="text-white">You have adrenaline! Take +1 move?</p>
 					<div className="grid grid-cols-2 gap-2">
 						<Button
-							className={cn(
-								"bg-slate-700 text-white hover:bg-slate-600",
-								adrenalineMove && "ring-2 ring-blue-500 bg-blue-500",
-							)}
-							onClick={() => setAdrenalineMove(!adrenalineMove)}
+							className="bg-blue-600 text-white hover:bg-blue-500"
+							onClick={() => onAction({ type: "adrenaline", acceptMove: true })}
 							disabled={disabled}
 						>
 							+1 Move
 						</Button>
 						<Button
-							className={cn(
-								"bg-slate-700 text-white hover:bg-slate-600",
-								adrenalineCooldown && "ring-2 ring-blue-500 bg-blue-500",
-							)}
-							onClick={() => setAdrenalineCooldown(!adrenalineCooldown)}
+							className="bg-slate-700 text-white hover:bg-slate-600"
+							onClick={() => onAction({ type: "adrenaline", acceptMove: false })}
 							disabled={disabled}
 						>
-							Cooldown
+							Skip
 						</Button>
 					</div>
-					<Button
-						onClick={handleAdrenalineConfirm}
-						disabled={disabled}
-						className="w-full text-white hover:text-blue-500"
-					>
-						{adrenalineMove || adrenalineCooldown ? "Confirm" : "Skip"}
-					</Button>
 				</CardContent>
 			</Card>
 		);

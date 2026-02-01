@@ -8,6 +8,7 @@ import type {
 	PlayerData,
 	ReactChoice,
 	ShuffleFn,
+	TurnActions,
 } from "./types";
 
 export type { PlayerData, ShuffleFn };
@@ -105,6 +106,7 @@ export class Player {
 	private _cardSpeed: number;
 	private _availableCooldowns: number;
 	private _availableReactions: ("cooldown" | "boost")[];
+	private _turnActions: TurnActions;
 	private declare shuffle: ShuffleFn;
 
 	constructor(options: {
@@ -138,6 +140,7 @@ export class Player {
 		this._cardSpeed = 0;
 		this._availableCooldowns = 0;
 		this._availableReactions = [];
+		this._turnActions = {};
 		// Non-enumerable so structuredClone doesn't try to clone the function
 		Object.defineProperty(this, "shuffle", {
 			value: shuffle,
@@ -165,6 +168,7 @@ export class Player {
 			availableCooldowns: this._availableCooldowns,
 			lap: this._lap,
 			finished: this._finished,
+			turnActions: structuredClone(this._turnActions),
 		};
 	}
 
@@ -233,6 +237,7 @@ export class Player {
 
 	/** Heat and stress cards cannot be discarded from hand. Moves played to discard. */
 	discard(discardIndices: number[]): void {
+		this._turnActions.discard = { count: discardIndices.length };
 		const sortedIndices = [...discardIndices].sort((a, b) => b - a);
 		for (const index of sortedIndices) {
 			if (index < 0 || index >= this._hand.length) {
@@ -374,6 +379,7 @@ export class Player {
 	}
 
 	applyAdrenaline(acceptMove: boolean, acceptCooldown: boolean): void {
+		this._turnActions.adrenaline = { acceptMove, acceptCooldown };
 		if (!this._hasAdrenaline) {
 			return;
 		}
@@ -385,7 +391,16 @@ export class Player {
 		}
 	}
 
+	recordSlipstream(used: boolean): void {
+		this._turnActions.slipstream = { used };
+	}
+
+	clearTurnActions(): void {
+		this._turnActions = {};
+	}
+
 	react(action: ReactChoice): Done {
+		this._turnActions.react = { action };
 		if (action !== "skip" && !this._availableReactions.includes(action)) {
 			throw new Error(`Reaction ${action} not available`);
 		}
@@ -417,6 +432,7 @@ export class Player {
 
 				if (drawn) {
 					const speedBonus = drawn.value ?? 0;
+					this._turnActions.react = { action: "boost", amount: speedBonus };
 					this._position += speedBonus;
 					this._cardSpeed += speedBonus;
 					this._discard.push(drawn);

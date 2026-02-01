@@ -233,6 +233,7 @@ export class Game {
 				break;
 			}
 			case "slipstream": {
+				player.recordSlipstream(action.use);
 				if (action.use) {
 					if (!this.canSlipstream(playerId)) {
 						throw new Error("Slipstream not available");
@@ -259,6 +260,9 @@ export class Game {
 				}
 
 				this.assignAdrenaline();
+				for (const p of Object.values(this._state.players)) {
+					p.clearTurnActions();
+				}
 				this._state.phase = "planning";
 				this._state.currentState = "plan";
 				this._state.turn += 1;

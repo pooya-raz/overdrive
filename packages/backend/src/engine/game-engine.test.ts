@@ -435,6 +435,165 @@ describe("Game", () => {
 		});
 	});
 
+	describe("turnActions tracking", () => {
+		it("should record adrenaline choice in turnActions", () => {
+			const game = new Game(
+				{ players: [PLAYER_1, PLAYER_2], map: "USA" },
+				{ shuffle: noShuffle },
+			);
+
+			// P1 moves 0, P2 moves more to give P1 adrenaline next turn
+			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [5] });
+			game.dispatch(PLAYER_2.id, {
+				type: "plan",
+				gear: 2,
+				cardIndices: [6, 4],
+			});
+			completeResolutionPhase(game);
+
+			// Turn 2: P1 has adrenaline
+			expect(game.state.players[PLAYER_1.id].hasAdrenaline).toBe(true);
+			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [4] });
+			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [3] });
+
+			// P2 resolves first (leader)
+			game.dispatch(PLAYER_2.id, { type: "move" });
+			game.dispatch(PLAYER_2.id, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_2.id, { type: "discard", cardIndices: [] });
+
+			// P1 resolves - accept +1 move from adrenaline
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			game.dispatch(PLAYER_1.id, {
+				type: "adrenaline",
+				acceptMove: true,
+				acceptCooldown: false,
+			});
+
+			expect(game.state.players[PLAYER_1.id].turnActions.adrenaline).toEqual({
+				acceptMove: true,
+				acceptCooldown: false,
+			});
+		});
+
+		it("should record react choice in turnActions", () => {
+			const game = new Game(
+				{ players: [PLAYER_1], map: "USA" },
+				{ shuffle: noShuffle },
+			);
+
+			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			game.dispatch(PLAYER_1.id, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+
+			expect(game.state.players[PLAYER_1.id].turnActions.react).toEqual({
+				action: "skip",
+			});
+		});
+
+		it("should record boost amount in turnActions", () => {
+			const game = new Game(
+				{ players: [PLAYER_1], map: "USA" },
+				{ shuffle: noShuffle },
+			);
+
+			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			game.dispatch(PLAYER_1.id, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_1.id, { type: "react", action: "boost" });
+
+			// With noShuffle, boost draws from top of deck
+			// Amount varies based on what's drawn, but should be recorded
+			expect(game.state.players[PLAYER_1.id].turnActions.react?.action).toBe(
+				"boost",
+			);
+			expect(
+				typeof game.state.players[PLAYER_1.id].turnActions.react?.amount,
+			).toBe("number");
+		});
+
+		it("should record slipstream choice in turnActions", () => {
+			const game = new Game(
+				{ players: [PLAYER_1, PLAYER_2], map: "USA" },
+				{ shuffle: noShuffle },
+			);
+
+			// Both move same distance to enable slipstream for P2
+			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
+			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] });
+
+			// P1 resolves first
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
+
+			// P2 resolves - can slipstream because P1 at same position
+			game.dispatch(PLAYER_2.id, { type: "move" });
+			game.dispatch(PLAYER_2.id, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_2.id, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_2.id, { type: "slipstream", use: true });
+
+			expect(game.state.players[PLAYER_2.id].turnActions.slipstream).toEqual({
+				used: true,
+			});
+		});
+
+		it("should record discard count in turnActions", () => {
+			const game = new Game(
+				{ players: [PLAYER_1, PLAYER_2], map: "USA" },
+				{ shuffle: noShuffle },
+			);
+
+			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
+			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] });
+
+			// P1 resolves first
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			// Discard 2 cards (upgrade cards at indices 4 and 5 after playing card 6)
+			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [4, 5] });
+
+			// P1's turn is done, P2's turn starts - but P1's turnActions should persist until new planning phase
+			expect(game.state.players[PLAYER_1.id].turnActions.discard).toEqual({
+				count: 2,
+			});
+		});
+
+		it("should clear turnActions when new turn begins", () => {
+			const game = new Game(
+				{ players: [PLAYER_1], map: "USA" },
+				{ shuffle: noShuffle },
+			);
+
+			// Complete turn 1
+			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			game.dispatch(PLAYER_1.id, {
+				type: "adrenaline",
+				acceptMove: true,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
+
+			// Now in turn 2 planning phase
+			expect(game.state.turn).toBe(2);
+			expect(game.state.players[PLAYER_1.id].turnActions).toEqual({});
+		});
+	});
+
 	describe("position collision", () => {
 		it("should assign raceline to first player arriving at position", () => {
 			const game = new Game(

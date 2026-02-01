@@ -6,7 +6,9 @@ import { ActionPanel } from "./ActionPanel";
 import { DeckInfo } from "./DeckInfo";
 import { PlayerList } from "./PlayerList";
 import { TrackMap } from "./TrackMap";
+import { TurnSummary } from "./TurnSummary";
 import { getMapConfig } from "@/data/maps";
+import { playerColorsLight } from "@/data/player-colors";
 
 interface GameProps {
 	gameState: GameState;
@@ -108,6 +110,12 @@ export function Game({ gameState, playerId, onAction, onQuit, error }: GameProps
 											speed={player.speed}
 											played={player.played}
 										/>
+									) : gameState.phase === "resolution" && currentTurnPlayer ? (
+										<TurnSummary
+											player={gameState.players[currentTurnPlayer]}
+											currentState={gameState.currentState}
+											playerColor={playerColorsLight[gameState.playerOrder.indexOf(currentTurnPlayer) % playerColorsLight.length]}
+										/>
 									) : (
 										<Card>
 											<CardContent className="py-6 text-center text-muted-foreground">
@@ -115,10 +123,7 @@ export function Game({ gameState, playerId, onAction, onQuit, error }: GameProps
 													{gameState.phase}
 												</Badge>
 												<p className="mt-3">
-													Waiting for{" "}
-													{gameState.phase === "planning"
-														? "other players..."
-														: `${currentTurnPlayerName}...`}
+													Waiting for other players...
 												</p>
 											</CardContent>
 										</Card>

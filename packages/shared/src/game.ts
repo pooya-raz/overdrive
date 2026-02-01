@@ -36,6 +36,13 @@ export type TurnState =
 
 export type ReactChoice = "cooldown" | "boost" | "skip";
 
+export interface TurnActions {
+	adrenaline?: { acceptMove: boolean; acceptCooldown: boolean };
+	react?: { action: ReactChoice; amount?: number };
+	slipstream?: { used: boolean };
+	discard?: { count: number };
+}
+
 export type Action =
 	| { type: "plan"; gear: Gear; cardIndices: number[] }
 	| { type: "move" }
@@ -53,6 +60,7 @@ export interface PlayerData {
 	hand: Card[];
 	deckSize: number;
 	played: Card[];
+	turnActions: TurnActions;
 	speed: number;
 	engineSize: number;
 	discardSize: number;

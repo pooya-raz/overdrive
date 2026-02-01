@@ -6,3 +6,12 @@ export const playerColors = [
   "#a855f7", // purple
   "#f97316", // orange
 ];
+
+export const playerColorsLight = [
+  "#ffbbb0", // red tint
+  "#b0d0ff", // blue tint
+  "#b0ffbb", // green tint
+  "#fff0b0", // yellow tint
+  "#e0b0ff", // purple tint
+  "#ffd0b0", // orange tint
+];

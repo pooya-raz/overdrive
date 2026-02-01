@@ -9,7 +9,7 @@ interface TurnSummaryProps {
 	playerColor: string;
 }
 
-const phases: TurnState[] = ["move", "adrenaline", "react", "slipstream", "discard"];
+const phases: TurnState[] = ["move", "adrenaline", "react", "slipstream", "cornerPenalty", "discard"];
 
 function getPhaseDisplay(
 	phase: TurnState,
@@ -36,13 +36,10 @@ function getPhaseDisplay(
 
 		case "adrenaline": {
 			const adr = turnActions.adrenaline;
-			if (!adr || (!adr.acceptMove && !adr.acceptCooldown)) {
+			if (!adr || !adr.acceptMove) {
 				return { status: "done", label: "✗" };
 			}
-			const parts: string[] = [];
-			if (adr.acceptMove) parts.push("+1 move");
-			if (adr.acceptCooldown) parts.push("+1 cool");
-			return { status: "done", label: parts.join(", ") };
+			return { status: "done", label: "+1 move" };
 		}
 
 		case "react": {
@@ -62,6 +59,18 @@ function getPhaseDisplay(
 				return { status: "done", label: "✗" };
 			}
 			return { status: "done", label: "✓" };
+		}
+
+		case "cornerPenalty": {
+			const corner = turnActions.cornerPenalty;
+			if (!corner) {
+				return { status: "done", label: "✓" };
+			}
+			if (corner.spinout) {
+				return { status: "done", label: "spinout!" };
+			}
+			const totalHeat = corner.corners.reduce((sum, c) => sum + c.heatPaid, 0);
+			return { status: "done", label: `-${totalHeat} heat` };
 		}
 
 		case "discard": {
@@ -91,7 +100,7 @@ export function TurnSummary({ player, currentState, playerColor }: TurnSummaryPr
 					</span>
 				</div>
 
-				<div className="grid grid-cols-5 gap-1 text-center text-sm">
+				<div className="grid grid-cols-6 gap-1 text-center text-sm">
 					{phases.map((phase) => {
 						const { status, label } = getPhaseDisplay(phase, currentState, player);
 						return (

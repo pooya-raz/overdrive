@@ -378,6 +378,7 @@ export class Player {
 	}
 
 	applyAdrenaline(acceptMove: boolean, acceptCooldown: boolean): void {
+		this._turnActions.adrenaline = { acceptMove, acceptCooldown };
 		if (!this._hasAdrenaline) {
 			return;
 		}

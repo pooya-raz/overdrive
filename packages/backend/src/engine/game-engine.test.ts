@@ -24,7 +24,6 @@ function completeResolutionPhase(game: Game): void {
 			game.dispatch(playerId, {
 				type: "adrenaline",
 				acceptMove: false,
-				acceptCooldown: false,
 			});
 		}
 		game.dispatch(playerId, { type: "react", action: "skip" });
@@ -282,7 +281,6 @@ describe("Game", () => {
 				game.dispatch(PLAYER_1.id, {
 					type: "adrenaline",
 					acceptMove: false,
-					acceptCooldown: false,
 				});
 				game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
 				// Slipstream is skipped (single player has no one to slipstream)
@@ -466,12 +464,10 @@ describe("Game", () => {
 			game.dispatch(PLAYER_1.id, {
 				type: "adrenaline",
 				acceptMove: true,
-				acceptCooldown: false,
 			});
 
 			expect(game.state.players[PLAYER_1.id].turnActions.adrenaline).toEqual({
 				acceptMove: true,
-				acceptCooldown: false,
 			});
 		});
 
@@ -486,7 +482,6 @@ describe("Game", () => {
 			game.dispatch(PLAYER_1.id, {
 				type: "adrenaline",
 				acceptMove: false,
-				acceptCooldown: false,
 			});
 			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
 
@@ -506,7 +501,6 @@ describe("Game", () => {
 			game.dispatch(PLAYER_1.id, {
 				type: "adrenaline",
 				acceptMove: false,
-				acceptCooldown: false,
 			});
 			game.dispatch(PLAYER_1.id, { type: "react", action: "boost" });
 
@@ -540,7 +534,6 @@ describe("Game", () => {
 			game.dispatch(PLAYER_2.id, {
 				type: "adrenaline",
 				acceptMove: false,
-				acceptCooldown: false,
 			});
 			game.dispatch(PLAYER_2.id, { type: "react", action: "skip" });
 			game.dispatch(PLAYER_2.id, { type: "slipstream", use: true });
@@ -583,7 +576,6 @@ describe("Game", () => {
 			game.dispatch(PLAYER_1.id, {
 				type: "adrenaline",
 				acceptMove: true,
-				acceptCooldown: false,
 			});
 			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
 			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
@@ -714,7 +706,6 @@ describe("Game", () => {
 			game.dispatch(PLAYER_2.id, {
 				type: "adrenaline",
 				acceptMove: false,
-				acceptCooldown: false,
 			});
 			// P2 can slipstream because P1 is at same position
 			game.dispatch(PLAYER_2.id, { type: "react", action: "skip" });
@@ -761,7 +752,6 @@ describe("Game", () => {
 			game.dispatch(PLAYER_2.id, {
 				type: "adrenaline",
 				acceptMove: false,
-				acceptCooldown: false,
 			});
 			game.dispatch(PLAYER_2.id, { type: "react", action: "skip" });
 			expect(game.state.currentState).toBe("slipstream");
@@ -805,7 +795,6 @@ describe("Game", () => {
 			game.dispatch(PLAYER_2.id, {
 				type: "adrenaline",
 				acceptMove: false,
-				acceptCooldown: false,
 			});
 			game.dispatch(PLAYER_2.id, { type: "react", action: "skip" });
 

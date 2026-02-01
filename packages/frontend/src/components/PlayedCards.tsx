@@ -21,10 +21,41 @@ const cardColors: Record<string, string> = {
 	upgrade: "bg-purple-500",
 };
 
+function cardSignature(card: CardType): string {
+	return `${card.type}:${card.value ?? ""}`;
+}
+
 export function PlayedCards({ cards }: PlayedCardsProps) {
+	// Count resolved cards by signature (to filter duplicates)
+	const resolvedCounts = new Map<string, number>();
+	for (const card of cards) {
+		if (card.type === "stress" && card.resolution) {
+			for (const drawn of card.resolution.drawnCards) {
+				if (drawn.type === "speed" || drawn.type === "upgrade") {
+					const sig = cardSignature(drawn);
+					resolvedCounts.set(sig, (resolvedCounts.get(sig) ?? 0) + 1);
+				}
+			}
+		}
+	}
+
+	// Filter out cards already shown in stress cascades
+	const skipped = new Map<string, number>();
+	const visibleCards = cards.filter((card) => {
+		if (card.type !== "speed" && card.type !== "upgrade") return true;
+		const sig = cardSignature(card);
+		const resolvedCount = resolvedCounts.get(sig) ?? 0;
+		const skippedCount = skipped.get(sig) ?? 0;
+		if (skippedCount < resolvedCount) {
+			skipped.set(sig, skippedCount + 1);
+			return false;
+		}
+		return true;
+	});
+
 	return (
 		<div className="flex gap-4">
-			{cards.map((card, index) => (
+			{visibleCards.map((card, index) => (
 				<div key={index} className="relative">
 					{/* Base card */}
 					<div

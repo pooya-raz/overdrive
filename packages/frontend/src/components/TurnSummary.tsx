@@ -79,7 +79,7 @@ function getPhaseDisplay(
 
 export function TurnSummary({ player, currentState, playerColor }: TurnSummaryProps) {
 	return (
-		<Card style={{ backgroundColor: `${playerColor}08` }}>
+		<Card style={{ backgroundColor: playerColor }}>
 			<CardHeader>
 				<CardTitle>{player.username || player.id}'s Turn</CardTitle>
 			</CardHeader>

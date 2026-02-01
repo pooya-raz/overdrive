@@ -286,20 +286,28 @@ export class Player {
 
 	/**
 	 * Resolves stress cards in played array by drawing replacements.
-	 * Speed/upgrade cards go to played; stress/heat cards go to discard.
+	 * Keeps drawing until a speed/upgrade card is found.
+	 * Tracks all drawn cards in the stress card's resolution for UI display.
 	 */
 	private resolveStressCards(): void {
-		const stressCount = this._played.filter((c) => c.type === "stress").length;
+		for (const card of this._played) {
+			if (card.type !== "stress") continue;
 
-		for (let i = 0; i < stressCount; i++) {
-			const drawn = this.drawOne();
-			if (!drawn) continue;
+			const drawnCards: Card[] = [];
+			let drawn = this.drawOne();
 
-			const destination =
-				drawn.type === "stress" || drawn.type === "heat"
-					? this._discard
-					: this._played;
-			destination.push(drawn);
+			while (drawn && drawn.type !== "speed" && drawn.type !== "upgrade") {
+				drawnCards.push(drawn);
+				this._discard.push(drawn);
+				drawn = this.drawOne();
+			}
+
+			if (drawn) {
+				drawnCards.push(drawn);
+				this._played.push(drawn);
+			}
+
+			card.resolution = { drawnCards };
 		}
 	}
 

@@ -303,11 +303,11 @@ describe("Player", () => {
 				expect(player.state.speed).toBe(5);
 			});
 
-			it("discards drawn stress or heat cards", () => {
+			it("discards drawn stress or heat cards until speed found", () => {
 				const player = createPlayer({
 					position: 0,
 					played: [{ type: "stress" }],
-					deck: [{ type: "stress" }],
+					deck: [{ type: "speed", value: 2 }, { type: "stress" }],
 					discard: [],
 				});
 
@@ -315,7 +315,7 @@ describe("Player", () => {
 
 				expect(player.state.discardSize).toBe(1);
 				expect(player.state.discardTop).toEqual({ type: "stress" });
-				expect(player.state.speed).toBe(0);
+				expect(player.state.speed).toBe(2);
 			});
 
 			it("resolves multiple stress cards", () => {
@@ -359,6 +359,38 @@ describe("Player", () => {
 
 				expect(player.state.position).toBe(5);
 				expect(player.state.speed).toBe(0);
+			});
+
+			it("keeps drawing until speed card found", () => {
+				const player = createPlayer({
+					position: 0,
+					played: [{ type: "stress" }],
+					deck: [
+						{ type: "speed", value: 4 },
+						{ type: "stress" },
+						{ type: "heat" },
+					],
+				});
+
+				player.beginResolution();
+
+				expect(player.state.speed).toBe(4);
+				expect(player.state.discardSize).toBe(2); // heat and stress discarded
+			});
+
+			it("tracks drawn cards in stress card resolution", () => {
+				const player = createPlayer({
+					position: 0,
+					played: [{ type: "stress" }],
+					deck: [{ type: "speed", value: 4 }, { type: "heat" }],
+				});
+
+				player.beginResolution();
+
+				const stressCard = player.state.played.find((c) => c.type === "stress");
+				expect(stressCard?.resolution).toEqual({
+					drawnCards: [{ type: "heat" }, { type: "speed", value: 4 }],
+				});
 			});
 		});
 

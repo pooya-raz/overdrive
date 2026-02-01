@@ -10,7 +10,12 @@ const MAP_TRACKS: Record<GameMap, Track> = {
 	},
 	USA: {
 		length: 69,
-		corners: [], // To be defined later
+		corners: [
+			{ position: 13, speedLimit: 7 },
+			{ position: 34, speedLimit: 3 },
+			{ position: 50, speedLimit: 3 },
+			{ position: 58, speedLimit: 2 },
+		],
 	},
 };
 

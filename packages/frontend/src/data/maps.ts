@@ -19,7 +19,7 @@ const MAP_CONFIGS: Record<GameMap, MapConfig> = {
     image: "/map/usa-map.webp",
     width: 600,
     height: 399,
-    startOffset: 68,
+    startOffset: 0,
     waypoints: usaMapWaypoints,
   },
   Test: {

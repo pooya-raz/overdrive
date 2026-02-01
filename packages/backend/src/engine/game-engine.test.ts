@@ -519,6 +519,36 @@ describe("Game", () => {
 				typeof game.state.players[PLAYER_1.id].turnActions.react?.amount,
 			).toBe("number");
 		});
+
+		it("should record slipstream choice in turnActions", () => {
+			const game = new Game(
+				{ players: [PLAYER_1, PLAYER_2], map: "USA" },
+				{ shuffle: noShuffle },
+			);
+
+			// Both move same distance to enable slipstream for P2
+			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
+			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] });
+
+			// P1 resolves first
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
+
+			// P2 resolves - can slipstream because P1 at same position
+			game.dispatch(PLAYER_2.id, { type: "move" });
+			game.dispatch(PLAYER_2.id, {
+				type: "adrenaline",
+				acceptMove: false,
+				acceptCooldown: false,
+			});
+			game.dispatch(PLAYER_2.id, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_2.id, { type: "slipstream", use: true });
+
+			expect(game.state.players[PLAYER_2.id].turnActions.slipstream).toEqual({
+				used: true,
+			});
+		});
 	});
 
 	describe("position collision", () => {

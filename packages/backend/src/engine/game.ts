@@ -233,6 +233,7 @@ export class Game {
 				break;
 			}
 			case "slipstream": {
+				player.recordSlipstream(action.use);
 				if (action.use) {
 					if (!this.canSlipstream(playerId)) {
 						throw new Error("Slipstream not available");

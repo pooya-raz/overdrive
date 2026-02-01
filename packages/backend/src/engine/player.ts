@@ -294,12 +294,18 @@ export class Player {
 			if (card.type !== "stress") continue;
 
 			const drawnCards: Card[] = [];
+			const toDiscard: Card[] = [];
 			let drawn = this.drawOne();
 
 			while (drawn && drawn.type !== "speed" && drawn.type !== "upgrade") {
 				drawnCards.push(drawn);
-				this._discard.push(drawn);
+				toDiscard.push(drawn);
 				drawn = this.drawOne();
+			}
+
+			// Add discarded cards after drawing to prevent re-shuffling them
+			for (const c of toDiscard) {
+				this._discard.push(c);
 			}
 
 			if (drawn) {

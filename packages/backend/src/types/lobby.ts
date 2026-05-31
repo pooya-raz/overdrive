@@ -25,4 +25,4 @@ export type RoomServerMessage =
 	| { type: "roomState"; state: import("@overdrive/shared").RoomState }
 	| { type: "gameStarted" }
 	| { type: "state"; state: import("@overdrive/shared").GameState }
-	| { type: "error"; message: string };
+	| { type: "error"; message: string; code?: string };

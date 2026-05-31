@@ -1,3 +1,13 @@
+import { Effect } from "effect";
+import {
+	AlreadyActedError,
+	type DispatchError,
+	NotYourTurnError,
+	PlayerNotFoundError,
+	SlipstreamUnavailableError,
+	WrongPhaseActionError,
+	WrongStateError,
+} from "./errors";
 import { Player } from "./player";
 import { getMapTrack } from "./track";
 import type {
@@ -81,7 +91,7 @@ export class Game {
 	constructor(request: CreateGameRequest, options: GameOptions = {}) {
 		const players = createPlayers(request, options);
 		for (const player of Object.values(players)) {
-			player.draw();
+			Effect.runSync(player.draw());
 		}
 		const playerCount = Object.keys(players).length;
 		const adrenalineSlots = playerCount >= 5 ? 2 : 1;
@@ -154,135 +164,159 @@ export class Game {
 		};
 	}
 
-	dispatch(playerId: string, action: Action): void {
-		if (action.type !== this._state.currentState) {
-			throw new Error(`Invalid action for state ${this._state.currentState}`);
-		}
+	dispatch(
+		playerId: string,
+		action: Action,
+	): Effect.Effect<void, DispatchError> {
+		return Effect.gen(this, function* (this: Game) {
+			if (action.type !== this._state.currentState) {
+				return yield* Effect.fail(
+					new WrongStateError({
+						currentState: this._state.currentState,
+						attempted: action.type,
+					}),
+				);
+			}
 
-		const player = this._state.players[playerId];
-		if (!player) {
-			throw new Error("Player not found");
-		}
+			const player = this._state.players[playerId];
+			if (!player) {
+				return yield* Effect.fail(new PlayerNotFoundError({ playerId }));
+			}
 
-		if (this._state.phase === "planning") {
-			this.handlePlanningAction(playerId, player, action);
-		} else {
-			this.handleResolutionAction(playerId, player, action);
-		}
+			if (this._state.phase === "planning") {
+				yield* this.handlePlanningAction(playerId, player, action);
+			} else {
+				yield* this.handleResolutionAction(playerId, player, action);
+			}
+		});
 	}
 
 	private handlePlanningAction(
 		playerId: string,
 		player: Player,
 		action: Action,
-	): void {
-		if (!this._state.pendingPlayers[playerId]) {
-			throw new Error("Player has already acted this state");
-		}
+	): Effect.Effect<void, DispatchError> {
+		return Effect.gen(this, function* (this: Game) {
+			if (!this._state.pendingPlayers[playerId]) {
+				return yield* Effect.fail(new AlreadyActedError());
+			}
 
-		if (action.type !== "plan") {
-			throw new Error(`Action ${action.type} not valid in planning phase`);
-		}
+			if (action.type !== "plan") {
+				return yield* Effect.fail(
+					new WrongPhaseActionError({
+						phase: "planning",
+						attempted: action.type,
+					}),
+				);
+			}
 
-		player.shiftGears(action.gear);
-		player.playCards(action.cardIndices);
+			yield* player.shiftGears(action.gear);
+			yield* player.playCards(action.cardIndices);
 
-		this._state.pendingPlayers[playerId] = false;
+			this._state.pendingPlayers[playerId] = false;
 
-		const allActed = Object.values(this._state.pendingPlayers).every((v) => !v);
-		if (allActed) {
-			this._state.phase = "resolution";
-			this._state.turnOrder = this.getPlayersInRaceOrder().map((p) => p.id);
-			this._state.currentPlayerIndex = 0;
-			this.revealAndMove();
-		}
+			const allActed = Object.values(this._state.pendingPlayers).every(
+				(v) => !v,
+			);
+			if (allActed) {
+				this._state.phase = "resolution";
+				this._state.turnOrder = this.getPlayersInRaceOrder().map((p) => p.id);
+				this._state.currentPlayerIndex = 0;
+				this.revealAndMove();
+			}
+		});
 	}
 
 	private handleResolutionAction(
 		playerId: string,
 		player: Player,
 		action: Action,
-	): void {
-		const currentPlayerId =
-			this._state.turnOrder[this._state.currentPlayerIndex];
-		if (playerId !== currentPlayerId) {
-			throw new Error("Not your turn");
-		}
+	): Effect.Effect<void, DispatchError> {
+		return Effect.gen(this, function* (this: Game) {
+			const currentPlayerId =
+				this._state.turnOrder[this._state.currentPlayerIndex];
+			if (playerId !== currentPlayerId) {
+				return yield* Effect.fail(new NotYourTurnError());
+			}
 
-		switch (action.type) {
-			case "move": {
-				player.confirmMove();
-				if (player.state.hasAdrenaline) {
-					this._state.currentState = "adrenaline";
-				} else {
-					this.enterReactOrSkip(playerId, player);
-				}
-				break;
-			}
-			case "adrenaline": {
-				player.applyAdrenaline(action.acceptMove);
-				this.enterReactOrSkip(playerId, player);
-				break;
-			}
-			case "react": {
-				const done: Done = player.react(action.action);
-				if (done) {
-					if (this.canSlipstream(playerId)) {
-						this._state.currentState = "slipstream";
+			switch (action.type) {
+				case "move": {
+					player.confirmMove();
+					if (player.state.hasAdrenaline) {
+						this._state.currentState = "adrenaline";
 					} else {
-						this.finishMovement(playerId, player);
+						this.enterReactOrSkip(playerId, player);
 					}
-				}
-				break;
-			}
-			case "slipstream": {
-				player.recordSlipstream(action.use);
-				if (action.use) {
-					if (!this.canSlipstream(playerId)) {
-						throw new Error("Slipstream not available");
-					}
-					player.setPosition(player.state.position + 2);
-				}
-				this.finishMovement(playerId, player);
-				break;
-			}
-			case "cornerPenalty": {
-				this.completeMovementPhase(playerId, player);
-				break;
-			}
-			case "discard": {
-				player.discard(action.cardIndices);
-				player.draw();
-				player.resetCooldowns();
-				this._state.currentPlayerIndex++;
-
-				if (this._state.currentPlayerIndex < this._state.turnOrder.length) {
-					this.revealAndMove();
 					break;
 				}
-
-				if (this._state.raceFinishing) {
-					this.finalizeRace();
-					return;
+				case "adrenaline": {
+					player.applyAdrenaline(action.acceptMove);
+					this.enterReactOrSkip(playerId, player);
+					break;
 				}
-
-				this.assignAdrenaline();
-				for (const p of Object.values(this._state.players)) {
-					p.clearTurnActions();
+				case "react": {
+					const done: Done = yield* player.react(action.action);
+					if (done) {
+						if (this.canSlipstream(playerId)) {
+							this._state.currentState = "slipstream";
+						} else {
+							this.finishMovement(playerId, player);
+						}
+					}
+					break;
 				}
-				this._state.phase = "planning";
-				this._state.currentState = "plan";
-				this._state.turn += 1;
-				this._state.turnOrder = [];
-				this._state.currentPlayerIndex = 0;
-				this._state.pendingPlayers = Object.fromEntries(
-					Object.keys(this._state.players).map((id) => [id, true]),
-				);
-				break;
+				case "slipstream": {
+					player.recordSlipstream(action.use);
+					if (action.use) {
+						if (!this.canSlipstream(playerId)) {
+							return yield* Effect.fail(new SlipstreamUnavailableError());
+						}
+						player.setPosition(player.state.position + 2);
+					}
+					this.finishMovement(playerId, player);
+					break;
+				}
+				case "cornerPenalty": {
+					this.completeMovementPhase(playerId, player);
+					break;
+				}
+				case "discard": {
+					yield* player.discard(action.cardIndices);
+					yield* player.draw();
+					player.resetCooldowns();
+					this._state.currentPlayerIndex++;
+
+					if (this._state.currentPlayerIndex < this._state.turnOrder.length) {
+						this.revealAndMove();
+						break;
+					}
+
+					if (this._state.raceFinishing) {
+						this.finalizeRace();
+						return;
+					}
+
+					this.assignAdrenaline();
+					for (const p of Object.values(this._state.players)) {
+						p.clearTurnActions();
+					}
+					this._state.phase = "planning";
+					this._state.currentState = "plan";
+					this._state.turn += 1;
+					this._state.turnOrder = [];
+					this._state.currentPlayerIndex = 0;
+					this._state.pendingPlayers = Object.fromEntries(
+						Object.keys(this._state.players).map((id) => [id, true]),
+					);
+					break;
+				}
+				default:
+					// Defect: state machine guarantees action.type matched currentState above.
+					throw new Error(
+						`Action ${action.type} not valid in resolution phase`,
+					);
 			}
-			default:
-				throw new Error(`Action ${action.type} not valid in resolution phase`);
-		}
+		});
 	}
 
 	/** Reveals cards and moves player, then waits for acknowledgment. */

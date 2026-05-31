@@ -5,6 +5,7 @@ import {
 	type PlayerInput,
 	type ShuffleFn,
 } from "./game";
+import { run, runFail } from "./test-helpers";
 
 const PLAYER_1: PlayerInput = { id: "p1", username: "Alice" };
 const PLAYER_2: PlayerInput = { id: "p2", username: "Bob" };
@@ -18,24 +19,26 @@ const noShuffle: ShuffleFn = <T>(items: T[]) => items;
 function completeResolutionPhase(game: Game): void {
 	// Players resolve in turn order (leader first), one at a time
 	for (const playerId of game.state.turnOrder) {
-		game.dispatch(playerId, { type: "move" });
+		run(game.dispatch(playerId, { type: "move" }));
 		// Adrenaline is skipped when not available
 		if (game.state.currentState === "adrenaline") {
-			game.dispatch(playerId, {
-				type: "adrenaline",
-				acceptMove: false,
-			});
+			run(
+				game.dispatch(playerId, {
+					type: "adrenaline",
+					acceptMove: false,
+				}),
+			);
 		}
-		game.dispatch(playerId, { type: "react", action: "skip" });
+		run(game.dispatch(playerId, { type: "react", action: "skip" }));
 		// Slipstream is skipped when not available
 		if (game.state.currentState === "slipstream") {
-			game.dispatch(playerId, { type: "slipstream", use: false });
+			run(game.dispatch(playerId, { type: "slipstream", use: false }));
 		}
 		// Corner penalty acknowledgment is required when penalties are paid
 		if (game.state.currentState === "cornerPenalty") {
-			game.dispatch(playerId, { type: "cornerPenalty" });
+			run(game.dispatch(playerId, { type: "cornerPenalty" }));
 		}
-		game.dispatch(playerId, { type: "discard", cardIndices: [] });
+		run(game.dispatch(playerId, { type: "discard", cardIndices: [] }));
 	}
 }
 
@@ -127,16 +130,24 @@ describe("Game", () => {
 				);
 
 				// Submit plan to enter resolution phase
-				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
-
-				// Now in resolution phase (move acknowledgment), plan action should be rejected
-				expect(() =>
+				run(
 					game.dispatch(PLAYER_1.id, {
 						type: "plan",
-						gear: 2,
-						cardIndices: [5],
+						gear: 1,
+						cardIndices: [6],
 					}),
-				).toThrow("Invalid action for state move");
+				);
+
+				// Now in resolution phase (move acknowledgment), plan action should be rejected
+				expect(
+					runFail(
+						game.dispatch(PLAYER_1.id, {
+							type: "plan",
+							gear: 2,
+							cardIndices: [5],
+						}),
+					)._tag,
+				).toBe("WrongState");
 			});
 
 			it("should reject action for unknown player", () => {
@@ -148,13 +159,15 @@ describe("Game", () => {
 					{ shuffle: noShuffle },
 				);
 
-				expect(() =>
-					game.dispatch("unknown-player-id", {
-						type: "plan",
-						gear: 2,
-						cardIndices: [6, 5],
-					}),
-				).toThrow("Player not found");
+				expect(
+					runFail(
+						game.dispatch("unknown-player-id", {
+							type: "plan",
+							gear: 2,
+							cardIndices: [6, 5],
+						}),
+					)._tag,
+				).toBe("PlayerNotFound");
 			});
 
 			it("should reject action if player already acted", () => {
@@ -166,19 +179,23 @@ describe("Game", () => {
 					{ shuffle: noShuffle },
 				);
 
-				game.dispatch(PLAYER_1.id, {
-					type: "plan",
-					gear: 2,
-					cardIndices: [6, 5],
-				});
-
-				expect(() =>
+				run(
 					game.dispatch(PLAYER_1.id, {
 						type: "plan",
-						gear: 3,
-						cardIndices: [4, 3, 2],
+						gear: 2,
+						cardIndices: [6, 5],
 					}),
-				).toThrow("Player has already acted this state");
+				);
+
+				expect(
+					runFail(
+						game.dispatch(PLAYER_1.id, {
+							type: "plan",
+							gear: 3,
+							cardIndices: [4, 3, 2],
+						}),
+					)._tag,
+				).toBe("AlreadyActed");
 			});
 		});
 
@@ -192,11 +209,13 @@ describe("Game", () => {
 					{ shuffle: noShuffle },
 				);
 
-				game.dispatch(PLAYER_1.id, {
-					type: "plan",
-					gear: 2,
-					cardIndices: [6, 5],
-				});
+				run(
+					game.dispatch(PLAYER_1.id, {
+						type: "plan",
+						gear: 2,
+						cardIndices: [6, 5],
+					}),
+				);
 
 				expect(game.state.pendingPlayers).toEqual({
 					[PLAYER_1.id]: false,
@@ -213,16 +232,20 @@ describe("Game", () => {
 					{ shuffle: noShuffle },
 				);
 
-				game.dispatch(PLAYER_1.id, {
-					type: "plan",
-					gear: 2,
-					cardIndices: [6, 5],
-				});
-				game.dispatch(PLAYER_2.id, {
-					type: "plan",
-					gear: 2,
-					cardIndices: [6, 5],
-				});
+				run(
+					game.dispatch(PLAYER_1.id, {
+						type: "plan",
+						gear: 2,
+						cardIndices: [6, 5],
+					}),
+				);
+				run(
+					game.dispatch(PLAYER_2.id, {
+						type: "plan",
+						gear: 2,
+						cardIndices: [6, 5],
+					}),
+				);
 
 				expect(game.state.turn).toBe(1);
 				expect(game.state.phase).toBe("resolution");
@@ -250,7 +273,13 @@ describe("Game", () => {
 
 				// Player starts at position 0, plays speed 4 card
 				const startPosition = game.state.players[PLAYER_1.id].position;
-				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
+				run(
+					game.dispatch(PLAYER_1.id, {
+						type: "plan",
+						gear: 1,
+						cardIndices: [6],
+					}),
+				);
 
 				// After planning, in "move" state, position should NOT have changed yet
 				expect(game.state.currentState).toBe("move");
@@ -258,7 +287,7 @@ describe("Game", () => {
 				expect(game.state.players[PLAYER_1.id].speed).toBe(4);
 
 				// After confirming move, position should update
-				game.dispatch(PLAYER_1.id, { type: "move" });
+				run(game.dispatch(PLAYER_1.id, { type: "move" }));
 				expect(game.state.players[PLAYER_1.id].position).toBe(
 					startPosition + 4,
 				);
@@ -274,22 +303,30 @@ describe("Game", () => {
 				);
 
 				// Planning phase - gear 1 means play 1 card
-				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
+				run(
+					game.dispatch(PLAYER_1.id, {
+						type: "plan",
+						gear: 1,
+						cardIndices: [6],
+					}),
+				);
 
 				// Resolution phase - player must acknowledge move first
 				expect(game.state.currentState).toBe("move");
-				game.dispatch(PLAYER_1.id, { type: "move" });
+				run(game.dispatch(PLAYER_1.id, { type: "move" }));
 
 				// Single player has adrenaline (they're in last place)
 				expect(game.state.currentState).toBe("adrenaline");
-				game.dispatch(PLAYER_1.id, {
-					type: "adrenaline",
-					acceptMove: false,
-				});
-				game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+				run(
+					game.dispatch(PLAYER_1.id, {
+						type: "adrenaline",
+						acceptMove: false,
+					}),
+				);
+				run(game.dispatch(PLAYER_1.id, { type: "react", action: "skip" }));
 				// Slipstream is skipped (single player has no one to slipstream)
 				expect(game.state.currentState).toBe("discard");
-				game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
+				run(game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] }));
 
 				// After all resolution states, should be back to planning phase turn 2
 				expect(game.state.turn).toBe(2);
@@ -326,12 +363,16 @@ describe("Game", () => {
 			// Player 1: gear 2, speed 4 + upgrade 0 = 4 movement
 			// Player 2: gear 1, speed 4 = 4 movement
 			// With noShuffle, hand[6] = speed 4, hand[5] = upgrade 0
-			game.dispatch(PLAYER_1.id, {
-				type: "plan",
-				gear: 2,
-				cardIndices: [6, 5],
-			});
-			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] });
+			run(
+				game.dispatch(PLAYER_1.id, {
+					type: "plan",
+					gear: 2,
+					cardIndices: [6, 5],
+				}),
+			);
+			run(
+				game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
 
 			// Complete resolution phase
 			completeResolutionPhase(game);
@@ -356,12 +397,16 @@ describe("Game", () => {
 
 			// Player 1: gear 1, upgrade 0 (0 movement) - index 5
 			// Player 2: gear 2, speed 4 + upgrade 5 = 9 movement - indices 6, 4
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [5] });
-			game.dispatch(PLAYER_2.id, {
-				type: "plan",
-				gear: 2,
-				cardIndices: [6, 4],
-			});
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [5] }),
+			);
+			run(
+				game.dispatch(PLAYER_2.id, {
+					type: "plan",
+					gear: 2,
+					cardIndices: [6, 4],
+				}),
+			);
 
 			// Complete resolution phase
 			completeResolutionPhase(game);
@@ -386,11 +431,21 @@ describe("Game", () => {
 			// Player 3: speed 4 = 4 movement
 			// Player 4: speed 4 = 4 movement
 			// Player 5: speed 4 = 4 movement
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [5] });
-			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [5] });
-			game.dispatch(PLAYER_3.id, { type: "plan", gear: 1, cardIndices: [6] });
-			game.dispatch(PLAYER_4.id, { type: "plan", gear: 1, cardIndices: [6] });
-			game.dispatch(PLAYER_5.id, { type: "plan", gear: 1, cardIndices: [6] });
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [5] }),
+			);
+			run(
+				game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [5] }),
+			);
+			run(
+				game.dispatch(PLAYER_3.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
+			run(
+				game.dispatch(PLAYER_4.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
+			run(
+				game.dispatch(PLAYER_5.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
 
 			// Complete resolution phase
 			completeResolutionPhase(game);
@@ -414,12 +469,16 @@ describe("Game", () => {
 			);
 
 			// Complete turn 1
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [5] });
-			game.dispatch(PLAYER_2.id, {
-				type: "plan",
-				gear: 2,
-				cardIndices: [6, 4],
-			});
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [5] }),
+			);
+			run(
+				game.dispatch(PLAYER_2.id, {
+					type: "plan",
+					gear: 2,
+					cardIndices: [6, 4],
+				}),
+			);
 			completeResolutionPhase(game);
 
 			// Verify adrenaline was assigned after turn 1
@@ -427,8 +486,12 @@ describe("Game", () => {
 			expect(game.state.players[PLAYER_1.id].hasAdrenaline).toBe(true);
 
 			// After entering resolution, adrenaline should still be available
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [4] });
-			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [3] });
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [4] }),
+			);
+			run(
+				game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [3] }),
+			);
 
 			// Now in resolution phase, adrenaline should still be available
 			expect(game.state.phase).toBe("resolution");
@@ -445,30 +508,40 @@ describe("Game", () => {
 			);
 
 			// P1 moves 0, P2 moves more to give P1 adrenaline next turn
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [5] });
-			game.dispatch(PLAYER_2.id, {
-				type: "plan",
-				gear: 2,
-				cardIndices: [6, 4],
-			});
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [5] }),
+			);
+			run(
+				game.dispatch(PLAYER_2.id, {
+					type: "plan",
+					gear: 2,
+					cardIndices: [6, 4],
+				}),
+			);
 			completeResolutionPhase(game);
 
 			// Turn 2: P1 has adrenaline
 			expect(game.state.players[PLAYER_1.id].hasAdrenaline).toBe(true);
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [4] });
-			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [3] });
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [4] }),
+			);
+			run(
+				game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [3] }),
+			);
 
 			// P2 resolves first (leader)
-			game.dispatch(PLAYER_2.id, { type: "move" });
-			game.dispatch(PLAYER_2.id, { type: "react", action: "skip" });
-			game.dispatch(PLAYER_2.id, { type: "discard", cardIndices: [] });
+			run(game.dispatch(PLAYER_2.id, { type: "move" }));
+			run(game.dispatch(PLAYER_2.id, { type: "react", action: "skip" }));
+			run(game.dispatch(PLAYER_2.id, { type: "discard", cardIndices: [] }));
 
 			// P1 resolves - accept +1 move from adrenaline
-			game.dispatch(PLAYER_1.id, { type: "move" });
-			game.dispatch(PLAYER_1.id, {
-				type: "adrenaline",
-				acceptMove: true,
-			});
+			run(game.dispatch(PLAYER_1.id, { type: "move" }));
+			run(
+				game.dispatch(PLAYER_1.id, {
+					type: "adrenaline",
+					acceptMove: true,
+				}),
+			);
 
 			expect(game.state.players[PLAYER_1.id].turnActions.adrenaline).toEqual({
 				acceptMove: true,
@@ -482,33 +555,43 @@ describe("Game", () => {
 			);
 
 			// P1 moves 0, P2 moves more to give P1 adrenaline next turn
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [5] });
-			game.dispatch(PLAYER_2.id, {
-				type: "plan",
-				gear: 2,
-				cardIndices: [6, 4],
-			});
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [5] }),
+			);
+			run(
+				game.dispatch(PLAYER_2.id, {
+					type: "plan",
+					gear: 2,
+					cardIndices: [6, 4],
+				}),
+			);
 			completeResolutionPhase(game);
 
 			// Turn 2: P1 has adrenaline
 			expect(game.state.players[PLAYER_1.id].hasAdrenaline).toBe(true);
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [4] });
-			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [3] });
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [4] }),
+			);
+			run(
+				game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [3] }),
+			);
 
 			// P2 resolves first (leader)
-			game.dispatch(PLAYER_2.id, { type: "move" });
-			game.dispatch(PLAYER_2.id, { type: "react", action: "skip" });
-			game.dispatch(PLAYER_2.id, { type: "discard", cardIndices: [] });
+			run(game.dispatch(PLAYER_2.id, { type: "move" }));
+			run(game.dispatch(PLAYER_2.id, { type: "react", action: "skip" }));
+			run(game.dispatch(PLAYER_2.id, { type: "discard", cardIndices: [] }));
 
 			// P1 resolves - decline +1 move but should still get cooldown
-			game.dispatch(PLAYER_1.id, { type: "move" });
+			run(game.dispatch(PLAYER_1.id, { type: "move" }));
 			// P1 in gear 1 gets 3 cooldowns from beginResolution
 			expect(game.state.players[PLAYER_1.id].availableCooldowns).toBe(3);
 
-			game.dispatch(PLAYER_1.id, {
-				type: "adrenaline",
-				acceptMove: false,
-			});
+			run(
+				game.dispatch(PLAYER_1.id, {
+					type: "adrenaline",
+					acceptMove: false,
+				}),
+			);
 
 			// Cooldown should be auto-applied even when declining move (+1 from adrenaline)
 			expect(game.state.players[PLAYER_1.id].availableCooldowns).toBe(4);
@@ -520,13 +603,17 @@ describe("Game", () => {
 				{ shuffle: noShuffle },
 			);
 
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
-			game.dispatch(PLAYER_1.id, { type: "move" });
-			game.dispatch(PLAYER_1.id, {
-				type: "adrenaline",
-				acceptMove: false,
-			});
-			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
+			run(game.dispatch(PLAYER_1.id, { type: "move" }));
+			run(
+				game.dispatch(PLAYER_1.id, {
+					type: "adrenaline",
+					acceptMove: false,
+				}),
+			);
+			run(game.dispatch(PLAYER_1.id, { type: "react", action: "skip" }));
 
 			expect(game.state.players[PLAYER_1.id].turnActions.react).toEqual({
 				action: "skip",
@@ -539,13 +626,17 @@ describe("Game", () => {
 				{ shuffle: noShuffle },
 			);
 
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
-			game.dispatch(PLAYER_1.id, { type: "move" });
-			game.dispatch(PLAYER_1.id, {
-				type: "adrenaline",
-				acceptMove: false,
-			});
-			game.dispatch(PLAYER_1.id, { type: "react", action: "boost" });
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
+			run(game.dispatch(PLAYER_1.id, { type: "move" }));
+			run(
+				game.dispatch(PLAYER_1.id, {
+					type: "adrenaline",
+					acceptMove: false,
+				}),
+			);
+			run(game.dispatch(PLAYER_1.id, { type: "react", action: "boost" }));
 
 			// With noShuffle, boost draws from top of deck
 			// Amount varies based on what's drawn, but should be recorded
@@ -564,22 +655,28 @@ describe("Game", () => {
 			);
 
 			// Both move same distance to enable slipstream for P2
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
-			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] });
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
+			run(
+				game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
 
 			// P1 resolves first
-			game.dispatch(PLAYER_1.id, { type: "move" });
-			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
-			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
+			run(game.dispatch(PLAYER_1.id, { type: "move" }));
+			run(game.dispatch(PLAYER_1.id, { type: "react", action: "skip" }));
+			run(game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] }));
 
 			// P2 resolves - can slipstream because P1 at same position
-			game.dispatch(PLAYER_2.id, { type: "move" });
-			game.dispatch(PLAYER_2.id, {
-				type: "adrenaline",
-				acceptMove: false,
-			});
-			game.dispatch(PLAYER_2.id, { type: "react", action: "skip" });
-			game.dispatch(PLAYER_2.id, { type: "slipstream", use: true });
+			run(game.dispatch(PLAYER_2.id, { type: "move" }));
+			run(
+				game.dispatch(PLAYER_2.id, {
+					type: "adrenaline",
+					acceptMove: false,
+				}),
+			);
+			run(game.dispatch(PLAYER_2.id, { type: "react", action: "skip" }));
+			run(game.dispatch(PLAYER_2.id, { type: "slipstream", use: true }));
 
 			expect(game.state.players[PLAYER_2.id].turnActions.slipstream).toEqual({
 				used: true,
@@ -592,14 +689,18 @@ describe("Game", () => {
 				{ shuffle: noShuffle },
 			);
 
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
-			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] });
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
+			run(
+				game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
 
 			// P1 resolves first
-			game.dispatch(PLAYER_1.id, { type: "move" });
-			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			run(game.dispatch(PLAYER_1.id, { type: "move" }));
+			run(game.dispatch(PLAYER_1.id, { type: "react", action: "skip" }));
 			// Discard 2 cards (upgrade cards at indices 4 and 5 after playing card 6)
-			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [4, 5] });
+			run(game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [4, 5] }));
 
 			// P1's turn is done, P2's turn starts - but P1's turnActions should persist until new planning phase
 			expect(game.state.players[PLAYER_1.id].turnActions.discard).toEqual({
@@ -614,14 +715,18 @@ describe("Game", () => {
 			);
 
 			// Complete turn 1
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
-			game.dispatch(PLAYER_1.id, { type: "move" });
-			game.dispatch(PLAYER_1.id, {
-				type: "adrenaline",
-				acceptMove: true,
-			});
-			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
-			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
+			run(game.dispatch(PLAYER_1.id, { type: "move" }));
+			run(
+				game.dispatch(PLAYER_1.id, {
+					type: "adrenaline",
+					acceptMove: true,
+				}),
+			);
+			run(game.dispatch(PLAYER_1.id, { type: "react", action: "skip" }));
+			run(game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] }));
 
 			// Now in turn 2 planning phase
 			expect(game.state.turn).toBe(2);
@@ -640,8 +745,12 @@ describe("Game", () => {
 			);
 
 			// Both players: gear 1, speed 4 = 4 movement
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
-			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] });
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
+			run(
+				game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
 
 			// Complete resolution phase
 			completeResolutionPhase(game);
@@ -668,9 +777,15 @@ describe("Game", () => {
 
 			// P1, P2 at position 0: speed 4 → position 4
 			// P3 at position -1: speed 5 → targets position 4, cascades to 3
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
-			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] });
-			game.dispatch(PLAYER_3.id, { type: "plan", gear: 1, cardIndices: [4] }); // Upgrade5
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
+			run(
+				game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
+			run(
+				game.dispatch(PLAYER_3.id, { type: "plan", gear: 1, cardIndices: [4] }),
+			); // Upgrade5
 
 			// Complete resolution phase
 			completeResolutionPhase(game);
@@ -701,7 +816,7 @@ describe("Game", () => {
 				PLAYER_4.id,
 				PLAYER_5.id,
 			]) {
-				game.dispatch(id, { type: "plan", gear: 1, cardIndices: [6] });
+				run(game.dispatch(id, { type: "plan", gear: 1, cardIndices: [6] }));
 			}
 
 			// Complete resolution phase
@@ -727,34 +842,40 @@ describe("Game", () => {
 			);
 
 			// Both players move same distance → end at position 4
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
-			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] });
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
+			run(
+				game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
 
 			// P1 resolves first - must acknowledge move
 			expect(game.state.currentState).toBe("move");
-			game.dispatch(PLAYER_1.id, { type: "move" });
+			run(game.dispatch(PLAYER_1.id, { type: "move" }));
 			// P1 is leader, no adrenaline, goes to react
 			// P2 hasn't moved yet (still at 0), so P1 can't slipstream
 			expect(game.state.currentState).toBe("react");
-			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			run(game.dispatch(PLAYER_1.id, { type: "react", action: "skip" }));
 			// Slipstream skipped (P2 at original position 0)
 			expect(game.state.currentState).toBe("discard");
-			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
+			run(game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] }));
 
 			// P2 resolves - must acknowledge move first
 			expect(game.state.currentState).toBe("move");
-			game.dispatch(PLAYER_2.id, { type: "move" });
+			run(game.dispatch(PLAYER_2.id, { type: "move" }));
 			// P2 has adrenaline (trailing player at game start)
 			expect(game.state.currentState).toBe("adrenaline");
-			game.dispatch(PLAYER_2.id, {
-				type: "adrenaline",
-				acceptMove: false,
-			});
+			run(
+				game.dispatch(PLAYER_2.id, {
+					type: "adrenaline",
+					acceptMove: false,
+				}),
+			);
 			// P2 can slipstream because P1 is at same position
-			game.dispatch(PLAYER_2.id, { type: "react", action: "skip" });
+			run(game.dispatch(PLAYER_2.id, { type: "react", action: "skip" }));
 			expect(game.state.currentState).toBe("slipstream");
-			game.dispatch(PLAYER_2.id, { type: "slipstream", use: true });
-			game.dispatch(PLAYER_2.id, { type: "discard", cardIndices: [] });
+			run(game.dispatch(PLAYER_2.id, { type: "slipstream", use: true }));
+			run(game.dispatch(PLAYER_2.id, { type: "discard", cardIndices: [] }));
 
 			// P2 moved from 4 to 6 via slipstream (+2 spaces)
 			expect(game.state.players[PLAYER_1.id].position).toBe(4);
@@ -772,34 +893,40 @@ describe("Game", () => {
 
 			// P1: upgrade 5 = 5 movement → position 5
 			// P2: speed 4 = 4 movement → position 4
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [4] });
-			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] });
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [4] }),
+			);
+			run(
+				game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
 
 			// P1 resolves first - acknowledge move
 			expect(game.state.currentState).toBe("move");
-			game.dispatch(PLAYER_1.id, { type: "move" });
+			run(game.dispatch(PLAYER_1.id, { type: "move" }));
 			// P1 is leader, no adrenaline, goes to react
 			// P2 hasn't moved yet (still at 0), so P1 can't slipstream
 			expect(game.state.currentState).toBe("react");
-			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			run(game.dispatch(PLAYER_1.id, { type: "react", action: "skip" }));
 			// Slipstream skipped (P2 at original position 0)
 			expect(game.state.currentState).toBe("discard");
-			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
+			run(game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] }));
 
 			// P2 resolves - acknowledge move
 			expect(game.state.currentState).toBe("move");
-			game.dispatch(PLAYER_2.id, { type: "move" });
+			run(game.dispatch(PLAYER_2.id, { type: "move" }));
 			// P2 at position 4, P1 at position 5 (1 ahead) - can slipstream
 			// P2 has adrenaline (trailing player at game start)
 			expect(game.state.currentState).toBe("adrenaline");
-			game.dispatch(PLAYER_2.id, {
-				type: "adrenaline",
-				acceptMove: false,
-			});
-			game.dispatch(PLAYER_2.id, { type: "react", action: "skip" });
+			run(
+				game.dispatch(PLAYER_2.id, {
+					type: "adrenaline",
+					acceptMove: false,
+				}),
+			);
+			run(game.dispatch(PLAYER_2.id, { type: "react", action: "skip" }));
 			expect(game.state.currentState).toBe("slipstream");
-			game.dispatch(PLAYER_2.id, { type: "slipstream", use: true });
-			game.dispatch(PLAYER_2.id, { type: "discard", cardIndices: [] });
+			run(game.dispatch(PLAYER_2.id, { type: "slipstream", use: true }));
+			run(game.dispatch(PLAYER_2.id, { type: "discard", cardIndices: [] }));
 
 			expect(game.state.players[PLAYER_1.id].position).toBe(5);
 			expect(game.state.players[PLAYER_2.id].position).toBe(6);
@@ -816,30 +943,36 @@ describe("Game", () => {
 
 			// P1: upgrade 5 = 5 movement → position 5
 			// P2: upgrade 0 = 0 movement → position 0
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [4] });
-			game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [5] });
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [4] }),
+			);
+			run(
+				game.dispatch(PLAYER_2.id, { type: "plan", gear: 1, cardIndices: [5] }),
+			);
 
 			// P1 resolves first - acknowledge move
 			expect(game.state.currentState).toBe("move");
-			game.dispatch(PLAYER_1.id, { type: "move" });
+			run(game.dispatch(PLAYER_1.id, { type: "move" }));
 			// P1 is leader, no adrenaline, goes to react
 			expect(game.state.currentState).toBe("react");
-			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			run(game.dispatch(PLAYER_1.id, { type: "react", action: "skip" }));
 			// P1 is alone at position 5, slipstream skipped
 			expect(game.state.currentState).toBe("discard");
-			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
+			run(game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] }));
 
 			// P2 resolves - acknowledge move
 			expect(game.state.currentState).toBe("move");
-			game.dispatch(PLAYER_2.id, { type: "move" });
+			run(game.dispatch(PLAYER_2.id, { type: "move" }));
 			// P2 at position 0, P1 at position 5 - too far to slipstream
 			// P2 has adrenaline (trailing player at game start)
 			expect(game.state.currentState).toBe("adrenaline");
-			game.dispatch(PLAYER_2.id, {
-				type: "adrenaline",
-				acceptMove: false,
-			});
-			game.dispatch(PLAYER_2.id, { type: "react", action: "skip" });
+			run(
+				game.dispatch(PLAYER_2.id, {
+					type: "adrenaline",
+					acceptMove: false,
+				}),
+			);
+			run(game.dispatch(PLAYER_2.id, { type: "react", action: "skip" }));
 
 			// Slipstream should be skipped, going directly to discard
 			expect(game.state.currentState).toBe("discard");
@@ -855,11 +988,15 @@ describe("Game", () => {
 			);
 
 			// Player starts at 0, plays speed 4 -> ends at 4, doesn't cross corner
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] }),
+			);
 
-			game.dispatch(PLAYER_1.id, { type: "move" });
-			game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false });
-			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			run(game.dispatch(PLAYER_1.id, { type: "move" }));
+			run(
+				game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false }),
+			);
+			run(game.dispatch(PLAYER_1.id, { type: "react", action: "skip" }));
 
 			// Should skip cornerPenalty and go directly to discard
 			expect(game.state.currentState).toBe("discard");
@@ -878,15 +1015,19 @@ describe("Game", () => {
 			// Player starts at 0, plays upgrade 5 -> speed 5, ends at 5, crosses corner at 6
 			// Wait, player ends at 5, corner is at 6, so won't cross it yet
 			// Let's play two cards: upgrade 5 + speed 4 = 9 movement -> position 9, crosses corner at 6
-			game.dispatch(PLAYER_1.id, {
-				type: "plan",
-				gear: 2,
-				cardIndices: [6, 4],
-			});
+			run(
+				game.dispatch(PLAYER_1.id, {
+					type: "plan",
+					gear: 2,
+					cardIndices: [6, 4],
+				}),
+			);
 
-			game.dispatch(PLAYER_1.id, { type: "move" });
-			game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false });
-			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			run(game.dispatch(PLAYER_1.id, { type: "move" }));
+			run(
+				game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false }),
+			);
+			run(game.dispatch(PLAYER_1.id, { type: "react", action: "skip" }));
 
 			// Speed is 9, corner limit is 4, penalty is 5 heat
 			// Should enter cornerPenalty state
@@ -908,18 +1049,22 @@ describe("Game", () => {
 				{ shuffle: noShuffle },
 			);
 
-			game.dispatch(PLAYER_1.id, {
-				type: "plan",
-				gear: 2,
-				cardIndices: [6, 4],
-			});
-			game.dispatch(PLAYER_1.id, { type: "move" });
-			game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false });
-			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			run(
+				game.dispatch(PLAYER_1.id, {
+					type: "plan",
+					gear: 2,
+					cardIndices: [6, 4],
+				}),
+			);
+			run(game.dispatch(PLAYER_1.id, { type: "move" }));
+			run(
+				game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false }),
+			);
+			run(game.dispatch(PLAYER_1.id, { type: "react", action: "skip" }));
 
 			expect(game.state.currentState).toBe("cornerPenalty");
 
-			game.dispatch(PLAYER_1.id, { type: "cornerPenalty" });
+			run(game.dispatch(PLAYER_1.id, { type: "cornerPenalty" }));
 
 			expect(game.state.currentState).toBe("discard");
 		});
@@ -937,19 +1082,23 @@ describe("Game", () => {
 			// Turn 1: Shift 1->3 (costs 1 heat = 5 remaining)
 			// Play speed 4 + upgrade 5 + upgrade 0 = 9 speed
 			// Crosses corner at 6 (limit 4), penalty = 5, pays all 5 heat, 0 remaining
-			game.dispatch(PLAYER_1.id, {
-				type: "plan",
-				gear: 3,
-				cardIndices: [6, 4, 5],
-			});
-			game.dispatch(PLAYER_1.id, { type: "move" });
-			game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false });
-			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			run(
+				game.dispatch(PLAYER_1.id, {
+					type: "plan",
+					gear: 3,
+					cardIndices: [6, 4, 5],
+				}),
+			);
+			run(game.dispatch(PLAYER_1.id, { type: "move" }));
+			run(
+				game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false }),
+			);
+			run(game.dispatch(PLAYER_1.id, { type: "react", action: "skip" }));
 
 			expect(game.state.currentState).toBe("cornerPenalty");
 			expect(game.state.players[PLAYER_1.id].engineSize).toBe(0);
-			game.dispatch(PLAYER_1.id, { type: "cornerPenalty" });
-			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
+			run(game.dispatch(PLAYER_1.id, { type: "cornerPenalty" }));
+			run(game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] }));
 
 			// Player at position 9, has 0 heat
 			expect(game.state.players[PLAYER_1.id].position).toBe(9);
@@ -959,14 +1108,18 @@ describe("Game", () => {
 			// Play indices 4 and 5 (speed4 + speed4) = 8 speed
 			// Position 9 + 8 = 17, crosses corner at 15 (limit 3)
 			// Penalty = 8 - 3 = 5, but 0 heat available = spinout!
-			game.dispatch(PLAYER_1.id, {
-				type: "plan",
-				gear: 2,
-				cardIndices: [4, 5],
-			});
-			game.dispatch(PLAYER_1.id, { type: "move" });
-			game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false });
-			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			run(
+				game.dispatch(PLAYER_1.id, {
+					type: "plan",
+					gear: 2,
+					cardIndices: [4, 5],
+				}),
+			);
+			run(game.dispatch(PLAYER_1.id, { type: "move" }));
+			run(
+				game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false }),
+			);
+			run(game.dispatch(PLAYER_1.id, { type: "react", action: "skip" }));
 
 			// Must enter cornerPenalty state with spinout
 			expect(game.state.currentState).toBe("cornerPenalty");
@@ -996,14 +1149,18 @@ describe("Game", () => {
 
 			// Play speed 4 + upgrade 5 = 9 speed, crosses corner at 6 (limit 4)
 			// Penalty = 5 heat to pay
-			game.dispatch(PLAYER_1.id, {
-				type: "plan",
-				gear: 2,
-				cardIndices: [6, 4],
-			});
-			game.dispatch(PLAYER_1.id, { type: "move" });
-			game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false });
-			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			run(
+				game.dispatch(PLAYER_1.id, {
+					type: "plan",
+					gear: 2,
+					cardIndices: [6, 4],
+				}),
+			);
+			run(game.dispatch(PLAYER_1.id, { type: "move" }));
+			run(
+				game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false }),
+			);
+			run(game.dispatch(PLAYER_1.id, { type: "react", action: "skip" }));
 
 			expect(game.state.currentState).toBe("cornerPenalty");
 
@@ -1021,18 +1178,24 @@ describe("Game", () => {
 			);
 
 			// Move to position 2 first turn, then position 6+ at speed 4 (corner limit is 4)
-			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [5] }); // upgrade 0
-			game.dispatch(PLAYER_1.id, { type: "move" });
-			game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false });
-			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
-			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
+			run(
+				game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [5] }),
+			); // upgrade 0
+			run(game.dispatch(PLAYER_1.id, { type: "move" }));
+			run(
+				game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false }),
+			);
+			run(game.dispatch(PLAYER_1.id, { type: "react", action: "skip" }));
+			run(game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] }));
 
 			// Player at position 0, turn 2
-			game.dispatch(PLAYER_1.id, {
-				type: "plan",
-				gear: 2,
-				cardIndices: [4, 5],
-			}); // upgrade 5 + upgrade 0 = 5 + 0 = 5
+			run(
+				game.dispatch(PLAYER_1.id, {
+					type: "plan",
+					gear: 2,
+					cardIndices: [4, 5],
+				}),
+			); // upgrade 5 + upgrade 0 = 5 + 0 = 5
 
 			// Actually need more movement. Let's check player's position
 			// Player is at position 0 after turn 1 (moved 0)
@@ -1048,18 +1211,34 @@ describe("Game", () => {
 			// Position 0, play speed 4 + upgrade 0 + upgrade 0 + upgrade 0 = 4 speed in gear 4
 			// Actually simpler: play speed 4 three turns to cross corner at speed 4
 			// Turn 1: speed 4 -> position 4
-			game2.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
-			game2.dispatch(PLAYER_1.id, { type: "move" });
-			game2.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false });
-			game2.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
-			game2.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
+			run(
+				game2.dispatch(PLAYER_1.id, {
+					type: "plan",
+					gear: 1,
+					cardIndices: [6],
+				}),
+			);
+			run(game2.dispatch(PLAYER_1.id, { type: "move" }));
+			run(
+				game2.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false }),
+			);
+			run(game2.dispatch(PLAYER_1.id, { type: "react", action: "skip" }));
+			run(game2.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] }));
 
 			// Turn 2: position 4, play speed card = 4, end at 8, crosses corner at 6 at speed 4
 			// Speed 4 = corner limit 4, no penalty
-			game2.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
-			game2.dispatch(PLAYER_1.id, { type: "move" });
-			game2.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false });
-			game2.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			run(
+				game2.dispatch(PLAYER_1.id, {
+					type: "plan",
+					gear: 1,
+					cardIndices: [6],
+				}),
+			);
+			run(game2.dispatch(PLAYER_1.id, { type: "move" }));
+			run(
+				game2.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false }),
+			);
+			run(game2.dispatch(PLAYER_1.id, { type: "react", action: "skip" }));
 
 			// Should skip cornerPenalty state since speed <= limit
 			expect(game2.state.currentState).toBe("discard");
@@ -1103,11 +1282,13 @@ describe("Game", () => {
 					const playableIndex = hand.findIndex(
 						(c) => c.type !== "heat" && c.type !== "stress",
 					);
-					game.dispatch(playerId, {
-						type: "plan",
-						gear: 1,
-						cardIndices: [playableIndex >= 0 ? playableIndex : 0],
-					});
+					run(
+						game.dispatch(playerId, {
+							type: "plan",
+							gear: 1,
+							cardIndices: [playableIndex >= 0 ? playableIndex : 0],
+						}),
+					);
 				}
 				completeResolutionPhase(game);
 

@@ -1,3 +1,5 @@
+import type { GameMap } from "@overdrive/shared";
+
 // Re-export shared types
 export type {
 	Action,

@@ -1,4 +1,15 @@
-import { createStartingDeck, createStartingEngine } from "./cards";
+import {Effect} from "effect";
+import {createStartingDeck, createStartingEngine} from "./cards";
+import {
+	CannotDiscardError,
+	DeckExhaustedError,
+	HeatRequiredError,
+	InvalidCardCountError,
+	InvalidCardIndexError,
+	InvalidGearShiftError,
+	NoHeatToBoostError,
+	ReactionUnavailableError,
+} from "./errors";
 import type {
 	Card,
 	Corner,
@@ -97,9 +108,9 @@ export class Player {
 	private _position: number;
 	private _onRaceline: boolean;
 	private _deck: Card[];
-	private _hand: Card[];
+	private readonly _hand: Card[];
 	private _played: Card[];
-	private _engine: Card[];
+	private readonly _engine: Card[];
 	private _discard: Card[];
 	private _hasAdrenaline: boolean;
 	private _lap: number;
@@ -109,7 +120,7 @@ export class Player {
 	private _availableCooldowns: number;
 	private _availableReactions: ("cooldown" | "boost")[];
 	private _turnActions: TurnActions;
-	private declare shuffle: ShuffleFn;
+	private declare readonly shuffle: ShuffleFn;
 
 	constructor(options: {
 		id: string;
@@ -203,77 +214,99 @@ export class Player {
 		}
 	}
 
-	draw(): void {
-		while (this._hand.length < 7) {
-			if (this._deck.length === 0) {
-				if (this._discard.length === 0) {
-					throw new Error("No cards left to draw (deck and discard empty).");
+	draw(): Effect.Effect<void, DeckExhaustedError> {
+		return Effect.gen(this, function* (this: Player) {
+			while (this._hand.length < 7) {
+				if (this._deck.length === 0) {
+					if (this._discard.length === 0) {
+						return yield* Effect.fail(new DeckExhaustedError());
+					}
+					this._deck = this.shuffle(this._discard);
+					this._discard = [];
 				}
-				this._deck = this.shuffle(this._discard);
-				this._discard = [];
+				const card = this._deck.pop();
+				if (card) this._hand.push(card);
 			}
-			const card = this._deck.pop();
-			if (card) this._hand.push(card);
-		}
+		});
 	}
 
 	/** Shifting by 2 gears costs 1 heat (moved from engine to discard). */
-	shiftGears(nextGear: Gear): void {
-		const diff = Math.abs(nextGear - this._gear);
+	shiftGears(
+		nextGear: Gear,
+	): Effect.Effect<void, InvalidGearShiftError | HeatRequiredError> {
+		return Effect.gen(this, function* (this: Player) {
+			const diff = Math.abs(nextGear - this._gear);
 
-		if (diff > 2) {
-			throw new Error("Can only shift up or down by max 2 gears");
-		}
-
-		if (diff === 2) {
-			const heatIndex = this._engine.findIndex((card) => card.type === "heat");
-			if (heatIndex === -1) {
-				throw new Error("Heat card required to shift by 2 gears");
+			if (diff > 2) {
+				return yield* Effect.fail(new InvalidGearShiftError());
 			}
-			const [heat] = this._engine.splice(heatIndex, 1);
-			this._discard.push(heat);
-		}
 
-		this._gear = nextGear;
+			if (diff === 2) {
+				const heatIndex = this._engine.findIndex(
+					(card) => card.type === "heat",
+				);
+				if (heatIndex === -1) {
+					return yield* Effect.fail(new HeatRequiredError());
+				}
+				const [heat] = this._engine.splice(heatIndex, 1);
+				this._discard.push(heat);
+			}
+
+			this._gear = nextGear;
+		});
 	}
 
 	/** Heat and stress cards cannot be discarded from hand. Moves played to discard. */
-	discard(discardIndices: number[]): void {
-		this._turnActions.discard = { count: discardIndices.length };
-		const sortedIndices = [...discardIndices].sort((a, b) => b - a);
-		for (const index of sortedIndices) {
-			if (index < 0 || index >= this._hand.length) {
-				throw new Error(`Invalid card index: ${index}`);
+	discard(
+		discardIndices: number[],
+	): Effect.Effect<void, InvalidCardIndexError | CannotDiscardError> {
+		return Effect.gen(this, function* (this: Player) {
+			this._turnActions.discard = { count: discardIndices.length };
+			const sortedIndices = [...discardIndices].sort((a, b) => b - a);
+			for (const index of sortedIndices) {
+				if (index < 0 || index >= this._hand.length) {
+					return yield* Effect.fail(new InvalidCardIndexError({ index }));
+				}
+				const card = this._hand[index];
+				if (card.type === "heat") {
+					return yield* Effect.fail(
+						new CannotDiscardError({ cardType: "heat" }),
+					);
+				}
+				if (card.type === "stress") {
+					return yield* Effect.fail(
+						new CannotDiscardError({ cardType: "stress" }),
+					);
+				}
+				this._discard.push(...this._hand.splice(index, 1));
 			}
-			const card = this._hand[index];
-			if (card.type === "heat") {
-				throw new Error("Cannot discard heat cards");
-			}
-			if (card.type === "stress") {
-				throw new Error("Cannot discard stress cards");
-			}
-			this._discard.push(...this._hand.splice(index, 1));
-		}
 
-		this._discard.push(...this._played);
-		this._played = [];
+			this._discard.push(...this._played);
+			this._played = [];
+		});
 	}
 
 	/** Number of cards played must equal current gear. */
-	playCards(cardIndices: number[]): void {
-		if (cardIndices.length !== this._gear) {
-			throw new Error(`Must play exactly ${this._gear} cards`);
-		}
-
-		// Sort descending: removing lower indices first would shift higher ones
-		const sortedIndices = [...cardIndices].sort((a, b) => b - a);
-		for (const index of sortedIndices) {
-			if (index < 0 || index >= this._hand.length) {
-				throw new Error(`Invalid card index: ${index}`);
+	playCards(
+		cardIndices: number[],
+	): Effect.Effect<void, InvalidCardCountError | InvalidCardIndexError> {
+		return Effect.gen(this, function* (this: Player) {
+			if (cardIndices.length !== this._gear) {
+				return yield* Effect.fail(
+					new InvalidCardCountError({ expected: this._gear }),
+				);
 			}
-			const [card] = this._hand.splice(index, 1);
-			this._played.push(card);
-		}
+
+			// Sort descending: removing lower indices first would shift higher ones
+			const sortedIndices = [...cardIndices].sort((a, b) => b - a);
+			for (const index of sortedIndices) {
+				if (index < 0 || index >= this._hand.length) {
+					return yield* Effect.fail(new InvalidCardIndexError({ index }));
+				}
+				const [card] = this._hand.splice(index, 1);
+				this._played.push(card);
+			}
+		});
 	}
 
 	/**
@@ -404,57 +437,63 @@ export class Player {
 		this._turnActions = {};
 	}
 
-	react(action: ReactChoice): Done {
-		this._turnActions.react = { action };
-		if (action !== "skip" && !this._availableReactions.includes(action)) {
-			throw new Error(`Reaction ${action} not available`);
-		}
-
-		switch (action) {
-			case "skip":
-				this._availableReactions = [];
-				break;
-			case "cooldown":
-				this.cooldown(1);
-				this._availableCooldowns--;
-				if (this._availableCooldowns <= 0) {
-					this._availableReactions = this._availableReactions.filter(
-						(r) => r !== "cooldown",
-					);
-				}
-				break;
-			case "boost": {
-				const paid = this.payHeat(1);
-				if (paid === 0) {
-					throw new Error("No heat available to boost");
-				}
-
-				let drawn = this.drawOne();
-				while (drawn && drawn.type !== "speed") {
-					this._discard.push(drawn);
-					drawn = this.drawOne();
-				}
-
-				if (drawn) {
-					const speedBonus = drawn.value ?? 0;
-					this._turnActions.react = { action: "boost", amount: speedBonus };
-					this._position += speedBonus;
-					this._cardSpeed += speedBonus;
-					this._discard.push(drawn);
-				}
-
-				this._availableReactions = this._availableReactions.filter(
-					(r) => r !== "boost",
+	react(
+		action: ReactChoice,
+	): Effect.Effect<Done, ReactionUnavailableError | NoHeatToBoostError> {
+		return Effect.gen(this, function* (this: Player) {
+			this._turnActions.react = { action };
+			if (action !== "skip" && !this._availableReactions.includes(action)) {
+				return yield* Effect.fail(
+					new ReactionUnavailableError({ reaction: action }),
 				);
-				break;
 			}
-			default: {
-				const _exhaustive: never = action;
-				throw new Error(`Unknown reaction: ${_exhaustive}`);
-			}
-		}
 
-		return !this.hasViableReactions();
+			switch (action) {
+				case "skip":
+					this._availableReactions = [];
+					break;
+				case "cooldown":
+					this.cooldown(1);
+					this._availableCooldowns--;
+					if (this._availableCooldowns <= 0) {
+						this._availableReactions = this._availableReactions.filter(
+							(r) => r !== "cooldown",
+						);
+					}
+					break;
+				case "boost": {
+					const paid = this.payHeat(1);
+					if (paid === 0) {
+						return yield* Effect.fail(new NoHeatToBoostError());
+					}
+
+					let drawn = this.drawOne();
+					while (drawn && drawn.type !== "speed") {
+						this._discard.push(drawn);
+						drawn = this.drawOne();
+					}
+
+					if (drawn) {
+						const speedBonus = drawn.value ?? 0;
+						this._turnActions.react = { action: "boost", amount: speedBonus };
+						this._position += speedBonus;
+						this._cardSpeed += speedBonus;
+						this._discard.push(drawn);
+					}
+
+					this._availableReactions = this._availableReactions.filter(
+						(r) => r !== "boost",
+					);
+					break;
+				}
+				default: {
+					// Defect: unreachable exhaustive case (not a domain failure).
+					throw new Error(`Unknown reaction: ${action}`);
+				}
+			}
+
+			return !this.hasViableReactions();
+		});
 	}
 
 	/** Returns true if any available reaction can actually be used. */

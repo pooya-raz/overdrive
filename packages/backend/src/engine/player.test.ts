@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Player, type ShuffleFn } from "./player";
+import { run, runFail } from "./test-helpers";
 import type { Card, Corner, Gear } from "./types";
 
 const noShuffle: ShuffleFn = <T>(items: T[]) => items;
@@ -49,7 +50,7 @@ describe("defaultShuffle", () => {
 				engine: [],
 				discard: [],
 			});
-			player.draw();
+			run(player.draw());
 			results.push(JSON.stringify(player.state.hand));
 		}
 
@@ -72,7 +73,7 @@ describe("Player", () => {
 			];
 			const player = createPlayer({ deck });
 
-			player.draw();
+			run(player.draw());
 
 			expect(player.state.deckSize).toBe(0);
 			expect(player.state.hand).toEqual([
@@ -98,7 +99,7 @@ describe("Player", () => {
 			];
 			const player = createPlayer({ deck: [], discard, shuffle: noShuffle });
 
-			player.draw();
+			run(player.draw());
 
 			expect(player.state.deckSize).toBe(0);
 			expect(player.state.discardSize).toBe(0);
@@ -112,9 +113,7 @@ describe("Player", () => {
 					discard: [],
 				});
 
-				expect(() => player.draw()).toThrow(
-					"No cards left to draw (deck and discard empty).",
-				);
+				expect(runFail(player.draw())._tag).toBe("DeckExhausted");
 			});
 		});
 	});
@@ -123,7 +122,7 @@ describe("Player", () => {
 		it("updates gear when shifting by 1", () => {
 			const player = createPlayer({ gear: 2 });
 
-			player.shiftGears(3);
+			run(player.shiftGears(3));
 
 			expect(player.state.gear).toBe(3);
 		});
@@ -135,7 +134,7 @@ describe("Player", () => {
 				discard: [],
 			});
 
-			player.shiftGears(3);
+			run(player.shiftGears(3));
 
 			expect(player.state.gear).toBe(3);
 			expect(player.state.engineSize).toBe(0);
@@ -147,17 +146,13 @@ describe("Player", () => {
 			it("throws when shifting by 2 without heat in engine", () => {
 				const player = createPlayer({ gear: 1, engine: [] });
 
-				expect(() => player.shiftGears(3)).toThrow(
-					"Heat card required to shift by 2 gears",
-				);
+				expect(runFail(player.shiftGears(3))._tag).toBe("HeatRequired");
 			});
 
 			it("throws when shifting by more than 2 gears", () => {
 				const player = createPlayer({ gear: 1, engine: [{ type: "heat" }] });
 
-				expect(() => player.shiftGears(4)).toThrow(
-					"Can only shift up or down by max 2 gears",
-				);
+				expect(runFail(player.shiftGears(4))._tag).toBe("InvalidGearShift");
 			});
 		});
 	});
@@ -171,7 +166,7 @@ describe("Player", () => {
 			];
 			const player = createPlayer({ gear: 2, hand });
 
-			player.playCards([0, 1]);
+			run(player.playCards([0, 1]));
 
 			expect(player.state.played.length).toBe(2);
 			expect(player.state.hand).toEqual([{ type: "speed", value: 3 }]);
@@ -185,9 +180,7 @@ describe("Player", () => {
 				];
 				const player = createPlayer({ gear: 2, hand });
 
-				expect(() => player.playCards([0])).toThrow(
-					"Must play exactly 2 cards",
-				);
+				expect(runFail(player.playCards([0]))._tag).toBe("InvalidCardCount");
 			});
 
 			it("throws on invalid card index", () => {
@@ -197,7 +190,7 @@ describe("Player", () => {
 				];
 				const player = createPlayer({ gear: 2, hand });
 
-				expect(() => player.playCards([0, 5])).toThrow("Invalid card index: 5");
+				expect(runFail(player.playCards([0, 5]))._tag).toBe("InvalidCardIndex");
 			});
 
 			it("throws on negative card index", () => {
@@ -207,8 +200,8 @@ describe("Player", () => {
 				];
 				const player = createPlayer({ gear: 2, hand });
 
-				expect(() => player.playCards([0, -1])).toThrow(
-					"Invalid card index: -1",
+				expect(runFail(player.playCards([0, -1]))._tag).toBe(
+					"InvalidCardIndex",
 				);
 			});
 		});
@@ -517,8 +510,8 @@ describe("Player", () => {
 
 			player.resetCooldowns();
 
-			expect(() => player.react("cooldown")).toThrow(
-				"Reaction cooldown not available",
+			expect(runFail(player.react("cooldown"))._tag).toBe(
+				"ReactionUnavailable",
 			);
 		});
 	});
@@ -577,7 +570,7 @@ describe("Player", () => {
 				discard: [],
 			});
 
-			player.discard([]);
+			run(player.discard([]));
 
 			expect(player.state.played.length).toBe(0);
 			expect(player.state.discardSize).toBe(2);
@@ -599,7 +592,7 @@ describe("Player", () => {
 				discard: [],
 			});
 
-			player.discard([0, 1]);
+			run(player.discard([0, 1]));
 
 			expect(player.state.discardSize).toBe(2);
 			expect(player.state.discardTop).toEqual({ type: "speed", value: 1 });
@@ -622,7 +615,7 @@ describe("Player", () => {
 					],
 				});
 
-				expect(() => player.discard([0])).toThrow("Cannot discard heat cards");
+				expect(runFail(player.discard([0]))._tag).toBe("CannotDiscard");
 			});
 
 			it("throws when discarding stress cards", () => {
@@ -640,9 +633,7 @@ describe("Player", () => {
 					],
 				});
 
-				expect(() => player.discard([0])).toThrow(
-					"Cannot discard stress cards",
-				);
+				expect(runFail(player.discard([0]))._tag).toBe("CannotDiscard");
 			});
 
 			it("throws on invalid card index", () => {
@@ -655,7 +646,7 @@ describe("Player", () => {
 					],
 				});
 
-				expect(() => player.discard([99])).toThrow("Invalid card index: 99");
+				expect(runFail(player.discard([99]))._tag).toBe("InvalidCardIndex");
 			});
 		});
 	});
@@ -676,7 +667,7 @@ describe("Player", () => {
 				],
 			});
 
-			player.draw();
+			run(player.draw());
 
 			expect(player.state.hand).toHaveLength(7);
 		});
@@ -814,7 +805,7 @@ describe("Player", () => {
 			player.beginResolution();
 			player.confirmMove();
 
-			player.applyAdrenaline(true, true);
+			player.applyAdrenaline(true);
 
 			expect(player.state.position).toBe(2);
 		});
@@ -828,7 +819,7 @@ describe("Player", () => {
 			player.beginResolution();
 			player.confirmMove();
 
-			player.applyAdrenaline(true, false);
+			player.applyAdrenaline(true);
 
 			expect(player.state.position).toBe(3);
 		});
@@ -841,8 +832,8 @@ describe("Player", () => {
 			player.setAdrenaline(true);
 			player.beginResolution();
 
-			player.applyAdrenaline(false, true);
-			player.react("cooldown");
+			player.applyAdrenaline(false);
+			run(player.react("cooldown"));
 
 			expect(player.state.engineSize).toBe(1);
 		});
@@ -857,8 +848,8 @@ describe("Player", () => {
 			player.beginResolution();
 			player.confirmMove();
 
-			player.applyAdrenaline(true, true);
-			player.react("cooldown");
+			player.applyAdrenaline(true);
+			run(player.react("cooldown"));
 
 			expect(player.state.position).toBe(3);
 			expect(player.state.engineSize).toBe(1);
@@ -870,7 +861,7 @@ describe("Player", () => {
 			const player = createPlayer({ played: [{ type: "speed", value: 4 }] });
 			player.beginResolution();
 
-			const done = player.react("skip");
+			const done = run(player.react("skip"));
 
 			expect(done).toBe(true);
 		});
@@ -884,7 +875,7 @@ describe("Player", () => {
 			player.beginResolution();
 			player.addCooldown(1);
 
-			player.react("cooldown");
+			run(player.react("cooldown"));
 
 			expect(player.state.hand).toEqual([]);
 			expect(player.state.engineSize).toBe(1);
@@ -900,9 +891,9 @@ describe("Player", () => {
 			});
 			player.beginResolution();
 			player.addCooldown(1);
-			player.react("boost");
+			run(player.react("boost"));
 
-			const done = player.react("cooldown");
+			const done = run(player.react("cooldown"));
 
 			expect(done).toBe(true);
 		});
@@ -915,7 +906,7 @@ describe("Player", () => {
 			player.beginResolution();
 			player.addCooldown(1);
 
-			const done = player.react("cooldown");
+			const done = run(player.react("cooldown"));
 
 			expect(done).toBe(false);
 		});
@@ -928,10 +919,10 @@ describe("Player", () => {
 			});
 			player.beginResolution();
 			player.addCooldown(1);
-			player.react("cooldown");
+			run(player.react("cooldown"));
 
-			expect(() => player.react("cooldown")).toThrow(
-				"Reaction cooldown not available",
+			expect(runFail(player.react("cooldown"))._tag).toBe(
+				"ReactionUnavailable",
 			);
 		});
 
@@ -942,8 +933,8 @@ describe("Player", () => {
 			});
 			player.beginResolution();
 
-			expect(() => player.react("cooldown")).toThrow(
-				"Reaction cooldown not available",
+			expect(runFail(player.react("cooldown"))._tag).toBe(
+				"ReactionUnavailable",
 			);
 		});
 
@@ -954,11 +945,9 @@ describe("Player", () => {
 				deck: [{ type: "speed", value: 1 }],
 			});
 			player.beginResolution();
-			player.react("boost");
+			run(player.react("boost"));
 
-			expect(() => player.react("boost")).toThrow(
-				"Reaction boost not available",
-			);
+			expect(runFail(player.react("boost"))._tag).toBe("ReactionUnavailable");
 		});
 
 		it("boost pays heat and draws speed card", () => {
@@ -972,7 +961,7 @@ describe("Player", () => {
 			player.beginResolution();
 			player.confirmMove();
 
-			player.react("boost");
+			run(player.react("boost"));
 
 			expect(player.state.position).toBe(5); // 2 + 3
 			expect(player.state.engineSize).toBe(0);
@@ -994,7 +983,7 @@ describe("Player", () => {
 			player.beginResolution();
 			player.confirmMove();
 
-			player.react("boost");
+			run(player.react("boost"));
 
 			expect(player.state.position).toBe(6); // 2 + 4
 			expect(player.state.discardSize).toBe(4); // heat from engine + stress + heat + speed
@@ -1007,7 +996,7 @@ describe("Player", () => {
 			});
 			player.beginResolution();
 
-			expect(() => player.react("boost")).toThrow("No heat available to boost");
+			expect(runFail(player.react("boost"))._tag).toBe("NoHeatToBoost");
 		});
 
 		it("boost increases cardSpeed for corner checks", () => {
@@ -1023,7 +1012,7 @@ describe("Player", () => {
 				],
 			});
 			player.beginResolution();
-			player.react("boost");
+			run(player.react("boost"));
 
 			// cardSpeed is now 5 (2 + 3), crossing corner at position 3 with limit 3
 			// penalty = 5 - 3 = 2 heat

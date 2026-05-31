@@ -279,6 +279,25 @@ describe("GameRoom", () => {
 			});
 			expect(result.gameStates).toBeUndefined();
 		});
+
+		it("should include the typed error tag as the error code", () => {
+			const room = createRoom();
+
+			joinPlayer(room, VISITOR_1, "Alice");
+			joinPlayer(room, VISITOR_2, "Bob");
+			room.handleMessage(VISITOR_1, { type: "startGame" });
+
+			// Invalid card index surfaces the InvalidCardIndex tag as the code
+			const result = room.handleMessage(VISITOR_1, {
+				type: "action",
+				action: { type: "plan", gear: 1, cardIndices: [99] },
+			});
+
+			expect(result.toVisitor?.messages[0]).toMatchObject({
+				type: "error",
+				code: "InvalidCardIndex",
+			});
+		});
 	});
 
 	describe("rejoin during game", () => {

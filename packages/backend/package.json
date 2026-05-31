@@ -13,6 +13,7 @@
 	},
 	"dependencies": {
 		"@overdrive/shared": "workspace:*",
+		"effect": "^3.21.2",
 		"hono": "^4.11.3"
 	},
 	"devDependencies": {

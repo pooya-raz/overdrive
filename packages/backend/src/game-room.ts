@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { type Action, Game } from "./engine/game";
 import type {
 	RoomClientMessage,
@@ -197,13 +198,13 @@ export class GameRoom {
 			return this.errorToVisitor(visitorId, "Not in this room");
 		}
 
-		try {
-			this.game.dispatch(playerId, action);
-			return { gameStates: this.buildGameStates() };
-		} catch (error) {
-			const message = error instanceof Error ? error.message : "Unknown error";
-			return this.errorToVisitor(visitorId, message);
-		}
+		return this.game.dispatch(playerId, action).pipe(
+			Effect.map(() => ({ gameStates: this.buildGameStates() }) as RoomResult),
+			Effect.catchAll((err) =>
+				Effect.succeed(this.errorToVisitor(visitorId, err.message, err._tag)),
+			),
+			Effect.runSync,
+		);
 	}
 
 	private handleQuitGame(): RoomResult {
@@ -273,11 +274,15 @@ export class GameRoom {
 		}
 	}
 
-	private errorToVisitor(visitorId: string, message: string): RoomResult {
+	private errorToVisitor(
+		visitorId: string,
+		message: string,
+		code?: string,
+	): RoomResult {
 		return {
 			toVisitor: {
 				visitorId,
-				messages: [{ type: "error", message }],
+				messages: [{ type: "error", message, code }],
 			},
 		};
 	}

@@ -31,6 +31,10 @@ function completeResolutionPhase(game: Game): void {
 		if (game.state.currentState === "slipstream") {
 			game.dispatch(playerId, { type: "slipstream", use: false });
 		}
+		// Corner penalty acknowledgment is required when penalties are paid
+		if (game.state.currentState === "cornerPenalty") {
+			game.dispatch(playerId, { type: "cornerPenalty" });
+		}
 		game.dispatch(playerId, { type: "discard", cardIndices: [] });
 	}
 }
@@ -839,6 +843,229 @@ describe("Game", () => {
 
 			// Slipstream should be skipped, going directly to discard
 			expect(game.state.currentState).toBe("discard");
+		});
+	});
+
+	describe("corner penalty acknowledgment", () => {
+		it("should skip cornerPenalty state when crossing corner under speed limit", () => {
+			// Test map: corner at position 6 with speed limit 4
+			const game = new Game(
+				{ players: [PLAYER_1], map: "Test" },
+				{ shuffle: noShuffle },
+			);
+
+			// Player starts at 0, plays speed 4 -> ends at 4, doesn't cross corner
+			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
+
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false });
+			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+
+			// Should skip cornerPenalty and go directly to discard
+			expect(game.state.currentState).toBe("discard");
+			expect(
+				game.state.players[PLAYER_1.id].turnActions.cornerPenalty,
+			).toBeUndefined();
+		});
+
+		it("should enter cornerPenalty state when exceeding corner speed limit", () => {
+			// Test map: corner at position 6 with speed limit 4
+			const game = new Game(
+				{ players: [PLAYER_1], map: "Test" },
+				{ shuffle: noShuffle },
+			);
+
+			// Player starts at 0, plays upgrade 5 -> speed 5, ends at 5, crosses corner at 6
+			// Wait, player ends at 5, corner is at 6, so won't cross it yet
+			// Let's play two cards: upgrade 5 + speed 4 = 9 movement -> position 9, crosses corner at 6
+			game.dispatch(PLAYER_1.id, {
+				type: "plan",
+				gear: 2,
+				cardIndices: [6, 4],
+			});
+
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false });
+			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+
+			// Speed is 9, corner limit is 4, penalty is 5 heat
+			// Should enter cornerPenalty state
+			expect(game.state.currentState).toBe("cornerPenalty");
+
+			// Verify penalty info is recorded
+			const penalty = game.state.players[PLAYER_1.id].turnActions.cornerPenalty;
+			expect(penalty).toBeDefined();
+			expect(penalty!.corners).toHaveLength(1);
+			expect(penalty!.corners[0].cornerPosition).toBe(6);
+			expect(penalty!.corners[0].speedLimit).toBe(4);
+			expect(penalty!.corners[0].playerSpeed).toBe(9);
+			expect(penalty!.corners[0].penaltyAmount).toBe(5);
+		});
+
+		it("should transition to discard after acknowledging corner penalty", () => {
+			const game = new Game(
+				{ players: [PLAYER_1], map: "Test" },
+				{ shuffle: noShuffle },
+			);
+
+			game.dispatch(PLAYER_1.id, {
+				type: "plan",
+				gear: 2,
+				cardIndices: [6, 4],
+			});
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false });
+			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+
+			expect(game.state.currentState).toBe("cornerPenalty");
+
+			game.dispatch(PLAYER_1.id, { type: "cornerPenalty" });
+
+			expect(game.state.currentState).toBe("discard");
+		});
+
+		it("should record spinout when player cannot pay full heat penalty", () => {
+			// Test map: corner at position 6 (limit 4), corner at position 15 (limit 3)
+			const game = new Game(
+				{ players: [PLAYER_1], map: "Test" },
+				{ shuffle: noShuffle },
+			);
+
+			// Player starts with 6 heat in engine
+			expect(game.state.players[PLAYER_1.id].engineSize).toBe(6);
+
+			// Turn 1: Shift 1->3 (costs 1 heat = 5 remaining)
+			// Play speed 4 + upgrade 5 + upgrade 0 = 9 speed
+			// Crosses corner at 6 (limit 4), penalty = 5, pays all 5 heat, 0 remaining
+			game.dispatch(PLAYER_1.id, {
+				type: "plan",
+				gear: 3,
+				cardIndices: [6, 4, 5],
+			});
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false });
+			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+
+			expect(game.state.currentState).toBe("cornerPenalty");
+			expect(game.state.players[PLAYER_1.id].engineSize).toBe(0);
+			game.dispatch(PLAYER_1.id, { type: "cornerPenalty" });
+			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
+
+			// Player at position 9, has 0 heat
+			expect(game.state.players[PLAYER_1.id].position).toBe(9);
+
+			// Turn 2: Shift 3->2 (no heat cost), play speed4 + speed4 = 8 speed
+			// With noShuffle, hand after draw has: [stress, stress, stress, heat, speed4, speed4, speed3]
+			// Play indices 4 and 5 (speed4 + speed4) = 8 speed
+			// Position 9 + 8 = 17, crosses corner at 15 (limit 3)
+			// Penalty = 8 - 3 = 5, but 0 heat available = spinout!
+			game.dispatch(PLAYER_1.id, {
+				type: "plan",
+				gear: 2,
+				cardIndices: [4, 5],
+			});
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false });
+			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+
+			// Must enter cornerPenalty state with spinout
+			expect(game.state.currentState).toBe("cornerPenalty");
+
+			const penalty = game.state.players[PLAYER_1.id].turnActions.cornerPenalty;
+			expect(penalty).toBeDefined();
+			expect(penalty!.spinout).toBeDefined();
+			expect(penalty!.spinout!.newGear).toBe(1);
+			expect(penalty!.spinout!.cornerPosition).toBe(15);
+			expect(penalty!.spinout!.newPosition).toBe(14);
+			// In gear 2, spinout gives 1 stress card
+			expect(penalty!.spinout!.stressCardsReceived).toBe(1);
+
+			// Verify player state reflects spinout
+			expect(game.state.players[PLAYER_1.id].position).toBe(14);
+			expect(game.state.players[PLAYER_1.id].gear).toBe(1);
+		});
+
+		it("should record heat paid in corner penalty result", () => {
+			const game = new Game(
+				{ players: [PLAYER_1], map: "Test" },
+				{ shuffle: noShuffle },
+			);
+
+			// Player starts with 6 heat in engine
+			expect(game.state.players[PLAYER_1.id].engineSize).toBe(6);
+
+			// Play speed 4 + upgrade 5 = 9 speed, crosses corner at 6 (limit 4)
+			// Penalty = 5 heat to pay
+			game.dispatch(PLAYER_1.id, {
+				type: "plan",
+				gear: 2,
+				cardIndices: [6, 4],
+			});
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false });
+			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+
+			expect(game.state.currentState).toBe("cornerPenalty");
+
+			const penalty = game.state.players[PLAYER_1.id].turnActions.cornerPenalty;
+			expect(penalty).toBeDefined();
+			expect(penalty!.corners[0].heatPaid).toBe(5);
+			// Engine should now have 1 heat remaining (6 - 5)
+			expect(game.state.players[PLAYER_1.id].engineSize).toBe(1);
+		});
+
+		it("should skip cornerPenalty when corner is crossed at or below speed limit", () => {
+			const game = new Game(
+				{ players: [PLAYER_1], map: "Test" },
+				{ shuffle: noShuffle },
+			);
+
+			// Move to position 2 first turn, then position 6+ at speed 4 (corner limit is 4)
+			game.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [5] }); // upgrade 0
+			game.dispatch(PLAYER_1.id, { type: "move" });
+			game.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false });
+			game.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			game.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
+
+			// Player at position 0, turn 2
+			game.dispatch(PLAYER_1.id, {
+				type: "plan",
+				gear: 2,
+				cardIndices: [4, 5],
+			}); // upgrade 5 + upgrade 0 = 5 + 0 = 5
+
+			// Actually need more movement. Let's check player's position
+			// Player is at position 0 after turn 1 (moved 0)
+			// Turn 2: play upgrade 5 = 5 movement, end at position 5
+			// Still doesn't cross corner at 6
+
+			// Let's try a different approach - start fresh and cross corner at exactly speed limit
+			const game2 = new Game(
+				{ players: [PLAYER_1], map: "Test" },
+				{ shuffle: noShuffle },
+			);
+
+			// Position 0, play speed 4 + upgrade 0 + upgrade 0 + upgrade 0 = 4 speed in gear 4
+			// Actually simpler: play speed 4 three turns to cross corner at speed 4
+			// Turn 1: speed 4 -> position 4
+			game2.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
+			game2.dispatch(PLAYER_1.id, { type: "move" });
+			game2.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false });
+			game2.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+			game2.dispatch(PLAYER_1.id, { type: "discard", cardIndices: [] });
+
+			// Turn 2: position 4, play speed card = 4, end at 8, crosses corner at 6 at speed 4
+			// Speed 4 = corner limit 4, no penalty
+			game2.dispatch(PLAYER_1.id, { type: "plan", gear: 1, cardIndices: [6] });
+			game2.dispatch(PLAYER_1.id, { type: "move" });
+			game2.dispatch(PLAYER_1.id, { type: "adrenaline", acceptMove: false });
+			game2.dispatch(PLAYER_1.id, { type: "react", action: "skip" });
+
+			// Should skip cornerPenalty state since speed <= limit
+			expect(game2.state.currentState).toBe("discard");
+			expect(
+				game2.state.players[PLAYER_1.id].turnActions.cornerPenalty,
+			).toBeUndefined();
 		});
 	});
 

@@ -19,6 +19,8 @@ export type {
 	Card,
 	CardType,
 	Corner,
+	CornerPenaltyInfo,
+	CornerPenaltyResult,
 	CreateGameRequest,
 	GameMap,
 	GameOptions,
@@ -27,6 +29,7 @@ export type {
 	Gear,
 	PlayerInput,
 	ReactChoice,
+	SpinoutResult,
 	Track,
 	TurnState,
 } from "./types";
@@ -243,6 +246,10 @@ export class Game {
 				this.finishMovement(playerId, player);
 				break;
 			}
+			case "cornerPenalty": {
+				this.completeMovementPhase(playerId, player);
+				break;
+			}
 			case "discard": {
 				player.discard(action.cardIndices);
 				player.draw();
@@ -319,8 +326,20 @@ export class Game {
 
 	private finishMovement(playerId: string, player: Player): void {
 		this.resolveCollision(playerId, player);
-		this.checkCorners(player);
 
+		const track = getMapTrack(this._state.map);
+		const penaltyInfo = player.checkCorners(track.corners);
+
+		if (penaltyInfo) {
+			player.recordCornerPenalty(penaltyInfo);
+			this._state.currentState = "cornerPenalty";
+			return;
+		}
+
+		this.completeMovementPhase(playerId, player);
+	}
+
+	private completeMovementPhase(playerId: string, player: Player): void {
 		const track = getMapTrack(this._state.map);
 		if (player.updateRaceProgress(track.length, this._state.laps)) {
 			this._state.finishOrder.push(playerId);
@@ -328,11 +347,6 @@ export class Game {
 		}
 
 		this._state.currentState = "discard";
-	}
-
-	private checkCorners(player: Player): void {
-		const track = getMapTrack(this._state.map);
-		player.checkCorners(track.corners);
 	}
 
 	private resolveCollision(playerId: string, player: Player): void {

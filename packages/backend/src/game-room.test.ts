@@ -299,12 +299,16 @@ describe("GameRoom", () => {
 			});
 
 			expect(result.toVisitor?.visitorId).toBe(NEW_VISITOR);
-			expect(result.toVisitor?.messages).toHaveLength(3);
-			expect(result.toVisitor?.messages[0]).toMatchObject({
+			expect(result.toVisitor?.messages).toHaveLength(4);
+			expect(result.toVisitor?.messages[0]).toEqual({
+				type: "joined",
+				playerId: VISITOR_2,
+			});
+			expect(result.toVisitor?.messages[1]).toMatchObject({
 				type: "roomState",
 			});
-			expect(result.toVisitor?.messages[1]).toEqual({ type: "gameStarted" });
-			expect(result.toVisitor?.messages[2]).toMatchObject({ type: "state" });
+			expect(result.toVisitor?.messages[2]).toEqual({ type: "gameStarted" });
+			expect(result.toVisitor?.messages[3]).toMatchObject({ type: "state" });
 		});
 
 		it("should reject new player during game", () => {

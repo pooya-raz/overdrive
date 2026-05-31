@@ -33,8 +33,8 @@ export class GameRoom {
 	private status: "waiting" | "playing" = "waiting";
 	private hostId: string | null = null;
 	private game: Game | null = null;
-	private roomId: string;
-	private roomName: string;
+	private readonly roomId: string;
+	private readonly roomName: string;
 
 	constructor(roomId: string, roomName: string) {
 		this.roomId = roomId;
@@ -135,6 +135,7 @@ export class GameRoom {
 			toVisitor: {
 				visitorId,
 				messages: [
+					{ type: "joined", playerId: existingPlayer.id },
 					{ type: "roomState", state: this.state },
 					{ type: "gameStarted" },
 					{
